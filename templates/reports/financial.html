@@ -1,0 +1,367 @@
+{% extends "base.html" %}
+
+{% block page_title %}Financial Report{% endblock %}
+
+{% block page_actions %}
+<div class="btn-group">
+    <a href="{{ url_for('reports.export_expenses', date_from=date_from, date_to=date_to) }}" class="btn btn-outline-primary">
+        <i class="fas fa-download me-2"></i>Export Expenses
+    </a>
+    <a href="{{ url_for('reports.export_payments', date_from=date_from, date_to=date_to) }}" class="btn btn-outline-success">
+        <i class="fas fa-download me-2"></i>Export Payments
+    </a>
+</div>
+{% endblock %}
+
+{% block content %}
+<!-- Date Range Filter -->
+<div class="card mb-4">
+    <div class="card-header">
+        <h5 class="card-title mb-0">
+            <i class="fas fa-calendar me-2"></i>Report Period
+        </h5>
+    </div>
+    <div class="card-body">
+        <form method="GET" class="row g-3">
+            <div class="col-md-4">
+                <label for="date_from" class="form-label">From Date</label>
+                <input type="date" class="form-control" id="date_from" name="date_from" value="{{ date_from }}">
+            </div>
+            <div class="col-md-4">
+                <label for="date_to" class="form-label">To Date</label>
+                <input type="date" class="form-control" id="date_to" name="date_to" value="{{ date_to }}">
+            </div>
+            <div class="col-md-4">
+                <label class="form-label">&nbsp;</label>
+                <div class="d-grid">
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-chart-line me-2"></i>Generate Report
+                    </button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Financial Summary Cards -->
+<div class="row mb-4">
+    <div class="col-md-3">
+        <div class="card bg-success text-white">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h4>{{ "%.2f"|format(total_income) }} MAD</h4>
+                        <p class="mb-0">Total Income</p>
+                    </div>
+                    <div class="align-self-center">
+                        <i class="fas fa-arrow-up fa-2x"></i>
+                    </div>
+                </div>
+                <div class="mt-2">
+                                <small>Rent: {{ "%.2f"|format(rent_income) }} MAD</small><br>
+            <small>Other: {{ "%.2f"|format(other_income) }} MAD</small>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-3">
+        <div class="card bg-danger text-white">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h4>{{ "%.2f"|format(total_expenses) }} MAD</h4>
+                        <p class="mb-0">Total Expenses</p>
+                    </div>
+                    <div class="align-self-center">
+                        <i class="fas fa-arrow-down fa-2x"></i>
+                    </div>
+                </div>
+                <div class="mt-2">
+                    <small>{{ expense_breakdown|length }} categories</small>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-3">
+        <div class="card bg-{% if net_profit >= 0 %}info{% else %}warning{% endif %} text-white">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h4>{{ "%.2f"|format(net_profit) }} MAD</h4>
+                        <p class="mb-0">Net {% if net_profit >= 0 %}Profit{% else %}Loss{% endif %}</p>
+                    </div>
+                    <div class="align-self-center">
+                        <i class="fas fa-{% if net_profit >= 0 %}chart-line{% else %}exclamation-triangle{% endif %} fa-2x"></i>
+                    </div>
+                </div>
+                <div class="mt-2">
+                    <small>{{ "%.1f"|format((net_profit/total_income*100) if total_income > 0 else 0) }}% margin</small>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-3">
+        <div class="card bg-secondary text-white">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h4>{{ (recent_expenses|length + recent_payments|length) }}</h4>
+                        <p class="mb-0">Transactions</p>
+                    </div>
+                    <div class="align-self-center">
+                        <i class="fas fa-exchange-alt fa-2x"></i>
+                    </div>
+                </div>
+                <div class="mt-2">
+                    <small>{{ recent_expenses|length }} expenses, {{ recent_payments|length }} payments</small>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Expense Breakdown -->
+<div class="row mb-4">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">Expense Breakdown by Category</h5>
+            </div>
+            <div class="card-body">
+                {% if expense_breakdown %}
+                <div class="table-responsive">
+                    <table class="table table-striped">
+                        <thead>
+                            <tr>
+                                <th>Category</th>
+                                <th class="text-end">Amount</th>
+                                <th class="text-end">Percentage</th>
+                                <th>Progress</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for category, amount in expense_breakdown %}
+                            <tr>
+                                <td>
+                                    <strong>{{ category.replace('_', ' ').title() }}</strong>
+                                </td>
+                                <td class="text-end">
+                                    <strong>{{ "%.2f"|format(amount) }} MAD</strong>
+                                </td>
+                                <td class="text-end">
+                                    {{ "%.1f"|format(amount/total_expenses*100) }}%
+                                </td>
+                                <td>
+                                    <div class="progress">
+                                        <div class="progress-bar" role="progressbar" 
+                                             style="width: {{ (amount/total_expenses*100)|round(1) }}%"
+                                             aria-valuenow="{{ (amount/total_expenses*100)|round(1) }}" 
+                                             aria-valuemin="0" aria-valuemax="100">
+                                        </div>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <div class="text-center py-4">
+                    <i class="fas fa-chart-pie fa-3x text-muted mb-3"></i>
+                    <h5 class="text-muted">No Expenses Found</h5>
+                    <p class="text-muted">No expenses recorded for the selected period.</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">Income vs Expenses</h5>
+            </div>
+            <div class="card-body">
+                <canvas id="incomeExpenseChart" height="200"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Recent Transactions -->
+<div class="row">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">Recent Expenses</h5>
+            </div>
+            <div class="card-body">
+                {% if recent_expenses %}
+                <div class="list-group list-group-flush">
+                    {% for expense in recent_expenses %}
+                    <div class="list-group-item d-flex justify-content-between align-items-start">
+                        <div class="ms-2 me-auto">
+                            <div class="fw-bold">{{ expense.description }}</div>
+                            <small class="text-muted">{{ expense.date.strftime('%Y-%m-%d') }} - {{ expense.category.replace('_', ' ').title() }}</small>
+                        </div>
+                        <span class="badge bg-danger rounded-pill">{{ "%.2f"|format(expense.amount) }} MAD</span>
+                    </div>
+                    {% endfor %}
+                </div>
+                <div class="text-center mt-3">
+                    <a href="{{ url_for('expenses.index') }}" class="btn btn-outline-primary btn-sm">
+                        View All Expenses
+                    </a>
+                </div>
+                {% else %}
+                <div class="text-center py-3">
+                    <i class="fas fa-receipt fa-2x text-muted mb-2"></i>
+                    <p class="text-muted">No recent expenses</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">Recent Payments</h5>
+            </div>
+            <div class="card-body">
+                {% if recent_payments %}
+                <div class="list-group list-group-flush">
+                    {% for payment in recent_payments %}
+                    <div class="list-group-item d-flex justify-content-between align-items-start">
+                        <div class="ms-2 me-auto">
+                            <div class="fw-bold">{{ payment.tenant.name }}</div>
+                            <small class="text-muted">{{ payment.payment_date.strftime('%Y-%m-%d') }} - {{ payment.payment_for_month }}</small>
+                        </div>
+                        <span class="badge bg-success rounded-pill">{{ "%.2f"|format(payment.amount) }} MAD</span>
+                    </div>
+                    {% endfor %}
+                </div>
+                <div class="text-center mt-3">
+                    <a href="{{ url_for('guests.index') }}" class="btn btn-outline-success btn-sm">
+                        View All Guests
+                    </a>
+                </div>
+                {% else %}
+                <div class="text-center py-3">
+                    <i class="fas fa-money-bill-wave fa-2x text-muted mb-2"></i>
+                    <p class="text-muted">No recent payments</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Financial Insights -->
+<div class="row mt-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="fas fa-lightbulb me-2"></i>Financial Insights
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-4">
+                        <div class="border-start border-primary border-4 ps-3">
+                            <h6 class="text-primary">Revenue Analysis</h6>
+                            <p class="mb-1">
+                                <strong>Primary Income:</strong> {{ "%.2f"|format(rent_income) }} MAD ({{ "%.1f"|format((rent_income/total_income*100) if total_income > 0 else 0) }}%)
+                            </p>
+                            <small class="text-muted">Rent payments account for the majority of income</small>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="border-start border-danger border-4 ps-3">
+                            <h6 class="text-danger">Cost Analysis</h6>
+                            {% if expense_breakdown %}
+                                {% set top_expense = expense_breakdown|max(attribute=1) %}
+                                <p class="mb-1">
+                                    <strong>Highest Cost:</strong> {{ top_expense[0].replace('_', ' ').title() }}
+                                </p>
+                                <small class="text-muted">{{ "%.2f"|format(top_expense[1]) }} MAD ({{ "%.1f"|format(top_expense[1]/total_expenses*100) }}% of expenses)</small>
+                            {% else %}
+                                <small class="text-muted">No expense data available</small>
+                            {% endif %}
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="border-start border-info border-4 ps-3">
+                            <h6 class="text-info">Profitability</h6>
+                            {% if net_profit >= 0 %}
+                                <p class="mb-1"><strong>Status:</strong> <span class="text-success">Profitable</span></p>
+                                <small class="text-muted">{{ "%.1f"|format((net_profit/total_income*100) if total_income > 0 else 0) }}% profit margin</small>
+                            {% else %}
+                                <p class="mb-1"><strong>Status:</strong> <span class="text-danger">Loss</span></p>
+                                <small class="text-muted">Review expenses to improve profitability</small>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+// Income vs Expense Pie Chart
+const ctx = document.getElementById('incomeExpenseChart').getContext('2d');
+new Chart(ctx, {
+    type: 'doughnut',
+    data: {
+        labels: ['Income', 'Expenses'],
+        datasets: [{
+            data: [{{ total_income }}, {{ total_expenses }}],
+            backgroundColor: ['#198754', '#dc3545'],
+            borderWidth: 2,
+            borderColor: '#fff'
+        }]
+    },
+    options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+            legend: {
+                position: 'bottom'
+            },
+            tooltip: {
+                callbacks: {
+                    label: function(context) {
+                        const total = {{ total_income + total_expenses }};
+                        const percentage = ((context.parsed / total) * 100).toFixed(1);
+                        return context.label + ': $' + context.parsed.toFixed(2) + ' (' + percentage + '%)';
+                    }
+                }
+            }
+        }
+    }
+});
+
+// Set default date range if empty
+document.addEventListener('DOMContentLoaded', function() {
+    const dateFrom = document.getElementById('date_from');
+    const dateTo = document.getElementById('date_to');
+    
+    if (!dateFrom.value) {
+        const firstDay = new Date(new Date().getFullYear(), new Date().getMonth(), 1);
+        dateFrom.value = firstDay.toISOString().split('T')[0];
+    }
+    
+    if (!dateTo.value) {
+        const today = new Date();
+        dateTo.value = today.toISOString().split('T')[0];
+    }
+});
+</script>
+{% endblock %}

@@ -1,0 +1,93 @@
+{% extends "base.html" %}
+
+{% block page_title %}Add Role with All Permissions{% endblock %}
+
+{% block page_subtitle %}
+<p class="text-muted mb-0">Create a new role with ALL system permissions (for testing purposes)</p>
+{% endblock %}
+
+{% block page_actions %}
+<div class="d-flex gap-2 align-items-center">
+    <a href="{{ url_for('user_management.roles_list') }}" class="btn btn-modern btn-outline-secondary">
+        <i class="fas fa-arrow-left me-2"></i>Back to Roles
+    </a>
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row justify-content-center">
+        <div class="col-md-8 col-lg-6">
+            <div class="card">
+                <div class="card-header bg-warning text-dark">
+                    <h5 class="mb-0">
+                        <i class="fas fa-exclamation-triangle me-2"></i>Add Role with ALL Permissions
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="alert alert-warning">
+                        <i class="fas fa-exclamation-triangle me-2"></i>
+                        <strong>Warning:</strong> This will create a role with ALL system permissions. 
+                        Only use this for testing or super admin purposes.
+                    </div>
+                    
+                    <form method="POST">
+                        <div class="mb-3">
+                            <label for="name" class="form-label">Role Name *</label>
+                            <input type="text" class="form-control" id="name" name="name" required 
+                                   placeholder="e.g., Test User, Super Admin, etc.">
+                            <div class="form-text">Unique name for this role</div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="description" class="form-label">Description</label>
+                            <textarea class="form-control" id="description" name="description" rows="3" 
+                                      placeholder="Description of this role's purpose"></textarea>
+                            <div class="form-text">Brief description of what this role is for</div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label class="form-label">Permissions</label>
+                            <div class="alert alert-info">
+                                <i class="fas fa-info-circle me-2"></i>
+                                This role will automatically receive <strong>ALL {{ permissions|length }} permissions</strong> 
+                                from all modules in the system.
+                            </div>
+                            
+                            <div class="permissions-summary" style="max-height: 300px; overflow-y: auto; border: 1px solid #dee2e6; border-radius: 0.375rem; padding: 1rem;">
+                                <h6 class="text-primary mb-3">Permission Summary:</h6>
+                                {% set modules = {} %}
+                                {% for permission in permissions %}
+                                    {% set module_key = permission.module or 'general' %}
+                                    {% if module_key not in modules %}
+                                        {% set _ = modules.update({module_key: []}) %}
+                                    {% endif %}
+                                    {% set _ = modules[module_key].append(permission) %}
+                                {% endfor %}
+                                
+                                {% for module_name, module_permissions in modules.items() %}
+                                    <div class="permission-module mb-3">
+                                        <h6 class="text-success">
+                                            <i class="fas fa-check-circle me-2"></i>{{ (module_name or 'General').replace('_', ' ').title() }}
+                                        </h6>
+                                        <small class="text-muted">{{ module_permissions|length }} permissions</small>
+                                    </div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                        
+                        <div class="d-grid gap-2">
+                            <button type="submit" class="btn btn-modern btn-warning">
+                                <i class="fas fa-user-shield me-2"></i>Create Role with ALL Permissions
+                            </button>
+                            <a href="{{ url_for('user_management.roles_list') }}" class="btn btn-modern btn-outline-secondary">
+                                <i class="fas fa-times me-2"></i>Cancel
+                            </a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

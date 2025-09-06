@@ -1,0 +1,208 @@
+{% extends "base.html" %}
+
+{% block page_title %}Payment Links{% endblock %}
+
+{% block page_actions %}
+<div class="dropdown">
+    <button class="btn btn-primary dropdown-toggle" type="button" data-bs-toggle="dropdown">
+        <i class="fas fa-plus me-2"></i>Create Payment Link
+    </button>
+    <ul class="dropdown-menu">
+        {% for tenant in tenants[:10] %}
+        <li>
+            <a class="dropdown-item" href="{{ url_for('payment_links.create', tenant_id=tenant.id) }}">
+                {{ tenant.name }}
+            </a>
+        </li>
+        {% endfor %}
+        {% if tenants|length > 10 %}
+        <li><hr class="dropdown-divider"></li>
+                                <li><a class="dropdown-item text-muted" href="{{ url_for('guests.index') }}">View all guests...</a></li>
+        {% endif %}
+    </ul>
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="card mb-4">
+    <div class="card-header">
+        <h5 class="card-title mb-0">
+            <i class="fas fa-filter me-2"></i>Filters
+        </h5>
+    </div>
+    <div class="card-body">
+        <form method="GET" class="row g-3">
+            <div class="col-md-3">
+                <label class="form-label">Status</label>
+                <select name="status" class="form-select">
+                    <option value="">All Status</option>
+                    <option value="pending" {% if status_filter=='pending' %}selected{% endif %}>Pending</option>
+                    <option value="paid" {% if status_filter=='paid' %}selected{% endif %}>Paid</option>
+                    <option value="expired" {% if status_filter=='expired' %}selected{% endif %}>Expired</option>
+                </select>
+            </div>
+            <div class="col-md-4">
+                <label class="form-label">Guest</label>
+                <select name="tenant_id" class="form-select">
+                    <option value="">All Guests</option>
+                    {% for tenant in tenants %}
+                    <option value="{{ tenant.id }}" {% if tenant.id|string == tenant_filter %}selected{% endif %}>
+                        {{ tenant.name }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-2">
+                <label class="form-label">&nbsp;</label>
+                <div class="d-grid">
+                    <button type="submit" class="btn btn-outline-primary">Filter</button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-header">
+        <h5 class="card-title mb-0">
+            <i class="fas fa-link me-2"></i>Payment Links
+        </h5>
+    </div>
+    <div class="card-body">
+        {% if payment_links.items %}
+        <div class="table-responsive">
+            <table class="table table-hover">
+                <thead>
+                    <tr>
+                        <th>Guest</th>
+                        <th>Amount</th>
+                        <th>Description</th>
+                        <th>Status</th>
+                        <th>Created</th>
+                        <th>Expires</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for link in payment_links.items %}
+                    <tr>
+                        <td>{{ link.tenant.name }}</td>
+                        <td>${{ "%.2f"|format(link.amount) }}</td>
+                        <td>{{ link.description }}</td>
+                        <td>
+                            {% if link.is_paid %}
+                                <span class="badge bg-success">Paid</span>
+                                <small class="text-muted d-block">{{ link.paid_at.strftime('%Y-%m-%d %H:%M') if link.paid_at }}</small>
+                            {% elif link.expires_at < current_time %}
+                                <span class="badge bg-danger">Expired</span>
+                            {% else %}
+                                <span class="badge bg-warning">Pending</span>
+                            {% endif %}
+                        </td>
+                        <td>{{ link.created_at.strftime('%Y-%m-%d %H:%M') }}</td>
+                        <td>
+                            {{ link.expires_at.strftime('%Y-%m-%d %H:%M') }}
+                            {% if link.expires_at < current_time and not link.is_paid %}
+                                <small class="text-danger d-block">Expired</small>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <div class="btn-group btn-group-sm">
+                                {% if not link.is_paid %}
+                                <button class="btn btn-outline-primary" onclick="copyPaymentLink('{{ url_for('payment_links.pay', token=link.token, _external=True) }}')">
+                                    <i class="fas fa-copy me-1"></i>Copy Link
+                                </button>
+                                
+                                {% if link.expires_at < current_time %}
+                                <a href="{{ url_for('payment_links.resend', link_id=link.id) }}" class="btn btn-outline-warning">
+                                    <i class="fas fa-redo me-1"></i>Extend
+                                </a>
+                                {% else %}
+                                <a href="{{ url_for('payment_links.cancel', link_id=link.id) }}" class="btn btn-outline-danger" 
+                                   onclick="return confirm('Are you sure you want to cancel this payment link?')">
+                                    <i class="fas fa-times me-1"></i>Cancel
+                                </a>
+                                {% endif %}
+                                {% else %}
+                                <span class="text-muted">Completed</span>
+                                {% endif %}
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Pagination -->
+        {% if payment_links.pages > 1 %}
+        <nav aria-label="Payment links pagination">
+            <ul class="pagination justify-content-center">
+                {% if payment_links.has_prev %}
+                <li class="page-item">
+                    <a class="page-link" href="{{ url_for('payment_links.index', page=payment_links.prev_num, status=status_filter, tenant_id=tenant_filter) }}">Previous</a>
+                </li>
+                {% endif %}
+
+                {% for page_num in payment_links.iter_pages() %}
+                    {% if page_num %}
+                        {% if page_num != payment_links.page %}
+                        <li class="page-item">
+                            <a class="page-link" href="{{ url_for('payment_links.index', page=page_num, status=status_filter, tenant_id=tenant_filter) }}">{{ page_num }}</a>
+                        </li>
+                        {% else %}
+                        <li class="page-item active">
+                            <span class="page-link">{{ page_num }}</span>
+                        </li>
+                        {% endif %}
+                    {% else %}
+                    <li class="page-item disabled">
+                        <span class="page-link">…</span>
+                    </li>
+                    {% endif %}
+                {% endfor %}
+
+                {% if payment_links.has_next %}
+                <li class="page-item">
+                    <a class="page-link" href="{{ url_for('payment_links.index', page=payment_links.next_num, status=status_filter, tenant_id=tenant_filter) }}">Next</a>
+                </li>
+                {% endif %}
+            </ul>
+        </nav>
+        {% endif %}
+
+        {% else %}
+        <div class="text-center text-muted py-4">
+            <i class="fas fa-link fa-3x mb-3"></i>
+            <h5>No payment links found</h5>
+            <p>Create payment links to allow guests to pay online.</p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<script>
+function copyPaymentLink(url) {
+    navigator.clipboard.writeText(url).then(function() {
+        // Show success message
+        const toast = document.createElement('div');
+        toast.className = 'toast align-items-center text-white bg-success border-0 position-fixed';
+        toast.style.top = '20px';
+        toast.style.right = '20px';
+        toast.style.zIndex = '9999';
+        toast.innerHTML = `
+            <div class="d-flex">
+                <div class="toast-body">
+                    Payment link copied to clipboard!
+                </div>
+                <button type="button" class="btn-close btn-close-white me-2 m-auto" onclick="this.parentElement.parentElement.remove()"></button>
+            </div>
+        `;
+        document.body.appendChild(toast);
+        setTimeout(() => toast.remove(), 3000);
+    }).catch(function(err) {
+        alert('Failed to copy link: ' + err);
+    });
+}
+</script>
+{% endblock %}

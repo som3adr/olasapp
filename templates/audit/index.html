@@ -1,0 +1,178 @@
+{% extends "base.html" %}
+
+{% block page_title %}Audit Log{% endblock %}
+
+{% block content %}
+<div class="card mb-4">
+    <div class="card-header">
+        <h5 class="card-title mb-0">
+            <i class="fas fa-history me-2"></i>Audit Log Filters
+        </h5>
+    </div>
+    <div class="card-body">
+        <form method="GET" class="row g-3">
+            <div class="col-md-3">
+                <label class="form-label">Action</label>
+                <select name="action" class="form-select">
+                    <option value="">All Actions</option>
+                    {% for action in actions %}
+                    <option value="{{ action }}" {% if action == action_filter %}selected{% endif %}>
+                        {{ action.replace('_', ' ').title() }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-3">
+                <label class="form-label">User</label>
+                <select name="user_id" class="form-select">
+                    <option value="">All Users</option>
+                    {% for user in users %}
+                    <option value="{{ user.id }}" {% if user.id|string == user_filter %}selected{% endif %}>
+                        {{ user.username }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-2">
+                <label class="form-label">From Date</label>
+                <input type="date" name="date_from" class="form-control" value="{{ date_from }}">
+            </div>
+            <div class="col-md-2">
+                <label class="form-label">To Date</label>
+                <input type="date" name="date_to" class="form-control" value="{{ date_to }}">
+            </div>
+            <div class="col-md-2">
+                <label class="form-label">&nbsp;</label>
+                <div class="d-grid">
+                    <button type="submit" class="btn btn-primary">Filter</button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-header">
+        <h5 class="card-title mb-0">
+            <i class="fas fa-list me-2"></i>Audit Trail
+        </h5>
+    </div>
+    <div class="card-body">
+        {% if audit_logs.items %}
+        <div class="table-responsive">
+            <table class="table table-hover">
+                <thead>
+                    <tr>
+                        <th>Date/Time</th>
+                        <th>User</th>
+                        <th>Action</th>
+                        <th>Table</th>
+                        <th>Record ID</th>
+                        <th>IP Address</th>
+                        <th>Details</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for log in audit_logs.items %}
+                    <tr>
+                        <td>{{ log.created_at.strftime('%Y-%m-%d %H:%M:%S') }}</td>
+                        <td>
+                            {% if log.user_id %}
+                                {% for user in users %}
+                                    {% if user.id == log.user_id %}{{ user.username }}{% endif %}
+                                {% endfor %}
+                            {% else %}
+                                <span class="text-muted">System</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <span class="badge 
+                                {% if 'added' in log.action %}bg-success
+                                {% elif 'deleted' in log.action or 'vacated' in log.action %}bg-danger
+                                {% elif 'updated' in log.action or 'changed' in log.action or 'assigned' in log.action %}bg-warning
+                                {% else %}bg-info
+                                {% endif %}">
+                                {{ log.action.replace('_', ' ').title() }}
+                            </span>
+                        </td>
+                        <td>
+                            {% if log.table_name %}
+                                <code>{{ log.table_name }}</code>
+                            {% else %}
+                                <span class="text-muted">-</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if log.record_id %}
+                                {{ log.record_id }}
+                            {% else %}
+                                <span class="text-muted">-</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if log.ip_address %}
+                                <small class="text-muted">{{ log.ip_address }}</small>
+                            {% else %}
+                                <span class="text-muted">-</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <a href="{{ url_for('audit.detail', log_id=log.id) }}" class="btn btn-sm btn-outline-primary">
+                                <i class="fas fa-eye me-1"></i>View
+                            </a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Pagination -->
+        {% if audit_logs.pages > 1 %}
+        <nav aria-label="Audit log pagination">
+            <ul class="pagination justify-content-center">
+                {% if audit_logs.has_prev %}
+                <li class="page-item">
+                    <a class="page-link" href="{{ url_for('audit.index', page=audit_logs.prev_num, action=action_filter, user_id=user_filter, date_from=date_from, date_to=date_to) }}">Previous</a>
+                </li>
+                {% endif %}
+
+                {% for page_num in audit_logs.iter_pages() %}
+                    {% if page_num %}
+                        {% if page_num != audit_logs.page %}
+                        <li class="page-item">
+                            <a class="page-link" href="{{ url_for('audit.index', page=page_num, action=action_filter, user_id=user_filter, date_from=date_from, date_to=date_to) }}">{{ page_num }}</a>
+                        </li>
+                        {% else %}
+                        <li class="page-item active">
+                            <span class="page-link">{{ page_num }}</span>
+                        </li>
+                        {% endif %}
+                    {% else %}
+                    <li class="page-item disabled">
+                        <span class="page-link">…</span>
+                    </li>
+                    {% endif %}
+                {% endfor %}
+
+                {% if audit_logs.has_next %}
+                <li class="page-item">
+                    <a class="page-link" href="{{ url_for('audit.index', page=audit_logs.next_num, action=action_filter, user_id=user_filter, date_from=date_from, date_to=date_to) }}">Next</a>
+                </li>
+                {% endif %}
+            </ul>
+        </nav>
+        {% endif %}
+
+        {% else %}
+        <div class="text-center text-muted py-4">
+            <i class="fas fa-history fa-3x mb-3"></i>
+            <h5>No audit logs found</h5>
+            <p>No activities match your current filters.</p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
+
+

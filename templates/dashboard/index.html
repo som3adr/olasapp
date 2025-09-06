@@ -1,0 +1,1274 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard - Olas Surf Camp{% endblock %}
+
+{% block content %}
+<div class="dashboard-container">
+    <!-- Modern Header Section -->
+    <div class="dashboard-header">
+        <div class="header-content">
+            <div class="welcome-section">
+                <h1 class="dashboard-title">Good {{ moment_of_day }}, {{ current_user.username }}!</h1>
+                <p class="dashboard-subtitle">Here's what's happening at your surf camp today</p>
+            </div>
+            <div class="header-actions">
+                <button class="btn btn-primary btn-modern" onclick="location.href='{{ url_for('guests.add') }}'">
+                    <i class="fas fa-plus"></i>
+                    <span>Add Surfer</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Key Metrics Grid -->
+    <div class="metrics-grid">
+        <!-- Active Guests Card -->
+        <div class="metric-card guests-card">
+            <div class="metric-icon">
+                <i class="fas fa-users"></i>
+            </div>
+            <div class="metric-content">
+                <div class="metric-value">{{ total_active_guests }}</div>
+                <div class="metric-label">Active Surfers</div>
+                <div class="metric-trend {{ 'positive' if guest_percentage_change >= 0 else 'negative' }}">
+                    <i class="fas fa-arrow-{{ 'up' if guest_percentage_change >= 0 else 'down' }}"></i>
+                    <span>{{ '+' if guest_percentage_change >= 0 else '' }}{{ "%.1f"|format(guest_percentage_change) }}% from last week</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Today's Payments Card -->
+        <div class="metric-card payments-card">
+            <div class="metric-icon">
+                <i class="fas fa-credit-card"></i>
+            </div>
+            <div class="metric-content">
+                <div class="metric-value">{{ "%.0f"|format(total_payments) }} MAD</div>
+                <div class="metric-label">Today's Payments</div>
+                <div class="metric-trend {{ 'positive' if payment_percentage_change >= 0 else 'negative' }}">
+                    <i class="fas fa-arrow-{{ 'up' if payment_percentage_change >= 0 else 'down' }}"></i>
+                    <span>{{ '+' if payment_percentage_change >= 0 else '' }}{{ "%.1f"|format(payment_percentage_change) }}% from yesterday</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Pending Payments Card -->
+        <div class="metric-card pending-card">
+            <div class="metric-icon">
+                <i class="fas fa-clock"></i>
+            </div>
+            <div class="metric-content">
+                <div class="metric-value">{{ pending_payments }}</div>
+                <div class="metric-label">Pending Payments</div>
+                <div class="metric-trend {{ 'positive' if pending_percentage_change < 0 else 'negative' if pending_percentage_change > 0 else 'neutral' }}">
+                    <i class="fas fa-arrow-{{ 'down' if pending_percentage_change < 0 else 'up' if pending_percentage_change > 0 else 'minus' }}"></i>
+                    <span>
+                        {% if pending_percentage_change < 0 %}
+                            {{ "%.1f"|format(pending_percentage_change) }}% from yesterday
+                        {% elif pending_percentage_change > 0 %}
+                            +{{ "%.1f"|format(pending_percentage_change) }}% from yesterday
+                        {% else %}
+                            No change
+                        {% endif %}
+                    </span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Upcoming Checkouts Card -->
+        <div class="metric-card checkouts-card">
+            <div class="metric-icon">
+                <i class="fas fa-sign-out-alt"></i>
+            </div>
+            <div class="metric-content">
+                <div class="metric-value">{{ upcoming_checkouts }}</div>
+                <div class="metric-label">Upcoming Checkouts</div>
+                <div class="metric-trend neutral">
+                    <i class="fas fa-calendar"></i>
+                    <span>{{ nearest_checkout_text }}</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Content Grid -->
+    <div class="content-grid">
+        <!-- Recent Activity Section -->
+        <div class="content-card activity-card">
+            <div class="card-header">
+                <h3 class="card-title">
+                    <i class="fas fa-activity"></i>
+                    Recent Activity
+                </h3>
+                <a href="{{ url_for('guests.index') }}" class="card-action">View All Surfers</a>
+            </div>
+            <div class="card-content">
+                <div class="activity-list">
+                    {% for guest in recent_guests %}
+                    <div class="activity-item">
+                        <div class="activity-avatar">
+                            <i class="fas fa-user"></i>
+                        </div>
+                        <div class="activity-content">
+                            <div class="activity-text">
+                                <strong>{{ guest.name }}</strong> arrived at camp
+                            </div>
+                            <div class="activity-time">{{ guest.start_date.strftime('%b %d, %Y') }}</div>
+                        </div>
+                        <div class="activity-status">
+                            <span class="status-badge active">Active</span>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Quick Actions Section -->
+        <div class="content-card actions-card">
+            <div class="card-header">
+                <h3 class="card-title">
+                    <i class="fas fa-bolt"></i>
+                    Quick Actions
+                </h3>
+            </div>
+            <div class="card-content">
+                <div class="actions-grid">
+                    <a href="{{ url_for('guests.add') }}" class="action-item">
+                        <div class="action-icon">
+                            <i class="fas fa-user-plus"></i>
+                        </div>
+                        <div class="action-content">
+                            <div class="action-title">Add Surfer</div>
+                            <div class="action-desc">Register new surfer</div>
+                        </div>
+                    </a>
+                    
+                    <a href="{{ url_for('expenses.index') }}" class="action-item">
+                        <div class="action-icon">
+                            <i class="fas fa-receipt"></i>
+                        </div>
+                        <div class="action-content">
+                            <div class="action-title">Add Expense</div>
+                            <div class="action-desc">Record costs</div>
+                        </div>
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Financial Overview Section -->
+        <div class="content-card financial-card">
+            <div class="card-header">
+                <h3 class="card-title">
+                    <i class="fas fa-chart-line"></i>
+                    Financial Overview
+                </h3>
+                <a href="{{ url_for('reports.financial') }}" class="card-action">View Report</a>
+            </div>
+            <div class="card-content">
+                <div class="financial-metrics">
+                    <div class="financial-item">
+                        <div class="financial-label">Monthly Profit</div>
+                        <div class="financial-value {{ 'positive' if monthly_profit > 0 else 'negative' }}">
+                            {{ "%.0f"|format(monthly_profit) }} MAD
+                        </div>
+                    </div>
+                    <div class="financial-chart" style="height: 300px;">
+                        <canvas id="profitChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tasks Overview Section -->
+        <div class="content-card tasks-card">
+            <div class="card-header">
+                <h3 class="card-title">
+                    <i class="fas fa-tasks"></i>
+                    Tasks Overview
+                </h3>
+                <a href="{{ url_for('staff_tasks.index') }}" class="card-action">Manage</a>
+            </div>
+            <div class="card-content">
+                <div class="tasks-grid">
+                    <div class="task-item">
+                        <div class="task-icon cleaning">
+                            <i class="fas fa-broom"></i>
+                        </div>
+                        <div class="task-content">
+                            <div class="task-count">{{ cleaning_tasks }}</div>
+                            <div class="task-label">Cleaning</div>
+                        </div>
+                    </div>
+                    
+                    <div class="task-item">
+                        <div class="task-icon maintenance">
+                            <i class="fas fa-tools"></i>
+                        </div>
+                        <div class="task-content">
+                            <div class="task-count">{{ maintenance_tasks }}</div>
+                            <div class="task-label">Maintenance</div>
+                        </div>
+                    </div>
+                    
+                    <div class="task-item">
+                        <div class="task-icon admin">
+                            <i class="fas fa-clipboard-list"></i>
+                        </div>
+                        <div class="task-content">
+                            <div class="task-count">{{ admin_tasks }}</div>
+                            <div class="task-label">Admin</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Enhanced Data Visualization Section -->
+    <div class="charts-section">
+        <div class="charts-grid">
+            <!-- Guest Occupancy Chart -->
+            <div class="chart-card">
+                <div class="chart-header">
+                    <h3 class="chart-title">
+                        <i class="fas fa-users"></i>
+                        Guest Occupancy Trend
+                    </h3>
+                    <div class="chart-actions">
+                        <button class="btn btn-sm btn-outline-primary" onclick="refreshOccupancyChart()">
+                            <i class="fas fa-sync-alt"></i>
+                        </button>
+                    </div>
+                </div>
+                <div class="chart-content">
+                    <canvas id="occupancyChart" height="300"></canvas>
+                </div>
+            </div>
+
+            <!-- Revenue vs Expenses Chart -->
+            <div class="chart-card">
+                <div class="chart-header">
+                    <h3 class="chart-title">
+                        <i class="fas fa-chart-bar"></i>
+                        Revenue vs Expenses
+                    </h3>
+                    <div class="chart-actions">
+                        <select class="form-select form-select-sm" id="revenuePeriod">
+                            <option value="6months">Last 6 Months</option>
+                            <option value="12months">Last 12 Months</option>
+                            <option value="yearly">Yearly</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="chart-content">
+                    <canvas id="revenueChart" height="300"></canvas>
+                </div>
+            </div>
+
+            <!-- Restaurant Orders Distribution -->
+            <div class="chart-card">
+                <div class="chart-header">
+                    <h3 class="chart-title">
+                        <i class="fas fa-utensils"></i>
+                        Restaurant Orders Distribution
+                    </h3>
+                    <div class="chart-actions">
+                        <button class="btn btn-sm btn-outline-primary" onclick="exportOrdersData()">
+                            <i class="fas fa-download"></i>
+                        </button>
+                    </div>
+                </div>
+                <div class="chart-content">
+                    <canvas id="ordersChart" height="300"></canvas>
+                </div>
+            </div>
+
+            <!-- Supplier Performance Chart -->
+            <div class="chart-card">
+                <div class="chart-header">
+                    <h3 class="chart-title">
+                        <i class="fas fa-truck"></i>
+                        Supplier Performance
+                    </h3>
+                    <div class="chart-actions">
+                        <button class="btn btn-sm btn-outline-primary" onclick="refreshSupplierChart()">
+                            <i class="fas fa-sync-alt"></i>
+                        </button>
+                    </div>
+                </div>
+                <div class="chart-content">
+                    <canvas id="supplierChart" height="300"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Quick Access Menu -->
+    <div class="quick-access-section">
+        <div class="quick-access-header">
+            <h3 class="section-title">
+                <i class="fas fa-rocket"></i>
+                Quick Access
+            </h3>
+            <p class="section-subtitle">Frequently used features for faster navigation</p>
+        </div>
+        <div class="quick-access-grid">
+            <a href="{{ url_for('guests.add') }}" class="quick-access-item">
+                <div class="quick-access-icon">
+                    <i class="fas fa-user-plus"></i>
+                </div>
+                <div class="quick-access-content">
+                    <h4>Add Guest</h4>
+                    <p>Register new surfer</p>
+                </div>
+            </a>
+            
+            <a href="{{ url_for('checkin.index') }}" class="quick-access-item">
+                <div class="quick-access-icon">
+                    <i class="fas fa-sign-in-alt"></i>
+                </div>
+                <div class="quick-access-content">
+                    <h4>Check-in</h4>
+                    <p>Process arrivals</p>
+                </div>
+            </a>
+            
+            <a href="{{ url_for('expenses.index') }}" class="quick-access-item">
+                <div class="quick-access-icon">
+                    <i class="fas fa-receipt"></i>
+                </div>
+                <div class="quick-access-content">
+                    <h4>Add Expense</h4>
+                    <p>Record costs</p>
+                </div>
+            </a>
+            
+            <a href="{{ url_for('restaurant_orders.index') }}" class="quick-access-item">
+                <div class="quick-access-icon">
+                    <i class="fas fa-utensils"></i>
+                </div>
+                <div class="quick-access-content">
+                    <h4>Restaurant Orders</h4>
+                    <p>Manage food orders</p>
+                </div>
+            </a>
+            
+            <a href="{{ url_for('inventory.index') }}" class="quick-access-item">
+                <div class="quick-access-icon">
+                    <i class="fas fa-boxes"></i>
+                </div>
+                <div class="quick-access-content">
+                    <h4>Inventory</h4>
+                    <p>Manage stock</p>
+                </div>
+            </a>
+            
+            <a href="{{ url_for('reports.financial') }}" class="quick-access-item">
+                <div class="quick-access-icon">
+                    <i class="fas fa-chart-line"></i>
+                </div>
+                <div class="quick-access-content">
+                    <h4>Financial Report</h4>
+                    <p>View analytics</p>
+                </div>
+            </a>
+        </div>
+    </div>
+</div>
+
+<!-- Modern Dashboard Styles -->
+<style>
+.dashboard-container {
+    padding: 2rem;
+    max-width: 1400px;
+    margin: 0 auto;
+    background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+    min-height: 100vh;
+}
+
+/* Header Styles */
+.dashboard-header {
+    margin-bottom: 2rem;
+}
+
+.header-content {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: white;
+    padding: 2rem;
+    border-radius: 16px;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+}
+
+.dashboard-title {
+    font-size: 2rem;
+    font-weight: 700;
+    color: #1e293b;
+    margin: 0;
+}
+
+.dashboard-subtitle {
+    color: #64748b;
+    margin: 0.5rem 0 0 0;
+    font-size: 1.1rem;
+}
+
+.btn-modern {
+    padding: 0.75rem 1.5rem;
+    border-radius: 12px;
+    font-weight: 600;
+    border: none;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    transition: all 0.2s ease;
+}
+
+.btn-modern:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+}
+
+/* Metrics Grid */
+.metrics-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 1.5rem;
+    margin-bottom: 2rem;
+}
+
+.metric-card {
+    background: white;
+    border-radius: 16px;
+    padding: 1.5rem;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    transition: all 0.2s ease;
+    border-left: 4px solid;
+}
+
+.metric-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+}
+
+.guests-card { border-left-color: #3b82f6; }
+.payments-card { border-left-color: #10b981; }
+.pending-card { border-left-color: #f59e0b; }
+.checkouts-card { border-left-color: #ef4444; }
+
+.metric-icon {
+    width: 60px;
+    height: 60px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.5rem;
+    color: white;
+}
+
+.guests-card .metric-icon { background: linear-gradient(135deg, #3b82f6, #1d4ed8); }
+.payments-card .metric-icon { background: linear-gradient(135deg, #10b981, #059669); }
+.pending-card .metric-icon { background: linear-gradient(135deg, #f59e0b, #d97706); }
+.checkouts-card .metric-icon { background: linear-gradient(135deg, #ef4444, #dc2626); }
+
+.metric-content {
+    flex: 1;
+}
+
+.metric-value {
+    font-size: 2rem;
+    font-weight: 700;
+    color: #1e293b;
+    line-height: 1;
+}
+
+.metric-label {
+    color: #64748b;
+    font-size: 0.9rem;
+    margin: 0.25rem 0;
+}
+
+.metric-trend {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+    font-size: 0.8rem;
+    margin-top: 0.5rem;
+}
+
+.metric-trend.positive { color: #10b981; }
+.metric-trend.negative { color: #ef4444; }
+.metric-trend.neutral { color: #64748b; }
+
+/* Content Grid */
+.content-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+    gap: 1.5rem;
+}
+
+.content-card {
+    background: white;
+    border-radius: 16px;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+    overflow: hidden;
+}
+
+.card-header {
+    padding: 1.5rem 1.5rem 0 1.5rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.card-title {
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: #1e293b;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin: 0;
+}
+
+.card-action {
+    color: #3b82f6;
+    text-decoration: none;
+    font-weight: 500;
+    font-size: 0.9rem;
+}
+
+.card-action:hover {
+    color: #1d4ed8;
+}
+
+.card-content {
+    padding: 1.5rem;
+}
+
+/* Activity List */
+.activity-list {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.activity-item {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding: 1rem;
+    background: #f8fafc;
+    border-radius: 12px;
+}
+
+.activity-avatar {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+}
+
+.activity-content {
+    flex: 1;
+}
+
+.activity-text {
+    color: #1e293b;
+    font-weight: 500;
+}
+
+.activity-time {
+    color: #64748b;
+    font-size: 0.8rem;
+    margin-top: 0.25rem;
+}
+
+.status-badge {
+    padding: 0.25rem 0.75rem;
+    border-radius: 20px;
+    font-size: 0.8rem;
+    font-weight: 500;
+}
+
+.status-badge.active {
+    background: #dcfce7;
+    color: #166534;
+}
+
+/* Actions Grid */
+.actions-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1rem;
+}
+
+.action-item {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding: 1rem;
+    background: #f8fafc;
+    border-radius: 12px;
+    text-decoration: none;
+    color: inherit;
+    transition: all 0.2s ease;
+}
+
+.action-item:hover {
+    background: #e2e8f0;
+    transform: translateY(-1px);
+}
+
+.action-icon {
+    width: 40px;
+    height: 40px;
+    border-radius: 10px;
+    background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+}
+
+.action-title {
+    font-weight: 600;
+    color: #1e293b;
+}
+
+.action-desc {
+    color: #64748b;
+    font-size: 0.8rem;
+    margin-top: 0.25rem;
+}
+
+/* Financial Overview */
+.financial-metrics {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.financial-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.financial-label {
+    color: #64748b;
+    font-weight: 500;
+}
+
+.financial-value {
+    font-size: 1.5rem;
+    font-weight: 700;
+}
+
+.financial-value.positive { color: #10b981; }
+.financial-value.negative { color: #ef4444; }
+
+/* Tasks Grid */
+.tasks-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1rem;
+}
+
+.task-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 1rem;
+    background: #f8fafc;
+    border-radius: 12px;
+}
+
+.task-icon {
+    width: 50px;
+    height: 50px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 1.25rem;
+}
+
+.task-icon.cleaning { background: linear-gradient(135deg, #10b981, #059669); }
+.task-icon.maintenance { background: linear-gradient(135deg, #f59e0b, #d97706); }
+.task-icon.admin { background: linear-gradient(135deg, #8b5cf6, #7c3aed); }
+
+.task-count {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: #1e293b;
+}
+
+.task-label {
+    color: #64748b;
+    font-size: 0.8rem;
+    font-weight: 500;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    .dashboard-container {
+        padding: 1rem;
+    }
+    
+    .header-content {
+        flex-direction: column;
+        gap: 1rem;
+        text-align: center;
+    }
+    
+    .metrics-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .content-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .actions-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .tasks-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 480px) {
+    .dashboard-title {
+        font-size: 1.5rem;
+    }
+    
+    .metric-card {
+        flex-direction: column;
+        text-align: center;
+    }
+    
+    .activity-item {
+        flex-direction: column;
+        text-align: center;
+    }
+}
+
+/* Enhanced Data Visualization Styles */
+.charts-section {
+    margin-top: 2rem;
+}
+
+.charts-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+    gap: 1.5rem;
+    margin-bottom: 2rem;
+}
+
+.chart-card {
+    background: white;
+    border-radius: 16px;
+    padding: 1.5rem;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+    transition: all 0.3s ease;
+}
+
+.chart-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+}
+
+.chart-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1rem;
+    padding-bottom: 1rem;
+    border-bottom: 1px solid #e2e8f0;
+}
+
+.chart-title {
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: #1e293b;
+    margin: 0;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.chart-title i {
+    color: var(--primary-color);
+}
+
+.chart-actions {
+    display: flex;
+    gap: 0.5rem;
+    align-items: center;
+}
+
+.chart-content {
+    position: relative;
+    height: 300px;
+}
+
+/* Quick Access Section */
+.quick-access-section {
+    margin-top: 2rem;
+    background: white;
+    border-radius: 16px;
+    padding: 2rem;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+}
+
+.quick-access-header {
+    text-align: center;
+    margin-bottom: 2rem;
+}
+
+.section-title {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: #1e293b;
+    margin: 0 0 0.5rem 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+}
+
+.section-title i {
+    color: var(--primary-color);
+}
+
+.section-subtitle {
+    color: #64748b;
+    margin: 0;
+    font-size: 1rem;
+}
+
+.quick-access-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1rem;
+}
+
+.quick-access-item {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding: 1rem;
+    border-radius: 12px;
+    background: #f8fafc;
+    text-decoration: none;
+    color: inherit;
+    transition: all 0.3s ease;
+    border: 2px solid transparent;
+}
+
+.quick-access-item:hover {
+    background: var(--primary-color);
+    color: white;
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+    text-decoration: none;
+}
+
+.quick-access-item:hover .quick-access-icon {
+    background: rgba(255, 255, 255, 0.2);
+    color: white;
+}
+
+.quick-access-icon {
+    width: 50px;
+    height: 50px;
+    border-radius: 12px;
+    background: var(--primary-color);
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.2rem;
+    transition: all 0.3s ease;
+}
+
+.quick-access-content h4 {
+    font-size: 1rem;
+    font-weight: 600;
+    margin: 0 0 0.25rem 0;
+    color: inherit;
+}
+
+.quick-access-content p {
+    font-size: 0.85rem;
+    margin: 0;
+    opacity: 0.8;
+    color: inherit;
+}
+
+/* Mobile Responsiveness for Charts */
+@media (max-width: 768px) {
+    .charts-grid {
+        grid-template-columns: 1fr;
+        gap: 1rem;
+    }
+    
+    .chart-card {
+        padding: 1rem;
+    }
+    
+    .chart-content {
+        height: 250px;
+    }
+    
+    .quick-access-grid {
+        grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+        gap: 0.75rem;
+    }
+    
+    .quick-access-item {
+        flex-direction: column;
+        text-align: center;
+        padding: 0.75rem;
+    }
+    
+    .quick-access-icon {
+        width: 40px;
+        height: 40px;
+        font-size: 1rem;
+    }
+}
+
+@media (max-width: 480px) {
+    .quick-access-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .quick-access-item {
+        flex-direction: row;
+        text-align: left;
+    }
+}
+</style>
+
+<script>
+// Dashboard initialization
+document.addEventListener('DOMContentLoaded', function() {
+    
+    // Financial Overview Chart - Vertical Bar Chart with Real Data
+    const ctx = document.getElementById('profitChart');
+    if (ctx) {
+        // Fetch real financial data from API
+        fetch('/dashboard/api/chart-data')
+            .then(response => response.json())
+            .then(data => {
+                // Get current year data (January to December) for the chart
+                const yearlyData = data.monthly; // All 12 months of current year
+                const labels = yearlyData.map(item => item.month);
+                const incomeData = yearlyData.map(item => item.income);
+                const expenseData = yearlyData.map(item => item.expenses);
+                const netData = yearlyData.map(item => item.net);
+                
+                const chart = new Chart(ctx, {
+                    type: 'bar',
+                    data: {
+                        labels: labels,
+                        datasets: [{
+                            label: 'Income (MAD)',
+                            data: incomeData,
+                            backgroundColor: 'rgba(16, 185, 129, 0.8)',
+                            borderColor: '#10b981',
+                            borderWidth: 1
+                        }, {
+                            label: 'Expenses (MAD)',
+                            data: expenseData,
+                            backgroundColor: 'rgba(239, 68, 68, 0.8)',
+                            borderColor: '#ef4444',
+                            borderWidth: 1
+                        }, {
+                            label: 'Net Profit (MAD)',
+                            data: netData,
+                            backgroundColor: 'rgba(59, 130, 246, 0.8)',
+                            borderColor: '#3b82f6',
+                            borderWidth: 1
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                display: true,
+                                position: 'top',
+                                labels: {
+                                    usePointStyle: true,
+                                    padding: 20,
+                                    font: {
+                                        size: 12
+                                    }
+                                }
+                            }
+                        },
+                        scales: {
+                            y: {
+                                beginAtZero: true,
+                                grid: {
+                                    color: '#e2e8f0'
+                                },
+                                ticks: {
+                                    callback: function(value) {
+                                        return value.toLocaleString() + ' MAD';
+                                    }
+                                }
+                            },
+                            x: {
+                                grid: {
+                                    display: false
+                                }
+                            }
+                        },
+                        interaction: {
+                            intersect: false,
+                            mode: 'index'
+                        },
+                        // Make bars taller and more visible
+                        elements: {
+                            bar: {
+                                borderWidth: 2,
+                                borderRadius: 4,
+                                borderSkipped: false,
+                            }
+                        },
+                        // Adjust bar thickness
+                        barPercentage: 0.8,
+                        categoryPercentage: 0.9
+                    }
+                });
+            })
+            .catch(error => {
+                console.error('Error fetching chart data:', error);
+                // Fallback to simple chart with current month data
+                const chart = new Chart(ctx, {
+                    type: 'bar',
+                    data: {
+                        labels: ['Current Month'],
+                        datasets: [{
+                            label: 'Monthly Profit (MAD)',
+                            data: [{{ monthly_profit }}],
+                            backgroundColor: 'rgba(59, 130, 246, 0.8)',
+                            borderColor: '#3b82f6',
+                            borderWidth: 1
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                display: false
+                            }
+                        },
+                        scales: {
+                            y: {
+                                beginAtZero: true,
+                                grid: {
+                                    color: '#e2e8f0'
+                                }
+                            },
+                            x: {
+                                grid: {
+                                    display: false
+                                }
+                            }
+                        }
+                    }
+                });
+            });
+    }
+});
+
+// Enhanced Data Visualization
+document.addEventListener('DOMContentLoaded', function() {
+    // Guest Occupancy Chart
+    const occupancyCtx = document.getElementById('occupancyChart');
+    if (occupancyCtx) {
+        new Chart(occupancyCtx, {
+            type: 'line',
+            data: {
+                labels: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
+                datasets: [{
+                    label: 'Guest Occupancy',
+                    data: [12, 19, 3, 5, 2, 3, 15],
+                    borderColor: 'rgb(75, 192, 192)',
+                    backgroundColor: 'rgba(75, 192, 192, 0.2)',
+                    tension: 0.1,
+                    fill: true
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        display: false
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true
+                    }
+                }
+            }
+        });
+    }
+
+    // Revenue vs Expenses Chart
+    const revenueCtx = document.getElementById('revenueChart');
+    if (revenueCtx) {
+        new Chart(revenueCtx, {
+            type: 'bar',
+            data: {
+                labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'],
+                datasets: [{
+                    label: 'Revenue',
+                    data: [12000, 19000, 3000, 5000, 2000, 3000],
+                    backgroundColor: 'rgba(54, 162, 235, 0.8)',
+                    borderColor: 'rgba(54, 162, 235, 1)',
+                    borderWidth: 1
+                }, {
+                    label: 'Expenses',
+                    data: [8000, 12000, 2000, 3000, 1500, 2000],
+                    backgroundColor: 'rgba(255, 99, 132, 0.8)',
+                    borderColor: 'rgba(255, 99, 132, 1)',
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    y: {
+                        beginAtZero: true
+                    }
+                }
+            }
+        });
+    }
+
+    // Top Restaurant Orders Doughnut Chart
+    const ordersCtx = document.getElementById('ordersChart');
+    if (ordersCtx) {
+        new Chart(ordersCtx, {
+            type: 'doughnut',
+            data: {
+                labels: ['Breakfast', 'Lunch', 'Dinner', 'Snacks'],
+                datasets: [{
+                    data: [30, 45, 20, 5],
+                    backgroundColor: [
+                        '#FF6384',
+                        '#36A2EB',
+                        '#FFCE56',
+                        '#4BC0C0'
+                    ]
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'bottom'
+                    }
+                }
+            }
+        });
+    }
+
+    // Supplier Performance Chart
+    const supplierCtx = document.getElementById('supplierChart');
+    if (supplierCtx) {
+        new Chart(supplierCtx, {
+            type: 'radar',
+            data: {
+                labels: ['Delivery Time', 'Quality', 'Price', 'Reliability', 'Communication'],
+                datasets: [{
+                    label: 'Supplier A',
+                    data: [85, 90, 75, 88, 82],
+                    borderColor: 'rgb(75, 192, 192)',
+                    backgroundColor: 'rgba(75, 192, 192, 0.2)',
+                    pointBackgroundColor: 'rgb(75, 192, 192)',
+                    pointBorderColor: '#fff',
+                    pointHoverBackgroundColor: '#fff',
+                    pointHoverBorderColor: 'rgb(75, 192, 192)'
+                }, {
+                    label: 'Supplier B',
+                    data: [78, 85, 88, 82, 90],
+                    borderColor: 'rgb(255, 99, 132)',
+                    backgroundColor: 'rgba(255, 99, 132, 0.2)',
+                    pointBackgroundColor: 'rgb(255, 99, 132)',
+                    pointBorderColor: '#fff',
+                    pointHoverBackgroundColor: '#fff',
+                    pointHoverBorderColor: 'rgb(255, 99, 132)'
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    r: {
+                        beginAtZero: true,
+                        max: 100
+                    }
+                }
+            }
+        });
+    }
+});
+
+// Chart interaction functions
+function refreshOccupancyChart() {
+    // Simulate data refresh
+    console.log('Refreshing occupancy chart...');
+    // In a real implementation, this would fetch new data from the server
+}
+
+function refreshSupplierChart() {
+    // Simulate data refresh
+    console.log('Refreshing supplier chart...');
+    // In a real implementation, this would fetch new data from the server
+}
+
+function exportOrdersData() {
+    // Simulate data export
+    console.log('Exporting orders data...');
+    // In a real implementation, this would trigger a download
+    alert('Orders data exported successfully!');
+}
+
+// Revenue period change handler
+document.addEventListener('DOMContentLoaded', function() {
+    const revenuePeriodSelect = document.getElementById('revenuePeriod');
+    if (revenuePeriodSelect) {
+        revenuePeriodSelect.addEventListener('change', function() {
+            console.log('Revenue period changed to:', this.value);
+            // In a real implementation, this would update the chart data
+        });
+    }
+});
+</script>
+{% endblock %}

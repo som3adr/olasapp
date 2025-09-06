@@ -1,0 +1,536 @@
+{% extends "base.html" %}
+
+{% block page_title %}Inventory Management{% endblock %}
+
+{% block page_actions %}
+<a href="{{ url_for('inventory.add') }}" class="btn btn-modern btn-primary">
+    <i class="fas fa-plus me-2"></i>Add Item
+</a>
+<a href="{{ url_for('inventory.global_transactions') }}" class="btn btn-modern btn-info">
+    <i class="fas fa-history me-2"></i>Transaction History
+</a>
+{% endblock %}
+
+{% block content %}
+<!-- Summary Cards -->
+<div class="row mb-4">
+    <div class="col-md-3">
+        <div class="card bg-primary text-white">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h4>{{ items|length }}</h4>
+                        <p class="mb-0">Total Items</p>
+                    </div>
+                    <div class="align-self-center">
+                        <i class="fas fa-boxes fa-2x"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-3">
+        <div class="card bg-warning text-white">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h4>{{ items|selectattr('is_low_stock')|list|length }}</h4>
+                        <p class="mb-0">Low Stock Items</p>
+                    </div>
+                    <div class="align-self-center">
+                        <i class="fas fa-exclamation-triangle fa-2x"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-3">
+        <div class="card bg-danger text-white">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h4>{{ items|selectattr('current_stock', 'equalto', 0)|list|length }}</h4>
+                        <p class="mb-0">Out of Stock</p>
+                    </div>
+                    <div class="align-self-center">
+                        <i class="fas fa-times-circle fa-2x"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-3">
+        <div class="card bg-success text-white">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h4>{{ "%.2f"|format(items|sum(attribute='current_stock')|float * items|sum(attribute='cost_per_unit')|float if items else 0) }} MAD</h4>
+                        <p class="mb-0">Est. Total Value</p>
+                    </div>
+                    <div class="align-self-center">
+                        <i class="fas fa-dollar-sign fa-2x"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Inventory Table -->
+<div class="card">
+    <div class="card-header">
+        <h5 class="card-title mb-0">Inventory Items</h5>
+    </div>
+    <div class="card-body">
+        {% if items %}
+        <div class="table-responsive">
+            <table class="table table-striped table-hover">
+                <thead>
+                    <tr>
+                        <th>Item Name</th>
+                        <th>Category</th>
+                        <th>Current Stock</th>
+                        <th>Min. Stock</th>
+                        <th>Cost/Unit</th>
+                        <th>Total Value</th>
+                        <th>Status</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for item in items %}
+                    <tr class="{% if item.current_stock <= 0 %}table-danger{% elif item.is_low_stock %}table-warning{% endif %}">
+                        <td>
+                            <strong>{{ item.name }}</strong>
+                            {% if item.supplier %}
+                                <br><small class="text-muted">Supplier: {{ item.supplier }}</small>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <span class="badge bg-primary">{{ item.category.replace('_', ' ').title() }}</span>
+                        </td>
+                        <td>
+                            <strong>{{ item.current_stock|int }} {{ item.unit }}</strong>
+                        </td>
+                        <td>{{ item.minimum_stock|int }} {{ item.unit }}</td>
+                        <td>{{ "%.2f"|format(item.cost_per_unit) }} MAD</td>
+                        <td>{{ "%.2f"|format(item.current_stock * item.cost_per_unit) }} MAD</td>
+                        <td>
+                            {% if item.current_stock <= 0 %}
+                                <span class="badge bg-danger">Out of Stock</span>
+                            {% elif item.is_low_stock %}
+                                <span class="badge bg-warning">Low Stock</span>
+                            {% else %}
+                                <span class="badge bg-success">In Stock</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <div class="btn-group btn-group-sm">
+                                <a href="{{ url_for('inventory.transactions', item_id=item.id) }}" 
+                                   class="btn btn-modern btn-outline-info" title="View Transactions">
+                                    <i class="fas fa-history"></i>
+                                </a>
+                                <a href="{{ url_for('inventory.add_transaction', item_id=item.id) }}" 
+                                   class="btn btn-modern btn-outline-success" title="Add Transaction">
+                                    <i class="fas fa-plus"></i>
+                                </a>
+                                <a href="{{ url_for('inventory.edit', item_id=item.id) }}" 
+                                   class="btn btn-modern btn-outline-primary" title="Edit Item">
+                                    <i class="fas fa-edit"></i>
+                                </a>
+                                <form method="POST" action="{{ url_for('inventory.delete', item_id=item.id) }}" 
+                                      style="display: inline;" onsubmit="return confirm('Are you sure you want to delete this item?')">
+                                    <button type="submit" class="btn btn-modern btn-outline-danger" title="Delete Item">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                </form>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        
+        {% else %}
+        <div class="text-center py-4">
+            <i class="fas fa-boxes fa-3x text-muted mb-3"></i>
+            <h5 class="text-muted">No inventory items found</h5>
+            <p class="text-muted">Start by adding your first inventory item.</p>
+            <a href="{{ url_for('inventory.add') }}" class="btn btn-modern btn-primary">
+                <i class="fas fa-plus me-2"></i>Add First Item
+            </a>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Global Transaction History -->
+<div class="row mt-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="card-title mb-0">
+                    <i class="fas fa-history me-2 text-info"></i>Global Transaction History
+                </h5>
+                <div class="d-flex gap-2">
+                    <button type="button" class="btn btn-modern btn-outline-secondary btn-sm" onclick="toggleTransactionFilters()">
+                        <i class="fas fa-filter me-1"></i>Filters
+                    </button>
+                    <button type="button" class="btn btn-modern btn-outline-primary btn-sm" onclick="exportTransactionHistory()">
+                        <i class="fas fa-download me-1"></i>Export
+                    </button>
+                </div>
+            </div>
+            <div class="card-body">
+                <!-- Transaction Statistics -->
+                <div class="row mb-3">
+                    <div class="col-md-2">
+                        <div class="text-center p-2 bg-light rounded">
+                            <h6 class="mb-1 text-primary">{{ transaction_stats.total_transactions or 0 }}</h6>
+                            <small class="text-muted">Total Transactions</small>
+                        </div>
+                    </div>
+                    <div class="col-md-2">
+                        <div class="text-center p-2 bg-light rounded">
+                            <h6 class="mb-1 text-success">{{ transaction_stats.purchases or 0 }}</h6>
+                            <small class="text-muted">Purchases</small>
+                        </div>
+                    </div>
+                    <div class="col-md-2">
+                        <div class="text-center p-2 bg-light rounded">
+                            <h6 class="mb-1 text-warning">{{ transaction_stats.consumptions or 0 }}</h6>
+                            <small class="text-muted">Consumptions</small>
+                        </div>
+                    </div>
+                    <div class="col-md-2">
+                        <div class="text-center p-2 bg-light rounded">
+                            <h6 class="mb-1 text-info">{{ transaction_stats.adjustments or 0 }}</h6>
+                            <small class="text-muted">Adjustments</small>
+                        </div>
+                    </div>
+                    <div class="col-md-2">
+                        <div class="text-center p-2 bg-light rounded">
+                            <h6 class="mb-1 text-danger">{{ "%.2f"|format(transaction_stats.total_value or 0) }} MAD</h6>
+                            <small class="text-muted">Total Value</small>
+                        </div>
+                    </div>
+                    <div class="col-md-2">
+                        <div class="text-center p-2 bg-light rounded">
+                            <h6 class="mb-1 text-secondary">{{ recent_transactions|length }}</h6>
+                            <small class="text-muted">Recent (50)</small>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Transaction Filters (Hidden by default) -->
+                <div id="transactionFilters" class="mb-3" style="display: none;">
+                    <div class="row">
+                        <div class="col-md-3">
+                            <label class="form-label">Transaction Type</label>
+                            <select class="form-select" id="filterType">
+                                <option value="">All Types</option>
+                                <option value="purchase">Purchase</option>
+                                <option value="consumption">Consumption</option>
+                                <option value="adjustment">Adjustment</option>
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Item Category</label>
+                            <select class="form-select" id="filterCategory">
+                                <option value="">All Categories</option>
+                                {% for item in items %}
+                                    <option value="{{ item.category }}">{{ item.category }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Date From</label>
+                            <input type="date" class="form-control" id="filterDateFrom">
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Date To</label>
+                            <input type="date" class="form-control" id="filterDateTo">
+                        </div>
+                    </div>
+                    <div class="row mt-2">
+                        <div class="col-12">
+                            <button type="button" class="btn btn-primary btn-sm" onclick="applyTransactionFilters()">
+                                <i class="fas fa-search me-1"></i>Apply Filters
+                            </button>
+                            <button type="button" class="btn btn-outline-secondary btn-sm" onclick="clearTransactionFilters()">
+                                <i class="fas fa-times me-1"></i>Clear
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Transactions Table -->
+                {% if recent_transactions %}
+                <div class="table-responsive">
+                    <table class="table table-hover" id="transactionsTable">
+                        <thead>
+                            <tr>
+                                <th>Date</th>
+                                <th>Item</th>
+                                <th>Type</th>
+                                <th>Quantity</th>
+                                <th>Unit Cost</th>
+                                <th>Total Cost</th>
+                                <th>Category</th>
+                                <th>Notes</th>
+                                <th>User</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for transaction in recent_transactions %}
+                            <tr class="transaction-row" 
+                                data-type="{{ transaction.transaction_type }}"
+                                data-category="{{ transaction.item.category }}"
+                                data-date="{{ transaction.date.strftime('%Y-%m-%d') }}">
+                                <td>
+                                    <div class="d-flex align-items-center">
+                                        <span class="badge bg-secondary me-2">{{ transaction.date.strftime('%b %d') }}</span>
+                                        <small class="text-muted">{{ transaction.date.strftime('%Y') }}</small>
+                                    </div>
+                                </td>
+                                <td>
+                                    <strong>{{ transaction.item.name }}</strong>
+                                    <br><small class="text-muted">{{ transaction.item.unit }}</small>
+                                </td>
+                                <td>
+                                    {% if transaction.transaction_type == 'purchase' %}
+                                        <span class="badge bg-success">
+                                            <i class="fas fa-plus me-1"></i>Purchase
+                                        </span>
+                                    {% elif transaction.transaction_type == 'consumption' %}
+                                        <span class="badge bg-warning">
+                                            <i class="fas fa-minus me-1"></i>Consumption
+                                        </span>
+                                    {% elif transaction.transaction_type == 'adjustment' %}
+                                        <span class="badge bg-info">
+                                            <i class="fas fa-edit me-1"></i>Adjustment
+                                        </span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <span class="fw-bold {% if transaction.transaction_type == 'purchase' %}text-success{% elif transaction.transaction_type == 'consumption' %}text-warning{% else %}text-info{% endif %}">
+                                        {{ transaction.quantity|int }}
+                                    </span>
+                                </td>
+                                <td>{{ "%.2f"|format(transaction.cost_per_unit or 0) }} MAD</td>
+                                <td>
+                                    <span class="fw-bold {% if transaction.total_cost and transaction.total_cost > 0 %}text-success{% else %}text-muted{% endif %}">
+                                        {{ "%.2f"|format(transaction.total_cost or 0) }} MAD
+                                    </span>
+                                </td>
+                                <td>
+                                    <span class="badge bg-outline-secondary">{{ transaction.item.category }}</span>
+                                </td>
+                                <td>
+                                    {% if transaction.notes %}
+                                        <span class="text-muted" title="{{ transaction.notes }}">
+                                            {{ transaction.notes[:30] }}{% if transaction.notes|length > 30 %}...{% endif %}
+                                        </span>
+                                    {% else %}
+                                        <span class="text-muted">-</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if transaction.created_by %}
+                                        <small class="text-muted">{{ transaction.created_by }}</small>
+                                    {% else %}
+                                        <small class="text-muted">System</small>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <div class="text-center py-4">
+                    <div class="bg-light rounded-circle d-inline-flex p-4 mb-3">
+                        <i class="fas fa-history fa-3x text-muted"></i>
+                    </div>
+                    <h5 class="text-muted mb-2">No Transactions Found</h5>
+                    <p class="text-muted">Inventory transactions will appear here once you start managing your inventory.</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Quick Actions -->
+{% if items %}
+<div class="row mt-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">Quick Actions</h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-3">
+                        <div class="d-grid">
+                            <a href="{{ url_for('inventory.add') }}" class="btn btn-modern btn-primary">
+                                <i class="fas fa-plus me-2"></i>Add New Item
+                            </a>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="d-grid">
+                            <a href="{{ url_for('reports.inventory_report') }}" class="btn btn-modern btn-outline-primary">
+                                <i class="fas fa-chart-bar me-2"></i>Inventory Report
+                            </a>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="d-grid">
+                            <button type="button" class="btn btn-modern btn-outline-warning" onclick="showLowStockAlert()">
+                                <i class="fas fa-exclamation-triangle me-2"></i>Low Stock Alert
+                            </button>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="d-grid">
+                            <a href="{{ url_for('reports.export_inventory') }}" class="btn btn-modern btn-outline-info">
+                                <i class="fas fa-download me-2"></i>Export Data
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block scripts %}
+<script>
+function showLowStockAlert() {
+    const lowStockCount = {{ items|selectattr('is_low_stock')|list|length }};
+    const outOfStockCount = {{ items|selectattr('current_stock', 'equalto', 0)|list|length }};
+    
+    if (outOfStockCount > 0 || lowStockCount > 0) {
+        let message = '';
+        if (outOfStockCount > 0) {
+            message += `${outOfStockCount} item(s) are out of stock. `;
+        }
+        if (lowStockCount > 0) {
+            message += `${lowStockCount} item(s) have low stock levels.`;
+        }
+        alert(message + ' Please consider restocking these items.');
+    } else {
+        alert('All inventory items are well stocked!');
+    }
+}
+
+// Transaction History Functions
+function toggleTransactionFilters() {
+    const filters = document.getElementById('transactionFilters');
+    filters.style.display = filters.style.display === 'none' ? 'block' : 'none';
+}
+
+function applyTransactionFilters() {
+    const typeFilter = document.getElementById('filterType').value;
+    const categoryFilter = document.getElementById('filterCategory').value;
+    const dateFrom = document.getElementById('filterDateFrom').value;
+    const dateTo = document.getElementById('filterDateTo').value;
+    
+    const rows = document.querySelectorAll('.transaction-row');
+    
+    rows.forEach(row => {
+        let show = true;
+        
+        // Type filter
+        if (typeFilter && row.dataset.type !== typeFilter) {
+            show = false;
+        }
+        
+        // Category filter
+        if (categoryFilter && row.dataset.category !== categoryFilter) {
+            show = false;
+        }
+        
+        // Date filters
+        if (dateFrom && row.dataset.date < dateFrom) {
+            show = false;
+        }
+        if (dateTo && row.dataset.date > dateTo) {
+            show = false;
+        }
+        
+        row.style.display = show ? '' : 'none';
+    });
+    
+    // Update visible count
+    const visibleRows = document.querySelectorAll('.transaction-row:not([style*="display: none"])');
+    console.log(`Showing ${visibleRows.length} of ${rows.length} transactions`);
+}
+
+function clearTransactionFilters() {
+    document.getElementById('filterType').value = '';
+    document.getElementById('filterCategory').value = '';
+    document.getElementById('filterDateFrom').value = '';
+    document.getElementById('filterDateTo').value = '';
+    
+    // Show all rows
+    document.querySelectorAll('.transaction-row').forEach(row => {
+        row.style.display = '';
+    });
+}
+
+function exportTransactionHistory() {
+    const table = document.getElementById('transactionsTable');
+    if (!table) return;
+    
+    const rows = Array.from(table.querySelectorAll('tr'));
+    let csv = 'Date,Item,Type,Quantity,Unit Cost,Total Cost,Category,Notes,User\n';
+    
+    rows.slice(1).forEach(row => {
+        if (row.style.display !== 'none') {
+            const cells = Array.from(row.querySelectorAll('td'));
+            if (cells.length >= 9) {
+                const date = cells[0].textContent.trim();
+                const item = cells[1].textContent.trim();
+                const type = cells[2].textContent.trim();
+                const quantity = cells[3].textContent.trim();
+                const unitCost = cells[4].textContent.trim();
+                const totalCost = cells[5].textContent.trim();
+                const category = cells[6].textContent.trim();
+                const notes = cells[7].textContent.trim();
+                const user = cells[8].textContent.trim();
+                
+                csv += `"${date}","${item}","${type}","${quantity}","${unitCost}","${totalCost}","${category}","${notes}","${user}"\n`;
+            }
+        }
+    });
+    
+    // Download CSV
+    const blob = new Blob([csv], { type: 'text/csv' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `inventory_transactions_${new Date().toISOString().split('T')[0]}.csv`;
+    a.click();
+    window.URL.revokeObjectURL(url);
+}
+
+// Auto-apply filters when values change
+document.addEventListener('DOMContentLoaded', function() {
+    const filterInputs = ['filterType', 'filterCategory', 'filterDateFrom', 'filterDateTo'];
+    filterInputs.forEach(id => {
+        const element = document.getElementById(id);
+        if (element) {
+            element.addEventListener('change', applyTransactionFilters);
+        }
+    });
+});
+</script>
+{% endblock %}

@@ -1,0 +1,404 @@
+{% extends "base.html" %}
+
+{% block title %}{{ employee.full_name }} - Employee Details - HostelFlow{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Header Section -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h1 class="h3 mb-0">
+                <i class="fas fa-user text-primary me-2"></i>
+                {{ employee.full_name }}
+            </h1>
+            <p class="text-muted">Employee Details & Salary History</p>
+        </div>
+        <div>
+            <a href="{{ url_for('employee_salaries.index') }}" class="btn btn-secondary me-2">
+                <i class="fas fa-arrow-left"></i> Back to Employees
+            </a>
+            <a href="{{ url_for('employee_salaries.edit_employee', employee_id=employee.id) }}" class="btn btn-outline-primary me-2">
+                <i class="fas fa-edit"></i> Edit Employee
+            </a>
+            <a href="{{ url_for('employee_salaries.manage_salary', employee_id=employee.id) }}" class="btn btn-success">
+                <i class="fas fa-money-bill-wave"></i> Manage Salary
+            </a>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- Employee Information -->
+        <div class="col-lg-4">
+            <div class="card shadow mb-4">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">Employee Information</h6>
+                </div>
+                <div class="card-body">
+                    <div class="text-center mb-4">
+                        <div class="avatar-placeholder">
+                            <i class="fas fa-user fa-4x text-primary"></i>
+                        </div>
+                        <h4 class="mt-3 mb-1">{{ employee.full_name }}</h4>
+                        <span class="badge bg-primary fs-6">{{ employee.employee_code }}</span>
+                    </div>
+                    
+                    <div class="row mb-3">
+                        <div class="col-6">
+                            <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">Department</div>
+                            <div class="h6 mb-0 font-weight-bold text-gray-800">{{ employee.department }}</div>
+                        </div>
+                        <div class="col-6">
+                            <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">Position</div>
+                            <div class="h6 mb-0 font-weight-bold text-gray-800">{{ employee.position }}</div>
+                        </div>
+                    </div>
+                    
+                    <div class="row mb-3">
+                        <div class="col-6">
+                            <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">Employment Type</div>
+                            <div class="h6 mb-0 font-weight-bold text-gray-800">{{ employee.employment_type }}</div>
+                        </div>
+                        <div class="col-6">
+                            <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">Status</div>
+                            <div class="h6 mb-0">
+                                {% if employee.status == 'active' %}
+                                    <span class="badge bg-success">Active</span>
+                                {% elif employee.status == 'inactive' %}
+                                    <span class="badge bg-warning">Inactive</span>
+                                {% else %}
+                                    <span class="badge bg-danger">Terminated</span>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="row mb-3">
+                        <div class="col-6">
+                            <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">Hire Date</div>
+                            <div class="h6 mb-0 font-weight-bold text-gray-800">{{ employee.hire_date.strftime('%B %d, %Y') }}</div>
+                        </div>
+                        <div class="col-6">
+                            <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">Basic Salary</div>
+                            <div class="h6 mb-0 font-weight-bold text-gray-800">{{ "%.2f"|format(employee.basic_salary) }} MAD</div>
+                        </div>
+                    </div>
+                    
+
+                    
+                    {% if employee.bank_account %}
+                    <div class="mb-3">
+                        <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">Bank Account</div>
+                        <div class="h6 mb-0 font-weight-bold text-gray-800">
+                            <i class="fas fa-university me-2"></i>{{ employee.bank_account }}
+                        </div>
+                    </div>
+                    {% endif %}
+                    
+                    {% if employee.address %}
+                    <div class="mb-3">
+                        <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">Address</div>
+                        <div class="h6 mb-0 font-weight-bold text-gray-800">
+                            <i class="fas fa-map-marker-alt me-2"></i>{{ employee.address }}
+                        </div>
+                    </div>
+                    {% endif %}
+                    
+                    {% if employee.notes %}
+                    <div class="mb-3">
+                        <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">Notes</div>
+                        <div class="h6 mb-0 font-weight-bold text-gray-800">{{ employee.notes }}</div>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Current Salary & Salary History -->
+        <div class="col-lg-8">
+            <!-- Current Month Salary -->
+            {% if current_salary %}
+            <div class="card shadow mb-4">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">Current Month Salary ({{ current_salary.pay_period_start.strftime('%B %Y') }})</h6>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-3">
+                            <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">Basic Salary</div>
+                            <div class="h6 mb-0 font-weight-bold text-gray-800">{{ "%.2f"|format(current_salary.basic_salary) }} MAD</div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="text-xs font-weight-bold text-success text-uppercase mb-1">Total Allowances</div>
+                            <div class="h6 mb-0 font-weight-bold text-gray-800">{{ "%.2f"|format(current_salary.total_allowances) }} MAD</div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="text-xs font-weight-bold text-danger text-uppercase mb-1">Total Deductions</div>
+                            <div class="h6 mb-0 font-weight-bold text-gray-800">{{ "%.2f"|format(current_salary.total_deductions) }} MAD</div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="text-xs font-weight-bold text-success text-uppercase mb-1">Net Salary</div>
+                            <div class="h5 mb-0 font-weight-bold text-success">{{ "%.2f"|format(current_salary.net_salary) }} MAD</div>
+                        </div>
+                    </div>
+                    
+                    <hr>
+                    
+                    <div class="row">
+                        <div class="col-md-3">
+                            <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">Payment Status</div>
+                            <div class="h6 mb-0">
+                                {% if current_salary.payment_status == 'paid' %}
+                                    <span class="badge bg-success">Paid</span>
+                                {% elif current_salary.payment_status == 'pending' %}
+                                    <span class="badge bg-warning">Pending</span>
+                                {% else %}
+                                    <span class="badge bg-danger">Failed</span>
+                                {% endif %}
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">Payment Date</div>
+                            <div class="h6 mb-0 font-weight-bold text-gray-800">
+                                {{ current_salary.payment_date.strftime('%B %d, %Y') if current_salary.payment_date else 'Not set' }}
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">Payment Method</div>
+                            <div class="h6 mb-0 font-weight-bold text-gray-800">
+                                {{ current_salary.payment_method or 'Not set' }}
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">Payment Reference</div>
+                            <div class="h6 mb-0 font-weight-bold text-gray-800">
+                                {{ current_salary.payment_reference or 'Not set' }}
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Hostel Allocation Details -->
+                    {% if current_salary.hostel_allocation_type and current_salary.hostel_allocation_type != 'single' %}
+                    <hr>
+                    <div class="row">
+                        <div class="col-12">
+                            <div class="text-xs font-weight-bold text-primary text-uppercase mb-2">Hostel Budget Allocation</div>
+                            <div class="row">
+                                {% if current_salary.hostel_allocation_type == 'split_50_50' %}
+                                <div class="col-md-6">
+                                    <div class="card border-warning">
+                                        <div class="card-body text-center py-2">
+                                            <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">Olas Hostel</div>
+                                            <div class="h6 mb-0 font-weight-bold text-warning">{{ "%.2f"|format(current_salary.olas_amount) }} MAD</div>
+                                            <small class="text-muted">50%</small>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="card border-info">
+                                        <div class="card-body text-center py-2">
+                                            <div class="text-xs font-weight-bold text-info text-uppercase mb-1">Tide Hostel</div>
+                                            <div class="h6 mb-0 font-weight-bold text-info">{{ "%.2f"|format(current_salary.tide_amount) }} MAD</div>
+                                            <small class="text-muted">50%</small>
+                                        </div>
+                                    </div>
+                                </div>
+                                {% elif current_salary.hostel_allocation_type == 'custom' %}
+                                <div class="col-md-4">
+                                    <div class="card border-warning">
+                                        <div class="card-body text-center py-2">
+                                            <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">Olas Hostel</div>
+                                            <div class="h6 mb-0 font-weight-bold text-warning">{{ "%.2f"|format(current_salary.olas_amount) }} MAD</div>
+                                            <small class="text-muted">{{ "%.1f"|format((current_salary.olas_amount / current_salary.net_salary * 100) if current_salary.net_salary > 0 else 0) }}%</small>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="card border-info">
+                                        <div class="card-body text-center py-2">
+                                            <div class="text-xs font-weight-bold text-info text-uppercase mb-1">Tide Hostel</div>
+                                            <div class="h6 mb-0 font-weight-bold text-info">{{ "%.2f"|format(current_salary.tide_amount) }} MAD</div>
+                                            <small class="text-muted">{{ "%.1f"|format((current_salary.tide_amount / current_salary.net_salary * 100) if current_salary.net_salary > 0 else 0) }}%</small>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="card border-secondary">
+                                        <div class="card-body text-center py-2">
+                                            <div class="text-xs font-weight-bold text-secondary text-uppercase mb-1">General Budget</div>
+                                            <div class="h6 mb-0 font-weight-bold text-secondary">{{ "%.2f"|format(current_salary.general_amount) }} MAD</div>
+                                            <small class="text-muted">{{ "%.1f"|format((current_salary.general_amount / current_salary.net_salary * 100) if current_salary.net_salary > 0 else 0) }}%</small>
+                                        </div>
+                                    </div>
+                                </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                    {% endif %}
+                    
+                    {% if current_salary.notes %}
+                    <div class="mt-3">
+                        <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">Notes</div>
+                        <div class="h6 mb-0 font-weight-bold text-gray-800">{{ current_salary.notes }}</div>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+            {% else %}
+            <div class="card shadow mb-4">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-warning">No Salary Record for Current Month</h6>
+                </div>
+                <div class="card-body text-center">
+                    <i class="fas fa-exclamation-triangle fa-3x text-warning mb-3"></i>
+                    <h5 class="text-warning">No salary record found for {{ date.today().strftime('%B %Y') }}</h5>
+                    <p class="text-muted">Create a salary record to manage this employee's salary for the current month.</p>
+                    <a href="{{ url_for('employee_salaries.manage_salary', employee_id=employee.id) }}" class="btn btn-success">
+                        <i class="fas fa-plus"></i> Create Salary Record
+                    </a>
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- Salary History & Advances -->
+            <div class="card shadow">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">Salary History & Advances</h6>
+                </div>
+                <div class="card-body">
+                    <!-- Salary History -->
+                    <h6 class="text-primary mb-3">
+                        <i class="fas fa-money-bill-wave me-2"></i>Salary Records
+                    </h6>
+                    {% if salary_history %}
+                    <div class="table-responsive mb-4">
+                        <table class="table table-bordered" width="100%" cellspacing="0">
+                            <thead>
+                                <tr>
+                                    <th>Pay Period</th>
+                                    <th>Basic Salary</th>
+                                    <th>Allowances</th>
+                                    <th>Deductions</th>
+                                    <th>Net Salary</th>
+                                    <th>Hostel Allocation</th>
+                                    <th>Status</th>
+                                    <th>Payment Date</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for record in salary_history %}
+                                <tr>
+                                    <td>{{ record.pay_period_start.strftime('%B %Y') }}</td>
+                                    <td>{{ "%.2f"|format(record.basic_salary) }} MAD</td>
+                                    <td>{{ "%.2f"|format(record.total_allowances) }} MAD</td>
+                                    <td>{{ "%.2f"|format(record.total_deductions) }} MAD</td>
+                                    <td class="fw-bold text-success">{{ "%.2f"|format(record.net_salary) }} MAD</td>
+                                    <td>
+                                        {% if record.hostel_allocation_type == 'single' %}
+                                            <span class="badge bg-secondary">Single Hostel</span>
+                                        {% elif record.hostel_allocation_type == 'split_50_50' %}
+                                            <div class="small">
+                                                <div class="text-warning">Olas: {{ "%.0f"|format(record.olas_amount) }} MAD</div>
+                                                <div class="text-info">Tide: {{ "%.0f"|format(record.tide_amount) }} MAD</div>
+                                            </div>
+                                        {% elif record.hostel_allocation_type == 'custom' %}
+                                            <div class="small">
+                                                {% if record.olas_amount > 0 %}
+                                                <div class="text-warning">Olas: {{ "%.0f"|format(record.olas_amount) }} MAD</div>
+                                                {% endif %}
+                                                {% if record.tide_amount > 0 %}
+                                                <div class="text-info">Tide: {{ "%.0f"|format(record.tide_amount) }} MAD</div>
+                                                {% endif %}
+                                                {% if record.general_amount > 0 %}
+                                                <div class="text-secondary">General: {{ "%.0f"|format(record.general_amount) }} MAD</div>
+                                                {% endif %}
+                                            </div>
+                                        {% else %}
+                                            <span class="text-muted">-</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if record.payment_status == 'paid' %}
+                                            <span class="badge bg-success">Paid</span>
+                                        {% elif record.payment_status == 'pending' %}
+                                            <span class="badge bg-warning">Pending</span>
+                                        {% else %}
+                                            <span class="badge bg-danger">Failed</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>{{ record.payment_date.strftime('%m/%d/%Y') if record.payment_date else '-' }}</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <div class="text-center py-3 mb-4">
+                        <i class="fas fa-history fa-2x text-muted mb-2"></i>
+                        <p class="text-muted mb-0">No salary records found for this employee.</p>
+                    </div>
+                    {% endif %}
+
+                    <!-- Salary Advances -->
+                    <hr class="my-4">
+                    <h6 class="text-warning mb-3">
+                        <i class="fas fa-hand-holding-usd me-2"></i>Salary Advances
+                    </h6>
+                    {% if salary_advances %}
+                    <div class="table-responsive">
+                        <table class="table table-bordered" width="100%" cellspacing="0">
+                            <thead>
+                                <tr>
+                                    <th>Advance Date</th>
+                                    <th>Amount</th>
+                                    <th>Reason</th>
+                                    <th>Monthly Deduction</th>
+                                    <th>Remaining Balance</th>
+                                    <th>Status</th>
+                                    <th>Progress</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for advance in salary_advances %}
+                                <tr>
+                                    <td>{{ advance.advance_date.strftime('%m/%d/%Y') }}</td>
+                                    <td class="fw-bold text-warning">{{ "%.2f"|format(advance.advance_amount) }} MAD</td>
+                                    <td>{{ advance.reason }}</td>
+                                    <td>{{ "%.2f"|format(advance.monthly_deduction) }} MAD</td>
+                                    <td class="fw-bold text-danger">{{ "%.2f"|format(advance.remaining_balance) }} MAD</td>
+                                    <td>
+                                        {% if advance.status == 'active' %}
+                                            <span class="badge bg-warning">Active</span>
+                                        {% elif advance.status == 'completed' %}
+                                            <span class="badge bg-success">Completed</span>
+                                        {% else %}
+                                            <span class="badge bg-danger">Cancelled</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <div class="progress" style="height: 20px;">
+                                            <div class="progress-bar bg-warning" role="progressbar" 
+                                                 style="width: {{ advance.progress_percentage }}%"
+                                                 aria-valuenow="{{ advance.progress_percentage }}" 
+                                                 aria-valuemin="0" aria-valuemax="100">
+                                                {{ "%.1f"|format(advance.progress_percentage) }}%
+                                            </div>
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <div class="text-center py-3">
+                        <i class="fas fa-hand-holding-usd fa-2x text-muted mb-2"></i>
+                        <p class="text-muted mb-0">No salary advances found for this employee.</p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

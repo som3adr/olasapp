@@ -1,0 +1,349 @@
+{% extends "base.html" %}
+
+{% block title %}Manage Services - Food & Extras{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Page Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h1 class="h3 mb-0">Manage Services</h1>
+            <p class="text-muted mb-0">Configure food services, meal plans, and extra services</p>
+        </div>
+        <div class="d-flex gap-2">
+            <a href="{{ url_for('food_extras.index') }}" class="btn btn-modern btn-outline-secondary">
+                <i class="fas fa-arrow-left me-2"></i>Back to Dashboard
+            </a>
+            <a href="{{ url_for('food_extras.add_service') }}" class="btn btn-modern btn-primary">
+                <i class="fas fa-plus me-2"></i>Add Service
+            </a>
+        </div>
+    </div>
+
+    <!-- Services Table -->
+    <div class="card">
+        <div class="card-header">
+            <h5 class="card-title mb-0">
+                <i class="fas fa-list me-2"></i>All Services ({{ services|length }})
+            </h5>
+        </div>
+        <div class="card-body">
+            {% if services %}
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>Service Name</th>
+                            <th>Type</th>
+                            <th>Category</th>
+                            <th>Price</th>
+                            <th>Preparation Time</th>
+                            <th>Status</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for service in services %}
+                        <tr>
+                            <td>
+                                <div class="d-flex align-items-center">
+                                    <div class="bg-primary bg-opacity-10 rounded-circle p-2 me-3">
+                                        <i class="fas fa-utensils text-primary"></i>
+                                    </div>
+                                    <div>
+                                        <strong>{{ service.name }}</strong>
+                                        {% if service.description %}
+                                        <br><small class="text-muted">{{ service.description }}</small>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </td>
+                            <td>
+                                <span class="badge bg-light text-dark">
+                                    {{ service.service_type|title }}
+                                </span>
+                            </td>
+                            <td>
+                                {% if service.meal_category %}
+                                    <span class="badge bg-info">{{ service.meal_category|title }}</span>
+                                {% else %}
+                                    <span class="text-muted">-</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <strong>{{ "%.0f"|format(service.price) }} MAD</strong>
+                            </td>
+                            <td>
+                                {% if service.preparation_time %}
+                                    <span class="badge bg-warning">{{ service.preparation_time }} min</span>
+                                {% else %}
+                                    <span class="text-muted">-</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if service.is_active %}
+                                    <span class="badge bg-success">Active</span>
+                                {% else %}
+                                    <span class="badge bg-secondary">Inactive</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <div class="action-buttons">
+                                    <!-- View Button -->
+                                    <a href="{{ url_for('food_extras.view_service', service_id=service.id) }}" 
+                                       class="btn btn-sm btn-outline-primary service-btn view-btn" 
+                                       title="View Details"
+                                       data-service-id="{{ service.id }}"
+                                       data-service-name="{{ service.name }}">
+                                        <i class="fas fa-eye me-1"></i>View
+                                    </a>
+                                    
+                                    <!-- Edit Button -->
+                                    <a href="{{ url_for('food_extras.edit_service', service_id=service.id) }}" 
+                                       class="btn btn-sm btn-outline-warning service-btn edit-btn" 
+                                       title="Edit Service"
+                                       data-service-id="{{ service.id }}"
+                                       data-service-name="{{ service.name }}">
+                                        <i class="fas fa-edit me-1"></i>Edit
+                                    </a>
+                                    
+                                    <!-- Deactivate Button -->
+                                    {% if service.is_active %}
+                                    <form method="POST" action="{{ url_for('food_extras.deactivate_service', service_id=service.id) }}" 
+                                          class="d-inline deactivate-form" 
+                                          onsubmit="return confirm('Are you sure you want to deactivate {{ service.name }}?')">
+                                        <button type="submit" class="btn btn-sm btn-outline-danger service-btn deactivate-btn" 
+                                                title="Deactivate"
+                                                data-service-id="{{ service.id }}"
+                                                data-service-name="{{ service.name }}">
+                                            <i class="fas fa-times me-1"></i>Deactivate
+                                        </button>
+                                    </form>
+                                    {% else %}
+                                    <span class="badge bg-secondary">Inactive</span>
+                                    {% endif %}
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div class="text-center py-4">
+                <i class="fas fa-utensils fa-3x text-muted mb-3"></i>
+                <h6 class="text-muted">No services found</h6>
+                <p class="text-muted mb-0">Start by adding your first food service or extra service.</p>
+                <a href="{{ url_for('food_extras.add_service') }}" class="btn btn-primary mt-3">
+                    <i class="fas fa-plus me-2"></i>Add First Service
+                </a>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<!-- Custom CSS -->
+<style>
+.btn-modern {
+    border-radius: 10px;
+    font-weight: 500;
+    padding: 0.5rem 1rem;
+}
+
+.card {
+    border: none;
+    border-radius: 15px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+}
+
+/* Action Buttons Container */
+.action-buttons {
+    display: flex;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+    align-items: center;
+}
+
+/* Service Button Base Styles */
+.service-btn {
+    border-radius: 6px;
+    font-size: 0.875rem;
+    padding: 0.375rem 0.75rem;
+    text-decoration: none;
+    display: inline-block;
+    transition: all 0.2s ease;
+    border: 1px solid;
+    cursor: pointer;
+    position: relative;
+    z-index: 10;
+    min-width: 80px;
+    text-align: center;
+}
+
+/* Button Hover Effects */
+.service-btn:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+    text-decoration: none;
+}
+
+.service-btn.btn-outline-primary:hover {
+    background-color: #0d6efd;
+    border-color: #0d6efd;
+    color: white;
+}
+
+.service-btn.btn-outline-warning:hover {
+    background-color: #ffc107;
+    border-color: #ffc107;
+    color: #000;
+}
+
+.service-btn.btn-outline-danger:hover {
+    background-color: #dc3545;
+    border-color: #dc3545;
+    color: white;
+}
+
+/* Button Focus States */
+.service-btn:focus {
+    outline: none;
+    box-shadow: 0 0 0 0.2rem rgba(0,123,255,0.25);
+}
+
+/* Deactivate Form Styling */
+.deactivate-form {
+    margin: 0;
+    padding: 0;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    .action-buttons {
+        flex-direction: column;
+        gap: 0.25rem;
+    }
+    
+    .service-btn {
+        width: 100%;
+        min-width: auto;
+    }
+}
+
+/* Debug Styling */
+.service-btn::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: -1;
+}
+
+/* Ensure buttons are above other elements */
+.service-btn {
+    position: relative;
+    z-index: 100;
+}
+</style>
+
+<!-- JavaScript for Button Functionality -->
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('🚀 Services page loaded successfully');
+    
+    // Get all service buttons
+    const viewButtons = document.querySelectorAll('.view-btn');
+    const editButtons = document.querySelectorAll('.edit-btn');
+    const deactivateButtons = document.querySelectorAll('.deactivate-btn');
+    
+    console.log(`📊 Found ${viewButtons.length} view buttons, ${editButtons.length} edit buttons, ${deactivateButtons.length} deactivate buttons`);
+    
+    // Add click event listeners to View buttons
+    viewButtons.forEach(function(button, index) {
+        const serviceId = button.getAttribute('data-service-id');
+        const serviceName = button.getAttribute('data-service-name');
+        
+        console.log(`👁️ View button ${index}: Service ID ${serviceId}, Name: ${serviceName}`);
+        
+        button.addEventListener('click', function(e) {
+            e.preventDefault();
+            console.log(`🎯 View button clicked for service: ${serviceName} (ID: ${serviceId})`);
+            
+            // Get the href from the button
+            const href = this.href;
+            console.log(`🔗 Navigating to: ${href}`);
+            
+            // Navigate to the view page
+            window.location.href = href;
+        });
+        
+        // Add hover effect logging
+        button.addEventListener('mouseenter', function() {
+            console.log(`🖱️ Hovering over view button for: ${serviceName}`);
+        });
+    });
+    
+    // Add click event listeners to Edit buttons
+    editButtons.forEach(function(button, index) {
+        const serviceId = button.getAttribute('data-service-id');
+        const serviceName = button.getAttribute('data-service-name');
+        
+        console.log(`✏️ Edit button ${index}: Service ID ${serviceId}, Name: ${serviceName}`);
+        
+        button.addEventListener('click', function(e) {
+            e.preventDefault();
+            console.log(`🎯 Edit button clicked for service: ${serviceName} (ID: ${serviceId})`);
+            
+            // Get the href from the button
+            const href = this.href;
+            console.log(`🔗 Navigating to: ${href}`);
+            
+            // Navigate to the edit page
+            window.location.href = href;
+        });
+        
+        // Add hover effect logging
+        button.addEventListener('mouseenter', function() {
+            console.log(`🖱️ Hovering over edit button for: ${serviceName}`);
+        });
+    });
+    
+    // Add click event listeners to Deactivate buttons
+    deactivateButtons.forEach(function(button, index) {
+        const serviceId = button.getAttribute('data-service-id');
+        const serviceName = button.getAttribute('data-service-name');
+        
+        console.log(`❌ Deactivate button ${index}: Service ID ${serviceId}, Name: ${serviceName}`);
+        
+        button.addEventListener('click', function(e) {
+            console.log(`🎯 Deactivate button clicked for service: ${serviceName} (ID: ${serviceId})`);
+            // Don't prevent default for form submission
+        });
+    });
+    
+    // Test button functionality
+    console.log('✅ All event listeners attached successfully');
+    
+    // Add a test click to verify functionality
+    if (viewButtons.length > 0) {
+        console.log('🧪 Testing first view button functionality...');
+        const firstViewButton = viewButtons[0];
+        console.log('📍 First view button:', firstViewButton);
+        console.log('🔗 First view button href:', firstViewButton.href);
+        console.log('📱 First view button data attributes:', {
+            serviceId: firstViewButton.getAttribute('data-service-id'),
+            serviceName: firstViewButton.getAttribute('data-service-name')
+        });
+    }
+});
+
+// Global function for debugging
+function debugButton(buttonType, serviceId, serviceName) {
+    console.log(`🔍 Debug: ${buttonType} button clicked for service ${serviceName} (ID: ${serviceId})`);
+    return true;
+}
+</script>
+{% endblock %}

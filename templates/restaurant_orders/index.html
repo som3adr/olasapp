@@ -1,0 +1,865 @@
+{% extends "base.html" %}
+
+{% block title %}Auto-Generated Meal Orders - HostelFlow{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Header Section -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h1 class="h3 mb-0">
+                <i class="fas fa-calendar-day text-primary me-2"></i>
+                Auto-Generated Meal Orders
+            </h1>
+            <p class="text-muted">Automatically generated breakfast and dinner orders for guests with meal services</p>
+        </div>
+
+    </div>
+
+    <!-- Summary Cards Section -->
+    <div class="row mb-4">
+        <div class="col-lg-6 col-md-6 mb-3">
+            <div class="card bg-primary text-white h-100">
+                <div class="card-body d-flex align-items-center">
+                    <div class="flex-shrink-0 me-3">
+                        <i class="fas fa-list-alt fa-2x"></i>
+                    </div>
+                    <div class="flex-grow-1">
+                        <h3 class="card-title mb-1">{{ total_orders }}</h3>
+                        <p class="card-text mb-0">Total Orders</p>
+                        <small class="opacity-75">Count of all order rows</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-6 col-md-6 mb-3">
+            <div class="card bg-success text-white h-100">
+                <div class="card-body d-flex align-items-center">
+                    <div class="flex-shrink-0 me-3">
+                        <i class="fas fa-utensils fa-2x"></i>
+                    </div>
+                    <div class="flex-grow-1">
+                        <h3 class="card-title mb-1">{{ total_meals }}</h3>
+                        <p class="card-text mb-0">Total Meals</p>
+                        <small class="opacity-75">Sum of all quantities</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Advanced Filter Controls -->
+    <div class="card mb-4">
+        <div class="card-header">
+            <h5 class="mb-0">
+                <i class="fas fa-filter me-2"></i>
+                Filter & Search Controls
+            </h5>
+        </div>
+        <div class="card-body">
+            <div class="row g-3">
+                <!-- Date Selection -->
+                <div class="col-lg-2 col-md-4 col-sm-6">
+                    <label for="date-picker" class="form-label">Date</label>
+                    <input type="date" id="date-picker" class="form-control" 
+                           value="{{ selected_date.isoformat() }}" 
+                           onchange="changeDate(this.value)">
+                </div>
+                
+                <!-- Guest Filter -->
+                <div class="col-lg-2 col-md-4 col-sm-6">
+                    <label for="guest-filter" class="form-label">Guest</label>
+                    <select id="guest-filter" class="form-select" onchange="filterTable()">
+                        <option value="">All Guests</option>
+                        {% for guest in unique_guests %}
+                        <option value="{{ guest }}">{{ guest }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                
+                <!-- Service Type Filter -->
+                <div class="col-lg-2 col-md-4 col-sm-6">
+                    <label for="service-filter" class="form-label">Service Type</label>
+                    <select id="service-filter" class="form-select" onchange="filterTable()">
+                        <option value="">All Services</option>
+                        {% for service in unique_services %}
+                        <option value="{{ service }}">{{ service }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                
+                <!-- Meal Time Filter -->
+                <div class="col-lg-2 col-md-4 col-sm-6">
+                    <label for="meal-time-filter" class="form-label">Meal Time</label>
+                    <select id="meal-time-filter" class="form-select" onchange="changeMealTime(this.value)">
+                        <option value="all" {% if meal_time == 'all' %}selected{% endif %}>All Meals</option>
+                        <option value="breakfast" {% if meal_time == 'breakfast' %}selected{% endif %}>Breakfast</option>
+                        <option value="lunch" {% if meal_time == 'lunch' %}selected{% endif %}>Lunch</option>
+                        <option value="dinner" {% if meal_time == 'dinner' %}selected{% endif %}>Dinner</option>
+                    </select>
+                </div>
+                
+                <!-- Status Filter -->
+                <div class="col-lg-2 col-md-4 col-sm-6">
+                    <label for="status-filter" class="form-label">Status</label>
+                    <select id="status-filter" class="form-select" onchange="changeStatus(this.value)">
+                        <option value="all" {% if status == 'all' %}selected{% endif %}>All Status</option>
+                        <option value="pending" {% if status == 'pending' %}selected{% endif %}>Pending</option>
+                        <option value="preparing" {% if status == 'preparing' %}selected{% endif %}>Preparing</option>
+                        <option value="ready" {% if status == 'ready' %}selected{% endif %}>Ready</option>
+                        <option value="served" {% if status == 'served' %}selected{% endif %}>Served</option>
+                    </select>
+                </div>
+                
+                <!-- Quick Date Navigation -->
+                <div class="col-lg-2 col-md-4 col-sm-6">
+                    <label class="form-label">Quick Date</label>
+                    <div class="btn-group w-100" role="group">
+                        <button type="button" class="btn btn-outline-secondary btn-sm" onclick="changeDate('{{ yesterday_date.isoformat() }}')">Yesterday</button>
+                        <button type="button" class="btn btn-outline-secondary btn-sm" onclick="changeDate('{{ date.today().isoformat() }}')">Today</button>
+                        <button type="button" class="btn btn-outline-secondary btn-sm" onclick="changeDate('{{ tomorrow_date.isoformat() }}')">Tomorrow</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Breakfast and Dinner Summary Cards -->
+    <div class="row mb-4">
+        <div class="col-lg-6 col-md-6 mb-3">
+            <div class="card bg-warning text-white h-100">
+                <div class="card-body d-flex align-items-center">
+                    <div class="flex-shrink-0 me-3">
+                        <i class="fas fa-sun fa-2x"></i>
+                    </div>
+                    <div class="flex-grow-1">
+                        <h3 class="card-title mb-1">{{ meal_counts.breakfast }}</h3>
+                        <p class="card-text mb-0">Breakfast</p>
+                        <small class="opacity-75">Total breakfast meals</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-6 col-md-6 mb-3">
+            <div class="card bg-success text-white h-100">
+                <div class="card-body d-flex align-items-center">
+                    <div class="flex-shrink-0 me-3">
+                        <i class="fas fa-moon fa-2x"></i>
+                    </div>
+                    <div class="flex-grow-1">
+                        <h3 class="card-title mb-1">{{ meal_counts.dinner }}</h3>
+                        <p class="card-text mb-0">Dinner</p>
+                        <small class="opacity-75">Total dinner meals</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Orders List -->
+    <div class="card">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <h5 class="mb-0">
+                <i class="fas fa-table me-2"></i>
+                Orders for {{ selected_date.strftime('%A, %B %d, %Y') }}
+            </h5>
+            <div class="d-flex align-items-center">
+                <span class="badge bg-primary me-2" id="filtered-count">{{ total_orders }}</span>
+                <small class="text-muted">orders shown</small>
+            </div>
+        </div>
+        <div class="card-body">
+            {% if orders %}
+            <div class="table-responsive">
+                <table class="table table-hover" id="orders-table">
+                    <thead class="table-light">
+                        <tr>
+                            <th class="sortable" data-sort="guest">
+                                <i class="fas fa-user me-1"></i>Guest
+                                <i class="fas fa-sort ms-1"></i>
+                            </th>
+                            <th class="sortable" data-sort="meal">
+                                <i class="fas fa-utensils me-1"></i>Meal
+                                <i class="fas fa-sort ms-1"></i>
+                            </th>
+                            <th class="sortable" data-sort="service">
+                                <i class="fas fa-concierge-bell me-1"></i>Service
+                                <i class="fas fa-sort ms-1"></i>
+                            </th>
+                            <th class="sortable" data-sort="quantity">
+                                <i class="fas fa-hashtag me-1"></i>Quantity
+                                <i class="fas fa-sort ms-1"></i>
+                            </th>
+                            <th>
+                                <i class="fas fa-cogs me-1"></i>Actions
+                            </th>
+                        </tr>
+                    </thead>
+                    <tbody id="orders-tbody">
+                        {% for order in orders %}
+                        <tr data-order-id="{{ order.id }}" 
+                            data-guest="{{ order.tenant.name }}"
+                            data-service="{{ order.service.name }}"
+                            data-meal="{{ order.service.meal_category or 'general' }}"
+                            data-quantity="{{ order.quantity }}"
+                            data-status="{{ order.status }}"
+                            data-created="{{ order.created_at.strftime('%Y-%m-%d %H:%M') }}">
+                            <td data-sort="guest">
+                                <div class="d-flex align-items-center">
+                                    <i class="fas fa-user-circle text-muted me-2"></i>
+                                    <div>
+                                        <strong>{{ order.tenant.name }}</strong>
+                                    </div>
+                                </div>
+                            </td>
+                            <td data-sort="meal">
+                                <span class="badge bg-primary">{{ (order.service.meal_category or 'general')|title }}</span>
+                            </td>
+                            <td data-sort="service">
+                                <div>
+                                    <strong>{{ order.service.name }}</strong><br>
+                                    <small class="text-muted">{{ order.service.description or '' }}</small>
+                                </div>
+                            </td>
+                            <td data-sort="quantity">
+                                <span class="badge bg-secondary fs-6">{{ order.quantity }}</span>
+                            </td>
+                            <td>
+                                {% if order.is_from_food_extras %}
+                                    <div class="btn-group" role="group">
+                                        <button class="btn btn-sm btn-outline-info" onclick="viewDetails('{{ order.id }}')" title="View Details">
+                                            <i class="fas fa-eye"></i>
+                                        </button>
+                                        
+                                        <button class="btn btn-sm btn-outline-danger" onclick="cancelOrder('{{ order.id }}')" title="Cancel Order">
+                                            <i class="fas fa-times"></i>
+                                        </button>
+                                    </div>
+                                {% else %}
+                                    <div class="btn-group" role="group">
+                                        <button class="btn btn-sm btn-outline-primary" onclick="editOrder({{ order.id }})" title="Edit Order">
+                                            <i class="fas fa-edit"></i>
+                                        </button>
+                                        
+                                        <button class="btn btn-sm btn-outline-info" onclick="viewDetails({{ order.id }})" title="View Details">
+                                            <i class="fas fa-eye"></i>
+                                        </button>
+                                        
+                                        <button class="btn btn-sm btn-outline-danger" onclick="cancelOrder({{ order.id }})" title="Cancel Order">
+                                            <i class="fas fa-times"></i>
+                                        </button>
+                                    </div>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div class="text-center py-5">
+                <i class="fas fa-utensils fa-3x text-muted mb-3"></i>
+                <h5 class="text-muted">No orders for this date</h5>
+                <p class="text-muted">Create a new order to get started</p>
+                <a href="{{ url_for('restaurant_orders.create') }}" class="btn btn-primary">
+                    <i class="fas fa-plus"></i> Create Order
+                </a>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<!-- Status Update Modal -->
+<div class="modal fade" id="statusModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Update Order Status</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p>Are you sure you want to update this order status?</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" id="confirmStatusUpdate">Confirm</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Cancel Order Modal -->
+<div class="modal fade" id="cancelModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-danger text-white">
+                <h5 class="modal-title">
+                    <i class="fas fa-exclamation-triangle me-2"></i>Cancel Order
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p>Are you sure you want to cancel this meal order?</p>
+                <div class="alert alert-warning">
+                    <i class="fas fa-warning me-2"></i>
+                    <strong>Warning:</strong> This action cannot be undone. The order will be permanently removed.
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Keep Order</button>
+                <button type="button" class="btn btn-danger" id="confirmCancelOrder">
+                    <i class="fas fa-times me-1"></i>Cancel Order
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Delete Confirmation Modal -->
+<div class="modal fade" id="deleteModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Delete Order</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p>Are you sure you want to delete this order? This action cannot be undone.</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-danger" id="confirmDelete">Delete</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+let currentOrderId = null;
+let currentAction = null;
+let currentSort = { column: null, direction: 'asc' };
+
+// URL Navigation Functions
+function changeDate(date) {
+    const url = new URL(window.location);
+    url.searchParams.set('date', date);
+    window.location.href = url.toString();
+}
+
+function changeMealTime(mealTime) {
+    const url = new URL(window.location);
+    if (mealTime === 'all') {
+        url.searchParams.delete('meal_time');
+    } else {
+        url.searchParams.set('meal_time', mealTime);
+    }
+    window.location.href = url.toString();
+}
+
+function changeStatus(status) {
+    const url = new URL(window.location);
+    if (status === 'all') {
+        url.searchParams.delete('status');
+    } else {
+        url.searchParams.set('status', status);
+    }
+    window.location.href = url.toString();
+}
+
+// Client-side Filtering Function
+function filterTable() {
+    const guestFilter = document.getElementById('guest-filter').value.toLowerCase();
+    const serviceFilter = document.getElementById('service-filter').value.toLowerCase();
+    const rows = document.querySelectorAll('#orders-tbody tr');
+    let visibleCount = 0;
+    
+    rows.forEach(row => {
+        const guest = row.dataset.guest.toLowerCase();
+        const service = row.dataset.service.toLowerCase();
+        
+        const guestMatch = !guestFilter || guest.includes(guestFilter);
+        const serviceMatch = !serviceFilter || service.includes(serviceFilter);
+        
+        if (guestMatch && serviceMatch) {
+            row.style.display = '';
+            visibleCount++;
+        } else {
+            row.style.display = 'none';
+        }
+    });
+    
+    // Update filtered count
+    document.getElementById('filtered-count').textContent = visibleCount;
+}
+
+// Sorting Function
+function sortTable(column) {
+    const tbody = document.getElementById('orders-tbody');
+    const rows = Array.from(tbody.querySelectorAll('tr'));
+    
+    // Determine sort direction
+    if (currentSort.column === column) {
+        currentSort.direction = currentSort.direction === 'asc' ? 'desc' : 'asc';
+    } else {
+        currentSort.column = column;
+        currentSort.direction = 'asc';
+    }
+    
+    // Sort rows
+    rows.sort((a, b) => {
+        let aValue = a.dataset[column] || a.querySelector(`[data-sort="${column}"]`)?.textContent?.trim() || '';
+        let bValue = b.dataset[column] || b.querySelector(`[data-sort="${column}"]`)?.textContent?.trim() || '';
+        
+        // Handle numeric sorting for quantity
+        if (column === 'quantity') {
+            aValue = parseInt(aValue) || 0;
+            bValue = parseInt(bValue) || 0;
+        }
+        
+        // Handle date sorting for created
+        if (column === 'created') {
+            aValue = new Date(aValue);
+            bValue = new Date(bValue);
+        }
+        
+        if (currentSort.direction === 'asc') {
+            return aValue > bValue ? 1 : -1;
+        } else {
+            return aValue < bValue ? 1 : -1;
+        }
+    });
+    
+    // Re-append sorted rows
+    rows.forEach(row => tbody.appendChild(row));
+    
+    // Update sort indicators
+    updateSortIndicators(column);
+}
+
+// Update sort indicators
+function updateSortIndicators(activeColumn) {
+    document.querySelectorAll('.sortable i.fa-sort').forEach(icon => {
+        icon.className = 'fas fa-sort ms-1';
+    });
+    
+    const activeIcon = document.querySelector(`[data-sort="${activeColumn}"] i.fa-sort`);
+    if (activeIcon) {
+        activeIcon.className = currentSort.direction === 'asc' 
+            ? 'fas fa-sort-up ms-1' 
+            : 'fas fa-sort-down ms-1';
+    }
+}
+
+// Initialize event listeners
+document.addEventListener('DOMContentLoaded', function() {
+    // Add click listeners to sortable headers
+    document.querySelectorAll('.sortable').forEach(header => {
+        header.style.cursor = 'pointer';
+        header.addEventListener('click', function() {
+            const column = this.dataset.sort;
+            sortTable(column);
+        });
+    });
+    
+    // Initialize filtering
+    filterTable();
+});
+
+function updateStatus(orderId, newStatus) {
+    currentOrderId = orderId;
+    currentAction = 'status';
+    
+    fetch(`/restaurant-orders/${orderId}/update-status`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+        },
+        body: `status=${newStatus}`
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            // Update the status badge
+            const row = document.querySelector(`tr[data-order-id="${orderId}"]`);
+            const statusBadge = row.querySelector('.status-badge');
+            statusBadge.textContent = newStatus.charAt(0).toUpperCase() + newStatus.slice(1);
+            statusBadge.className = `badge status-badge status-${newStatus}`;
+            
+            // Update action buttons
+            const actionsCell = row.querySelector('td:last-child .btn-group');
+            updateActionButtons(actionsCell, newStatus);
+            
+            // Show success message
+            showAlert('success', data.message);
+            
+            // Refresh status counts
+            setTimeout(() => location.reload(), 1000);
+        } else {
+            showAlert('error', data.message || 'Failed to update status');
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        showAlert('error', 'Failed to update status');
+    });
+}
+
+function updateActionButtons(btnGroup, status) {
+    let newButtons = '';
+    
+    if (status === 'pending') {
+        newButtons = `
+            <button class="btn btn-sm btn-info" onclick="updateStatus(${currentOrderId}, 'preparing')">
+                Start Prep
+            </button>
+            <button class="btn btn-sm btn-outline-primary" onclick="editOrder(${currentOrderId})">
+                <i class="fas fa-edit"></i>
+            </button>
+            <button class="btn btn-sm btn-outline-danger" onclick="deleteOrder(${currentOrderId})">
+                <i class="fas fa-trash"></i>
+            </button>
+        `;
+    } else if (status === 'preparing') {
+        newButtons = `
+            <button class="btn btn-sm btn-success" onclick="updateStatus(${currentOrderId}, 'ready')">
+                Mark Ready
+            </button>
+            <button class="btn btn-sm btn-outline-primary" onclick="editOrder(${currentOrderId})">
+                <i class="fas fa-edit"></i>
+            </button>
+        `;
+    } else if (status === 'ready') {
+        newButtons = `
+            <button class="btn btn-sm btn-secondary" onclick="updateStatus(${currentOrderId}, 'served')">
+                Mark Served
+            </button>
+            <button class="btn btn-sm btn-outline-primary" onclick="editOrder(${currentOrderId})">
+                <i class="fas fa-edit"></i>
+            </button>
+        `;
+    } else if (status === 'served') {
+        newButtons = `
+            <button class="btn btn-sm btn-outline-primary" onclick="editOrder(${currentOrderId})">
+                <i class="fas fa-edit"></i>
+            </button>
+        `;
+    }
+    
+    btnGroup.innerHTML = newButtons;
+}
+
+function editOrder(orderId) {
+    window.location.href = `/restaurant-orders/${orderId}/edit`;
+}
+
+function markPrepared(orderId) {
+    // Update order status to 'ready'
+    fetch(`/restaurant-orders/${orderId}/update-status`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+        },
+        body: 'status=ready'
+    })
+    .then(response => {
+        if (response.ok) {
+            // Update the button and status in the UI
+            const button = document.querySelector(`button[onclick="markPrepared(${orderId})"]`);
+            if (button) {
+                button.innerHTML = '<i class="fas fa-check-circle"></i> Ready';
+                button.className = 'btn btn-sm btn-success';
+                button.onclick = `markServed(${orderId})`;
+            }
+            
+            // Update status badge
+            const row = button.closest('tr');
+            const statusCell = row.querySelector('[data-sort="status"]');
+            if (statusCell) {
+                statusCell.innerHTML = '<span class="badge bg-success">Ready</span>';
+            }
+            
+            showAlert('success', 'Order marked as ready!');
+        } else {
+            showAlert('error', 'Failed to update order status');
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        showAlert('error', 'Failed to update order status');
+    });
+}
+
+function markServed(orderId) {
+    // Update order status to 'served'
+    fetch(`/restaurant-orders/${orderId}/update-status`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+        },
+        body: 'status=served'
+    })
+    .then(response => {
+        if (response.ok) {
+            // Update the button and status in the UI
+            const button = document.querySelector(`button[onclick="markServed(${orderId})"]`);
+            if (button) {
+                button.innerHTML = '<i class="fas fa-check-double"></i> Served';
+                button.className = 'btn btn-sm btn-secondary';
+                button.disabled = true;
+            }
+            
+            // Update status badge
+            const row = button.closest('tr');
+            const statusCell = row.querySelector('[data-sort="status"]');
+            if (statusCell) {
+                statusCell.innerHTML = '<span class="badge bg-secondary">Served</span>';
+            }
+            
+            showAlert('success', 'Order marked as served!');
+        } else {
+            showAlert('error', 'Failed to update order status');
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        showAlert('error', 'Failed to update order status');
+    });
+}
+
+function viewDetails(orderId) {
+    // Get order details and show in a modal or redirect to details page
+    fetch(`/restaurant-orders/${orderId}`)
+    .then(response => response.json())
+    .then(data => {
+        // Create a simple modal to show order details
+        const modal = document.createElement('div');
+        modal.className = 'modal fade';
+        modal.innerHTML = `
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">Order Details #${data.id}</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body">
+                        <p><strong>Guest:</strong> ${data.tenant.name}</p>
+                        <p><strong>Service:</strong> ${data.service.name}</p>
+                        <p><strong>Date:</strong> ${data.order_date}</p>
+                        <p><strong>Meal Time:</strong> ${data.meal_time}</p>
+                        <p><strong>Quantity:</strong> ${data.quantity}</p>
+                        <p><strong>Status:</strong> ${data.status}</p>
+                        <p><strong>Special Requests:</strong> ${data.special_requests || 'None'}</p>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    </div>
+                </div>
+            </div>
+        `;
+        
+        document.body.appendChild(modal);
+        const bsModal = new bootstrap.Modal(modal);
+        bsModal.show();
+        
+        // Remove modal from DOM when hidden
+        modal.addEventListener('hidden.bs.modal', () => {
+            document.body.removeChild(modal);
+        });
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        showAlert('error', 'Failed to load order details');
+    });
+}
+
+function deleteOrder(orderId) {
+    currentOrderId = orderId;
+    currentAction = 'delete';
+    
+    // Use Bootstrap 5 modal API
+    const deleteModal = new bootstrap.Modal(document.getElementById('deleteModal'));
+    deleteModal.show();
+}
+
+function cancelOrder(orderId) {
+    console.log('cancelOrder called with ID:', orderId);
+    
+    // Check if modal element exists
+    const modalElement = document.getElementById('cancelModal');
+    if (!modalElement) {
+        console.error('cancelModal element not found!');
+        alert('Modal not found. Please refresh the page.');
+        return;
+    }
+    
+    currentOrderId = orderId;
+    currentAction = 'cancel';
+    
+    // Use Bootstrap 5 modal API
+    try {
+        const cancelModal = new bootstrap.Modal(modalElement);
+        cancelModal.show();
+        console.log('Modal should be showing now');
+    } catch (error) {
+        console.error('Error showing modal:', error);
+        alert('Error showing modal: ' + error.message);
+    }
+}
+
+document.getElementById('confirmDelete').addEventListener('click', function() {
+    if (currentOrderId && currentAction === 'delete') {
+        const form = document.createElement('form');
+        form.method = 'POST';
+        form.action = `/restaurant-orders/${currentOrderId}/delete`;
+        document.body.appendChild(form);
+        form.submit();
+    }
+});
+
+document.getElementById('confirmCancelOrder').addEventListener('click', function() {
+    if (currentOrderId && currentAction === 'cancel') {
+        const form = document.createElement('form');
+        form.method = 'POST';
+        form.action = `/restaurant-orders/${currentOrderId}/cancel`;
+        document.body.appendChild(form);
+        form.submit();
+    }
+});
+
+function showAlert(type, message) {
+    const alertDiv = document.createElement('div');
+    alertDiv.className = `alert alert-${type === 'success' ? 'success' : 'danger'} alert-dismissible fade show`;
+    alertDiv.innerHTML = `
+        ${message}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    `;
+    
+    const container = document.querySelector('.container-fluid');
+    container.insertBefore(alertDiv, container.firstChild);
+    
+    setTimeout(() => {
+        alertDiv.remove();
+    }, 5000);
+}
+</script>
+
+<style>
+/* Status Badge Colors */
+.status-badge.status-pending {
+    background-color: #ffc107 !important;
+    color: #000 !important;
+}
+
+.status-badge.status-preparing {
+    background-color: #17a2b8 !important;
+}
+
+.status-badge.status-ready {
+    background-color: #28a745 !important;
+}
+
+.status-badge.status-served {
+    background-color: #6c757d !important;
+}
+
+/* Button Group Spacing */
+.btn-group .btn {
+    margin-right: 2px;
+}
+
+.btn-group .btn:last-child {
+    margin-right: 0;
+}
+
+/* Sortable Headers */
+.sortable {
+    cursor: pointer;
+    user-select: none;
+    transition: background-color 0.2s;
+}
+
+.sortable:hover {
+    background-color: #f8f9fa;
+}
+
+/* Mobile Responsive Design */
+@media (max-width: 768px) {
+    .container-fluid {
+        padding: 0.5rem;
+    }
+    
+    .card-body {
+        padding: 1rem;
+    }
+    
+    .table-responsive {
+        font-size: 0.875rem;
+    }
+    
+    .btn-group .btn {
+        padding: 0.25rem 0.5rem;
+        font-size: 0.75rem;
+    }
+    
+    .badge {
+        font-size: 0.7rem;
+    }
+    
+    /* Stack filter controls on mobile */
+    .row.g-3 > div {
+        margin-bottom: 0.5rem;
+    }
+    
+    /* Make summary cards stack on mobile */
+    .row.mb-4 .col-lg-6 {
+        margin-bottom: 1rem;
+    }
+    
+    /* Adjust table for mobile */
+    .table th,
+    .table td {
+        padding: 0.5rem 0.25rem;
+        vertical-align: middle;
+    }
+    
+    /* Hide less important columns on very small screens */
+    @media (max-width: 576px) {
+        .table th:nth-child(5),
+        .table td:nth-child(5),
+        .table th:nth-child(7),
+        .table td:nth-child(7) {
+            display: none;
+        }
+    }
+}
+
+/* Professional styling */
+.card {
+    box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+    border: 1px solid rgba(0, 0, 0, 0.125);
+}
+
+.card-header {
+    background-color: #f8f9fa;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.125);
+}
+
+.table-hover tbody tr:hover {
+    background-color: rgba(0, 123, 255, 0.05);
+}
+
+/* Loading states */
+.loading {
+    opacity: 0.6;
+    pointer-events: none;
+}
+
+/* Filter highlight */
+.filtered-row {
+    background-color: rgba(40, 167, 69, 0.1) !important;
+}
+</style>
+{% endblock %}

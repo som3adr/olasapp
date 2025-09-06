@@ -1,0 +1,206 @@
+{% extends "base.html" %}
+
+{% block title %}Guest Communications - HostelFlow{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h2><i class="fas fa-comments me-2"></i>Guest Communications</h2>
+                <div>
+                    <a href="{{ url_for('guest_communications.send_email') }}" class="btn btn-primary me-2">
+                        <i class="fas fa-envelope me-1"></i>Send Email
+                    </a>
+                    <a href="{{ url_for('guest_communications.send_sms') }}" class="btn btn-success me-2">
+                        <i class="fas fa-sms me-1"></i>Send SMS
+                    </a>
+                    <a href="{{ url_for('guest_communications.templates') }}" class="btn btn-outline-secondary">
+                        <i class="fas fa-file-alt me-1"></i>Templates
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Statistics Cards -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card bg-primary text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h6 class="card-title">Total Sent</h6>
+                            <h4>{{ total_sent }}</h4>
+                        </div>
+                        <div class="align-self-center">
+                            <i class="fas fa-paper-plane fa-2x"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-info text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h6 class="card-title">Emails Sent</h6>
+                            <h4>{{ email_sent }}</h4>
+                        </div>
+                        <div class="align-self-center">
+                            <i class="fas fa-envelope fa-2x"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-success text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h6 class="card-title">SMS Sent</h6>
+                            <h4>{{ sms_sent }}</h4>
+                        </div>
+                        <div class="align-self-center">
+                            <i class="fas fa-sms fa-2x"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-warning text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h6 class="card-title">Reachable Guests</h6>
+                            <h4>{{ guests_with_email + guests_with_phone }}</h4>
+                        </div>
+                        <div class="align-self-center">
+                            <i class="fas fa-users fa-2x"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Contact Coverage -->
+    <div class="row mb-4">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5><i class="fas fa-chart-pie me-2"></i>Email Coverage</h5>
+                </div>
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <span>Guests with Email</span>
+                        <span class="badge bg-primary">{{ guests_with_email }}</span>
+                    </div>
+                    <div class="progress mt-2">
+                        <div class="progress-bar bg-primary" role="progressbar" 
+                             style="width: {{ (guests_with_email / (guests_with_email + guests_with_phone) * 100) if (guests_with_email + guests_with_phone) > 0 else 0 }}%">
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5><i class="fas fa-chart-pie me-2"></i>SMS Coverage</h5>
+                </div>
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <span>Guests with Phone</span>
+                        <span class="badge bg-success">{{ guests_with_phone }}</span>
+                    </div>
+                    <div class="progress mt-2">
+                        <div class="progress-bar bg-success" role="progressbar" 
+                             style="width: {{ (guests_with_phone / (guests_with_email + guests_with_phone) * 100) if (guests_with_email + guests_with_phone) > 0 else 0 }}%">
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Recent Communications -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5><i class="fas fa-history me-2"></i>Recent Communications</h5>
+                    <a href="{{ url_for('guest_communications.history') }}" class="btn btn-sm btn-outline-primary">
+                        View All
+                    </a>
+                </div>
+                <div class="card-body">
+                    {% if recent_communications %}
+                    <div class="table-responsive">
+                        <table class="table table-striped table-hover">
+                            <thead class="table-dark">
+                                <tr>
+                                    <th>Date</th>
+                                    <th>Guest</th>
+                                    <th>Type</th>
+                                    <th>Subject</th>
+                                    <th>Message</th>
+                                    <th>Status</th>
+                                    <th>Sent By</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for comm in recent_communications %}
+                                <tr>
+                                    <td>{{ comm.sent_at.strftime('%Y-%m-%d %H:%M') }}</td>
+                                    <td>{{ comm.tenant.name if comm.tenant else 'N/A' }}</td>
+                                    <td>
+                                        {% if comm.communication_type == 'email' %}
+                                        <span class="badge bg-info">
+                                            <i class="fas fa-envelope me-1"></i>Email
+                                        </span>
+                                        {% elif comm.communication_type == 'sms' %}
+                                        <span class="badge bg-success">
+                                            <i class="fas fa-sms me-1"></i>SMS
+                                        </span>
+                                        {% endif %}
+                                    </td>
+                                    <td>{{ comm.subject[:50] }}{% if comm.subject|length > 50 %}...{% endif %}</td>
+                                    <td>{{ comm.message[:50] }}{% if comm.message|length > 50 %}...{% endif %}</td>
+                                    <td>
+                                        {% if comm.status == 'sent' %}
+                                        <span class="badge bg-success">Sent</span>
+                                        {% elif comm.status == 'failed' %}
+                                        <span class="badge bg-danger">Failed</span>
+                                        {% else %}
+                                        <span class="badge bg-warning">Pending</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>{{ comm.sent_by_user.username if comm.sent_by_user else 'System' }}</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <div class="text-center py-4">
+                        <i class="fas fa-comments fa-3x text-muted mb-3"></i>
+                        <h5 class="text-muted">No communications sent yet</h5>
+                        <p class="text-muted">Start communicating with your guests using email or SMS.</p>
+                        <a href="{{ url_for('guest_communications.send_email') }}" class="btn btn-primary me-2">
+                            Send Email
+                        </a>
+                        <a href="{{ url_for('guest_communications.send_sms') }}" class="btn btn-success">
+                            Send SMS
+                        </a>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

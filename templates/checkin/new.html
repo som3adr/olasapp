@@ -1,0 +1,643 @@
+{% extends "base.html" %}
+
+{% block page_title %}New Check-In{% endblock %}
+
+{% block page_actions %}
+<a href="{{ url_for('checkin.index') }}" class="btn btn-secondary">
+    <i class="fas fa-arrow-left me-2"></i>Back to Dashboard
+</a>
+{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-10">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="fas fa-sign-in-alt me-2"></i>Guest Check-In
+                </h5>
+            </div>
+            <div class="card-body">
+                <!-- Check-in Mode Selection -->
+                <div class="mb-4">
+                    <label class="form-label fw-bold">Check-in Mode:</label>
+                    <div class="btn-group w-100" role="group">
+                        <input type="radio" class="btn-check" name="check_in_mode" id="existing_guest" value="existing" checked>
+                        <label class="btn btn-outline-primary" for="existing_guest">
+                            <i class="fas fa-user me-2"></i>Existing Guest
+                        </label>
+                        
+                        <input type="radio" class="btn-check" name="check_in_mode" id="new_guest" value="new_guest">
+                        <label class="btn btn-outline-success" for="new_guest">
+                            <i class="fas fa-user-plus me-2"></i>New Guest
+                        </label>
+                    </div>
+                </div>
+
+                <form method="POST" action="{{ url_for('checkin.new_checkin') }}">
+                    <!-- Hidden mode field -->
+                    <input type="hidden" name="check_in_mode" id="hidden_mode" value="existing">
+                    
+                    <!-- Existing Guest Section -->
+                    <div id="existing_guest_section">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label">Select Guest *</label>
+                                    <div class="position-relative">
+                                        <input type="text" class="form-control" id="guest_search" 
+                                               placeholder="Type to search guests..." autocomplete="off">
+                                        <div id="guest_search_results" class="position-absolute w-100 bg-white border rounded shadow-sm" 
+                                             style="display: none; z-index: 1000; max-height: 200px; overflow-y: auto;">
+                                        </div>
+                                    </div>
+                                    <select name="tenant_id" class="form-select" id="tenant_select" style="display: none;">
+                                        <option value="">Select guest...</option>
+                                        {% for tenant in tenants %}
+                                        <option value="{{ tenant.id }}" data-name="{{ tenant.name|lower }}">{{ tenant.name }}</option>
+                                        {% endfor %}
+                                    </select>
+                                    <small class="form-text text-muted">Type guest name to search quickly • {{ tenants|length }} guests available</small>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label">Bed Assignment *</label>
+                                    <select name="bed_id" class="form-select" id="bed_assignment">
+                                        <option value="">Select bed...</option>
+                                        {% for bed in available_beds %}
+                                        <option value="{{ bed.id }}" data-occupied="{{ bed.is_occupied|lower }}">
+                                            Room {{ bed.room.room_number }} - Bed {{ bed.bed_number }} 
+                                            ({{ bed.places }} place{% if bed.places != 1 %}s{% endif %})
+                                            {% if bed.is_occupied %}[OCCUPIED]{% else %}[AVAILABLE]{% endif %}
+                                        </option>
+                                        {% endfor %}
+                                    </select>
+                                    <div id="current_room_info" class="form-text text-info" style="display: none;">
+                                        <i class="fas fa-info-circle me-1"></i>
+                                        <span id="current_room_text"></span>
+                                    </div>
+                                    {% if not available_beds %}
+                                    <div class="form-text text-danger">
+                                        No clean beds available. Please check room status or contact maintenance.
+                                    </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label">Expected Check-Out Date & Time *</label>
+                                    <input type="datetime-local" name="expected_check_out_date" class="form-control">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- New Guest Section -->
+                    <div id="new_guest_section" style="display: none;">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label">Guest Name *</label>
+                                    <input type="text" name="guest_name" class="form-control" placeholder="Enter guest's full name" required>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label">Daily Rent (MAD) *</label>
+                                    <div class="input-group">
+                                        <span class="input-group-text">MAD</span>
+                                        <input type="number" name="daily_rent" class="form-control" step="0.01" min="0" placeholder="0.00" required>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label">Number of Days *</label>
+                                    <input type="number" name="number_of_days" class="form-control" min="1" step="1" value="1" required>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label">Bed Assignment *</label>
+                                    <select name="new_guest_bed_id" class="form-select" required>
+                                        <option value="">Select bed...</option>
+                                        {% for bed in available_beds %}
+                                        <option value="{{ bed.id }}">
+                                            Room {{ bed.room.room_number }} - Bed {{ bed.bed_number }} 
+                                            ({{ bed.places }} place{% if bed.places != 1 %}s{% endif %})
+                                        </option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label">Check-In Date & Time *</label>
+                                    <input type="datetime-local" name="check_in_date" class="form-control" required>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label">Check-out will be automatically set to 11:00 AM on the last day</label>
+                                    <div class="form-control-plaintext text-muted">
+                                        <i class="fas fa-info-circle me-2"></i>Based on number of days selected
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Extra Services Selection (for new guests) -->
+                    <div id="extra_services_section" style="display: none;">
+                        <div class="card mb-3">
+                            <div class="card-header">
+                                <h6 class="mb-0"><i class="fas fa-concierge-bell me-2"></i>Extra Services</h6>
+                            </div>
+                            <div class="card-body">
+                                {% if services %}
+                                <div class="row">
+                                    {% for service in services %}
+                                    <div class="col-md-6 mb-3">
+                                        <div class="input-group">
+                                            <div class="input-group-text">
+                                                <input class="form-check-input mt-0" type="checkbox" name="service_ids" value="{{ service.id }}">
+                                            </div>
+                                            <span class="input-group-text w-50 d-flex justify-content-between">
+                                                <span>{{ service.name }}</span>
+                                                <span class="text-muted">{{ '%.2f'|format(service.price) }} MAD</span>
+                                            </span>
+                                            <input type="number" class="form-control" name="service_qty_{{ service.id }}" min="1" step="1"
+                                                   placeholder="Qty" value="1">
+                                            <input type="number" class="form-control" name="service_price_{{ service.id }}" min="0" step="0.01"
+                                                   placeholder="Price" value="{{ service.price }}">
+                                        </div>
+                                        {% if service.description %}
+                                        <small class="text-muted">{{ service.description }}</small>
+                                        {% endif %}
+                                        {% if service.name == 'Other' %}
+                                        <input type="text" class="form-control mt-2" name="service_custom_name_{{ service.id }}" placeholder="Describe the service (e.g., City Tour)">
+                                        {% endif %}
+                                    </div>
+                                    {% endfor %}
+                                </div>
+                                {% else %}
+                                    <div class="text-muted">No extra services configured.</div>
+                                {% endif %}
+                                
+                                <!-- Services Summary -->
+                                <div id="services_summary" class="mt-3" style="display: none;">
+                                    <div class="alert alert-light">
+                                        <div class="d-flex justify-content-between align-items-center">
+                                            <span><strong>Selected Services:</strong></span>
+                                            <span class="badge bg-primary" id="total_services_cost">0.00 MAD</span>
+                                        </div>
+                                        <div id="services_list" class="mt-2 small text-muted"></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Common Fields -->
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">Deposit Paid</label>
+                                <div class="input-group">
+                                    <span class="input-group-text">MAD</span>
+                                    <input type="number" name="deposit_paid" class="form-control" step="0.01" min="0" 
+                                           placeholder="0.00" value="0">
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">Quick Actions</label>
+                                <div class="d-grid gap-2">
+                                    <button type="button" class="btn btn-outline-secondary btn-sm" onclick="setStandardTimes()">
+                                        Set Standard Times (Now → 11:00 AM Tomorrow)
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Check-In Notes</label>
+                        <textarea name="notes" class="form-control" rows="3" 
+                                  placeholder="Special requests, room preferences, additional information..."></textarea>
+                    </div>
+                    
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle me-2"></i>
+                        <strong>Check-In Process:</strong>
+                        <ul class="mb-0 mt-2">
+                            <li>Guest will be assigned to the selected bed</li>
+                            <li>Bed status will be marked as occupied</li>
+                            <li>Guest status will be set to active</li>
+                            <li>Check-in will be logged for audit purposes</li>
+                            <li id="new_guest_info" style="display: none;"><strong>New Guest:</strong> Guest record will be created automatically</li>
+                            <li id="services_info" style="display: none;"><strong>Extra Services:</strong> Can be assigned during check-in for new guests</li>
+                        </ul>
+                    </div>
+                    
+                    <div class="d-flex justify-content-between">
+                        <a href="{{ url_for('checkin.index') }}" class="btn btn-secondary">
+                            <i class="fas fa-times me-2"></i>Cancel
+                        </a>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-sign-in-alt me-2"></i>Complete Check-In
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.guest-result-item:hover {
+    background-color: #f8f9fa !important;
+}
+
+.guest-result-item:last-child {
+    border-bottom: none !important;
+}
+
+#guest_search_results {
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    border: 1px solid #dee2e6;
+}
+
+#guest_search_results::-webkit-scrollbar {
+    width: 6px;
+}
+
+#guest_search_results::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 3px;
+}
+
+#guest_search_results::-webkit-scrollbar-thumb {
+    background: #c1c1c1;
+    border-radius: 3px;
+}
+
+#guest_search_results::-webkit-scrollbar-thumb:hover {
+    background: #a8a8a8;
+}
+
+mark {
+    padding: 0 2px;
+    border-radius: 2px;
+}
+</style>
+
+<script>
+// Set default times on page load
+document.addEventListener('DOMContentLoaded', function() {
+    const now = new Date();
+    const tomorrow11AM = new Date(now);
+    tomorrow11AM.setDate(tomorrow11AM.getDate() + 1);
+    tomorrow11AM.setHours(11, 0, 0, 0);
+    
+    document.querySelectorAll('input[name="check_in_date"]').forEach(input => {
+        input.value = now.toISOString().slice(0, 16);
+    });
+    document.querySelectorAll('input[name="expected_check_out_date"]').forEach(input => {
+        input.value = tomorrow11AM.toISOString().slice(0, 16);
+    });
+    
+    // Initialize required attributes based on default mode (existing guest)
+    // Since the page starts in "existing" mode, set required for existing guest fields
+    document.querySelector('select[name="bed_id"]').setAttribute('required', 'required');
+    document.querySelector('input[name="expected_check_out_date"]').setAttribute('required', 'required');
+    
+    // The check_in_date field is now always visible and required
+    
+    // Don't set tenant_id as required initially since it's hidden
+    // It will be set when user switches to existing guest mode
+    
+    // Remove required from new guest fields initially
+    document.querySelector('input[name="guest_name"]').removeAttribute('required');
+    document.querySelector('input[name="daily_rent"]').removeAttribute('required');
+    document.querySelector('input[name="number_of_days"]').removeAttribute('required');
+    document.querySelector('select[name="new_guest_bed_id"]').removeAttribute('required');
+});
+
+// Handle mode switching
+document.querySelectorAll('input[name="check_in_mode"]').forEach(radio => {
+    radio.addEventListener('change', function() {
+        const mode = this.value;
+        const hiddenMode = document.getElementById('hidden_mode');
+        const existingSection = document.getElementById('existing_guest_section');
+        const newGuestSection = document.getElementById('new_guest_section');
+        const newGuestInfo = document.getElementById('new_guest_info');
+        const servicesInfo = document.getElementById('services_info');
+        const extraServicesSection = document.getElementById('extra_services_section');
+        const tenantSelect = document.getElementById('tenant_select');
+        
+        hiddenMode.value = mode;
+        
+        if (mode === 'new_guest') {
+            existingSection.style.display = 'none';
+            newGuestSection.style.display = 'block';
+            extraServicesSection.style.display = 'block';
+            newGuestInfo.style.display = 'list-item';
+            servicesInfo.style.display = 'list-item';
+            tenantSelect.removeAttribute('required');
+            tenantSelect.style.display = 'none';
+            
+            // Set required attributes for new guest fields
+            document.querySelector('input[name="guest_name"]').setAttribute('required', 'required');
+            document.querySelector('input[name="daily_rent"]').setAttribute('required', 'required');
+            document.querySelector('input[name="number_of_days"]').setAttribute('required', 'required');
+            document.querySelector('select[name="new_guest_bed_id"]').setAttribute('required', 'required');
+            
+            // The check_in_date field is now in both sections, so it should always be required
+            
+            // Remove required from existing guest fields
+            document.querySelector('select[name="bed_id"]').removeAttribute('required');
+            document.querySelector('input[name="expected_check_out_date"]').removeAttribute('required');
+            
+            // check_in_date is now always required, so don't remove it
+        } else {
+            existingSection.style.display = 'block';
+            newGuestSection.style.display = 'none';
+            extraServicesSection.style.display = 'none';
+            newGuestInfo.style.display = 'none';
+            servicesInfo.style.display = 'none';
+            tenantSelect.setAttribute('required', 'required');
+            tenantSelect.style.display = 'block';
+            
+            // Set required attributes for existing guest fields
+            document.querySelector('select[name="bed_id"]').setAttribute('required', 'required');
+            document.querySelector('input[name="expected_check_out_date"]').setAttribute('required', 'required');
+            
+            // check_in_date is now always required, so don't set it again
+            
+            // Remove required from new guest fields
+            document.querySelector('input[name="guest_name"]').removeAttribute('required');
+            document.querySelector('input[name="daily_rent"]').removeAttribute('required');
+            document.querySelector('input[name="number_of_days"]').removeAttribute('required');
+            document.querySelector('select[name="new_guest_bed_id"]').removeAttribute('required');
+        }
+    });
+});
+
+// Live guest search functionality
+document.addEventListener('DOMContentLoaded', function() {
+    const guestSearch = document.getElementById('guest_search');
+    const guestSearchResults = document.getElementById('guest_search_results');
+    const tenantSelect = document.getElementById('tenant_select');
+    const allTenants = Array.from(tenantSelect.querySelectorAll('option')).slice(1); // Skip first "Select guest" option
+    
+    if (guestSearch) {
+        guestSearch.addEventListener('input', function() {
+            const searchTerm = this.value.toLowerCase().trim();
+            
+            if (searchTerm.length === 0) {
+                guestSearchResults.style.display = 'none';
+                // Clear current room info when search is cleared
+                clearCurrentRoomInfo();
+                return;
+            }
+            
+            // Filter tenants based on search term
+            const filteredTenants = allTenants.filter(option => 
+                option.textContent.toLowerCase().includes(searchTerm) ||
+                option.getAttribute('data-name').includes(searchTerm)
+            );
+            
+            // Display search results
+            displaySearchResults(filteredTenants, searchTerm);
+        });
+        
+        // Handle search input focus
+        guestSearch.addEventListener('focus', function() {
+            if (this.value.trim().length > 0) {
+                const searchTerm = this.value.toLowerCase().trim();
+                const filteredTenants = allTenants.filter(option => 
+                    option.textContent.toLowerCase().includes(searchTerm) ||
+                    option.getAttribute('data-name').includes(searchTerm)
+                );
+                displaySearchResults(filteredTenants, searchTerm);
+            }
+        });
+        
+        // Handle clicks outside search results
+        document.addEventListener('click', function(e) {
+            if (!guestSearch.contains(e.target) && !guestSearchResults.contains(e.target)) {
+                guestSearchResults.style.display = 'none';
+            }
+        });
+    }
+    
+    function displaySearchResults(tenants, searchTerm) {
+        if (tenants.length === 0) {
+            guestSearchResults.innerHTML = '<div class="p-3 text-muted">No guests found</div>';
+            guestSearchResults.style.display = 'block';
+            return;
+        }
+        
+        let resultsHTML = '';
+        tenants.forEach(tenant => {
+            const tenantName = tenant.textContent;
+            const highlightedName = highlightSearchTerm(tenantName, searchTerm);
+            resultsHTML += `
+                <div class="guest-result-item p-2 border-bottom" 
+                     data-tenant-id="${tenant.value}" 
+                     style="cursor: pointer; transition: background-color 0.2s;">
+                    <div class="fw-medium">${highlightedName}</div>
+                </div>
+            `;
+        });
+        
+        guestSearchResults.innerHTML = resultsHTML;
+        guestSearchResults.style.display = 'block';
+        
+        // Add click handlers to search results
+        guestSearchResults.querySelectorAll('.guest-result-item').forEach(item => {
+            item.addEventListener('click', function() {
+                const tenantId = this.getAttribute('data-tenant-id');
+                const tenantName = this.querySelector('.fw-medium').textContent.replace(/<\/?mark>/g, '');
+                
+                // Update the search input
+                guestSearch.value = tenantName;
+                
+                // Update the hidden select
+                tenantSelect.value = tenantId;
+                
+                // Hide search results
+                guestSearchResults.style.display = 'none';
+                
+                // Add visual feedback
+                guestSearch.classList.add('is-valid');
+                setTimeout(() => guestSearch.classList.remove('is-valid'), 2000);
+                
+                // Fetch guest's current room assignment
+                fetchGuestCurrentRoom(tenantId);
+            });
+            
+            // Add hover effects
+            item.addEventListener('mouseenter', function() {
+                this.style.backgroundColor = '#f8f9fa';
+            });
+            
+            item.addEventListener('mouseleave', function() {
+                this.style.backgroundColor = 'white';
+            });
+        });
+    }
+    
+    function highlightSearchTerm(text, searchTerm) {
+        if (!searchTerm) return text;
+        const regex = new RegExp(`(${searchTerm})`, 'gi');
+        return text.replace(regex, '<mark class="bg-warning">$1</mark>');
+    }
+    
+    // Fetch guest's current room assignment
+    async function fetchGuestCurrentRoom(tenantId) {
+        console.log('Fetching current room for tenant ID:', tenantId);
+        try {
+            const response = await fetch(`/checkin/api/guest-current-room/${tenantId}`);
+            console.log('API response status:', response.status);
+            if (response.ok) {
+                const data = await response.json();
+                console.log('API response data:', data);
+                if (data.current_room) {
+                    // Show current room info
+                    const currentRoomInfo = document.getElementById('current_room_info');
+                    const currentRoomText = document.getElementById('current_room_text');
+                    currentRoomText.textContent = `Currently assigned to: Room ${data.current_room.room_number}, Bed ${data.current_room.bed_number}`;
+                    currentRoomInfo.style.display = 'block';
+                    
+                    // Pre-select the current bed if it's available in the dropdown
+                    const bedSelect = document.getElementById('bed_assignment');
+                    console.log('Looking for bed ID:', data.current_room.bed_id, 'in dropdown with', bedSelect.options.length, 'options');
+                    const currentBedOption = Array.from(bedSelect.options).find(option => 
+                        option.value == data.current_room.bed_id
+                    );
+                    
+                    if (currentBedOption) {
+                        currentBedOption.selected = true;
+                        console.log('Pre-selected current bed:', currentBedOption.textContent);
+                        
+                        // Add a visual indicator that this is the current room
+                        if (!currentBedOption.textContent.includes('(CURRENTLY ASSIGNED)')) {
+                            currentBedOption.textContent += ' (CURRENTLY ASSIGNED)';
+                        }
+                        currentBedOption.style.fontWeight = 'bold';
+                        currentBedOption.style.backgroundColor = '#e3f2fd';
+                    } else {
+                        console.log('Current bed not found in dropdown. Available options:', 
+                            Array.from(bedSelect.options).map(opt => ({id: opt.value, text: opt.textContent})));
+                    }
+                } else {
+                    console.log('No current room found for this guest');
+                    // Hide current room info if no current assignment
+                    document.getElementById('current_room_info').style.display = 'none';
+                }
+            } else {
+                console.error('API response not OK:', response.status, response.statusText);
+            }
+        } catch (error) {
+            console.error('Error fetching guest current room:', error);
+        }
+    }
+    
+    // Clear current room information
+    function clearCurrentRoomInfo() {
+        const currentRoomInfo = document.getElementById('current_room_info');
+        currentRoomInfo.style.display = 'none';
+        
+        // Reset bed selection to default
+        const bedSelect = document.getElementById('bed_assignment');
+        bedSelect.value = '';
+        
+        // Remove "CURRENTLY ASSIGNED" text and styling from all options
+        Array.from(bedSelect.options).forEach(option => {
+            option.textContent = option.textContent.replace(' (CURRENTLY ASSIGNED)', '');
+            option.style.fontWeight = 'normal';
+            option.style.backgroundColor = '';
+        });
+    }
+    
+    // Handle extra services calculations
+    function updateServicesSummary() {
+        const selectedServices = [];
+        let totalCost = 0;
+        
+        document.querySelectorAll('input[name="service_ids"]:checked').forEach(checkbox => {
+            const serviceId = checkbox.value;
+            const qtyInput = document.querySelector(`input[name="service_qty_${serviceId}"]`);
+            const priceInput = document.querySelector(`input[name="service_price_${serviceId}"]`);
+            
+            if (qtyInput && priceInput) {
+                const qty = parseInt(qtyInput.value) || 1;
+                const price = parseFloat(priceInput.value) || 0;
+                const lineTotal = qty * price;
+                
+                const serviceName = checkbox.closest('.col-md-6').querySelector('.input-group-text span:first-child').textContent;
+                selectedServices.push({
+                    name: serviceName,
+                    qty: qty,
+                    price: price,
+                    total: lineTotal
+                });
+                
+                totalCost += lineTotal;
+            }
+        });
+        
+        const summaryDiv = document.getElementById('services_summary');
+        const totalCostSpan = document.getElementById('total_services_cost');
+        const servicesListDiv = document.getElementById('services_list');
+        
+        if (selectedServices.length > 0) {
+            summaryDiv.style.display = 'block';
+            totalCostSpan.textContent = totalCost.toFixed(2) + ' MAD';
+            
+            let servicesListHTML = '';
+            selectedServices.forEach(service => {
+                servicesListHTML += `<div>${service.name} × ${service.qty} @ ${service.price.toFixed(2)} MAD = ${service.total.toFixed(2)} MAD</div>`;
+            });
+            servicesListDiv.innerHTML = servicesListHTML;
+        } else {
+            summaryDiv.style.display = 'none';
+        }
+    }
+    
+    // Add event listeners for services
+    document.addEventListener('change', function(e) {
+        if (e.target.name === 'service_ids' || e.target.name.includes('service_qty_') || e.target.name.includes('service_price_')) {
+            updateServicesSummary();
+        }
+    });
+});
+
+function setStandardTimes() {
+    const now = new Date();
+    const tomorrow11AM = new Date(now);
+    tomorrow11AM.setDate(tomorrow11AM.getDate() + 1);
+    tomorrow11AM.setHours(11, 0, 0, 0);
+    
+    document.querySelectorAll('input[name="check_in_date"]').forEach(input => {
+        input.value = now.toISOString().slice(0, 16);
+    });
+    document.querySelectorAll('input[name="expected_check_out_date"]').forEach(input => {
+        input.value = tomorrow11AM.toISOString().slice(0, 16);
+    });
+}
+</script>
+{% endblock %}

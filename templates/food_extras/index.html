@@ -1,0 +1,893 @@
+{% extends "base.html" %}
+
+{% block title %}Food & Extras - HostelFlow{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Page Header -->
+    <div class="page-header">
+        <div class="d-flex justify-content-between align-items-start flex-column flex-md-row">
+            <div class="mb-3 mb-md-0">
+                <h1 class="h3 mb-0">Food & Extras</h1>
+                <p class="text-muted mb-0">Manage food services, meal plans, and extra services for guests</p>
+            </div>
+            <div class="action-buttons">
+                <a href="{{ url_for('food_extras.bulk_assign_service') }}" class="btn btn-modern btn-warning">
+                    <i class="fas fa-users-cog me-2"></i>Bulk Assign
+                </a>
+                <a href="{{ url_for('food_extras.assign_service') }}" class="btn btn-modern btn-success">
+                    <i class="fas fa-user-plus me-2"></i>Assign to Guest
+                </a>
+                <a href="{{ url_for('food_extras.services') }}" class="btn btn-modern btn-outline-primary">
+                    <i class="fas fa-utensils me-2"></i>Manage Services
+                </a>
+                <a href="{{ url_for('food_extras.add_service') }}" class="btn btn-modern btn-primary">
+                    <i class="fas fa-plus me-2"></i>Add Service
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Quick Stats Row -->
+    <div class="stats-grid">
+        <div class="card stat-card">
+            <div class="card-body">
+                <div class="d-flex align-items-center">
+                    <div class="stat-icon bg-primary">
+                        <i class="fas fa-list-alt"></i>
+                    </div>
+                    <div class="ms-3">
+                        <h3 class="mb-1 fw-bold">{{ active_orders }}</h3>
+                        <p class="mb-0 small opacity-90">Total Orders</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="card stat-card">
+            <div class="card-body">
+                <div class="d-flex align-items-center">
+                    <div class="stat-icon bg-success">
+                        <i class="fas fa-utensils"></i>
+                    </div>
+                    <div class="ms-3">
+                        <h3 class="mb-1 fw-bold">{{ total_meals }}</h3>
+                        <p class="mb-0 small opacity-90">Total Meals</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="card stat-card">
+            <div class="card-body">
+                <div class="d-flex align-items-center">
+                    <div class="stat-icon bg-warning">
+                        <i class="fas fa-sun"></i>
+                    </div>
+                    <div class="ms-3">
+                        <h3 class="mb-1 fw-bold">{{ meal_counts.breakfast }}</h3>
+                        <p class="mb-0 small opacity-90">Breakfast Meals</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="card stat-card">
+            <div class="card-body">
+                <div class="d-flex align-items-center">
+                    <div class="stat-icon bg-info">
+                        <i class="fas fa-moon"></i>
+                    </div>
+                    <div class="ms-3">
+                        <h3 class="mb-1 fw-bold">{{ meal_counts.dinner }}</h3>
+                        <p class="mb-0 small opacity-90">Dinner Meals</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- Today's Orders -->
+        <div class="col-lg-8">
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-calendar-day me-2"></i>Today's Orders
+                    </h5>
+                </div>
+                <div class="card-body">
+                    {% if today_orders %}
+                    <!-- Service Type Tabs -->
+                    <ul class="nav nav-tabs nav-fill mb-3" id="ordersTab" role="tablist">
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link active" id="all-tab" data-bs-toggle="tab" data-bs-target="#all" type="button" role="tab">
+                                <i class="fas fa-list me-2"></i>All Orders
+                                <span class="badge bg-secondary ms-1">{{ today_orders|length }}</span>
+                            </button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" id="meals-tab" data-bs-toggle="tab" data-bs-target="#meals" type="button" role="tab">
+                                <i class="fas fa-utensils me-2"></i>Meals
+                                <span class="badge bg-primary ms-1">{{ today_orders|selectattr('service.service_type', 'equalto', 'meal')|list|length }}</span>
+                            </button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" id="restaurant-tab" data-bs-toggle="tab" data-bs-target="#restaurant" type="button" role="tab">
+                                <i class="fas fa-coffee me-2"></i>Restaurant
+                                <span class="badge bg-success ms-1">{{ today_orders|selectattr('service.service_type', 'equalto', 'restaurant')|list|length }}</span>
+                            </button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" id="general-tab" data-bs-toggle="tab" data-bs-target="#general" type="button" role="tab">
+                                <i class="fas fa-cog me-2"></i>General
+                                <span class="badge bg-info ms-1">{{ today_orders|selectattr('service.service_type', 'equalto', 'general')|list|length }}</span>
+                            </button>
+                        </li>
+                    </ul>
+
+                    <!-- Tab Content -->
+                    <div class="tab-content" id="ordersTabContent">
+                        <!-- All Orders Tab -->
+                        <div class="tab-pane fade show active" id="all" role="tabpanel">
+                            <div class="table-responsive">
+                                <table class="table table-hover">
+                                    <thead>
+                                        <tr>
+                                            <th>Guest</th>
+                                            <th>Service</th>
+                                            <th>Type</th>
+                                            <th>Quantity</th>
+                                            <th>Total</th>
+                                            <th>Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for order in today_orders %}
+                                        <tr>
+                                            <td>
+                                                <div class="d-flex align-items-center">
+                                                    <div class="bg-primary bg-opacity-10 rounded-circle p-2 me-3">
+                                                        <i class="fas fa-user text-primary"></i>
+                                                    </div>
+                                                    <div>
+                                                        <strong>{{ order.tenant.name }}</strong>
+                                                        {% if order.tenant.room_number %}
+                                                        <br><small class="text-muted">Room {{ order.tenant.room_number }}</small>
+                                                        {% endif %}
+                                                    </div>
+                                                </div>
+                                            </td>
+                                            <td>
+                                                <span class="badge bg-light text-dark">
+                                                    {{ order.service.name }}
+                                                </span>
+                                            </td>
+                                            <td>
+                                                <span class="badge bg-secondary">{{ order.service.service_type|title }}</span>
+                                            </td>
+                                            <td>{{ order.quantity }}</td>
+                                            <td>{{ "%.0f"|format(order.quantity * order.unit_price) }} MAD</td>
+                                            <td>
+                                                <div class="btn-group btn-group-sm" role="group">
+                                                    <a href="{{ url_for('food_extras.guest_services', tenant_id=order.tenant.id) }}" class="btn btn-outline-primary" title="View Guest Services">
+                                                        <i class="fas fa-eye"></i>
+                                                    </a>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                        <!-- Meals Tab -->
+                        <div class="tab-pane fade" id="meals" role="tabpanel">
+                            {% set meal_orders = today_orders|selectattr('service.service_type', 'equalto', 'meal')|list %}
+                            {% if meal_orders %}
+                            <!-- Meal Type Sub-Tabs -->
+                            <ul class="nav nav-pills nav-fill mb-3" id="mealTypeTab" role="tablist">
+                                <li class="nav-item" role="presentation">
+                                    <button class="nav-link active" id="all-meals-tab" data-bs-toggle="pill" data-bs-target="#all-meals" type="button" role="tab">
+                                        <i class="fas fa-list me-2"></i>All Meals
+                                        <span class="badge bg-secondary ms-1">{{ meal_orders|length }}</span>
+                                    </button>
+                                </li>
+                                <li class="nav-item" role="presentation">
+                                    <button class="nav-link" id="breakfast-tab" data-bs-toggle="pill" data-bs-target="#breakfast" type="button" role="tab">
+                                        <i class="fas fa-sun me-2"></i>Breakfast
+                                        <span class="badge bg-warning ms-1">{{ meal_orders|selectattr('service.meal_category', 'equalto', 'breakfast')|list|length }}</span>
+                                    </button>
+                                </li>
+                                <li class="nav-item" role="presentation">
+                                    <button class="nav-link" id="dinner-tab" data-bs-toggle="pill" data-bs-target="#dinner" type="button" role="tab">
+                                        <i class="fas fa-moon me-2"></i>Dinner
+                                        <span class="badge bg-info ms-1">{{ meal_orders|selectattr('service.meal_category', 'equalto', 'dinner')|list|length }}</span>
+                                    </button>
+                                </li>
+                            </ul>
+
+                            <!-- Meal Type Tab Content -->
+                            <div class="tab-content" id="mealTypeTabContent">
+                                <!-- All Meals Sub-Tab -->
+                                <div class="tab-pane fade show active" id="all-meals" role="tabpanel">
+                                    <div class="table-responsive">
+                                        <table class="table table-hover">
+                                            <thead>
+                                                <tr>
+                                                    <th>Guest</th>
+                                                    <th>Meal</th>
+                                                    <th>Category</th>
+                                                    <th>Quantity</th>
+                                                    <th>Total</th>
+                                                    <th>Actions</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                {% for order in meal_orders %}
+                                                <tr>
+                                                    <td>
+                                                        <div class="d-flex align-items-center">
+                                                            <div class="bg-primary bg-opacity-10 rounded-circle p-2 me-3">
+                                                                <i class="fas fa-user text-primary"></i>
+                                                            </div>
+                                                            <div>
+                                                                <strong>{{ order.tenant.name }}</strong>
+                                                                {% if order.tenant.room_number %}
+                                                                <br><small class="text-muted">Room {{ order.tenant.room_number }}</small>
+                                                                {% endif %}
+                                                            </div>
+                                                        </div>
+                                                    </td>
+                                                    <td>
+                                                        <span class="badge bg-primary">
+                                                            {{ order.service.name }}
+                                                        </span>
+                                                    </td>
+                                                    <td>
+                                                        {% if order.service.meal_category %}
+                                                        <span class="badge bg-light text-dark">{{ order.service.meal_category|title }}</span>
+                                                        {% else %}
+                                                        <span class="badge bg-light text-dark">General</span>
+                                                        {% endif %}
+                                                    </td>
+                                                    <td>{{ order.quantity }}</td>
+                                                    <td>{{ "%.0f"|format(order.quantity * order.unit_price) }} MAD</td>
+                                                    <td>
+                                                        <div class="btn-group btn-group-sm" role="group">
+                                                            <a href="{{ url_for('food_extras.guest_services', tenant_id=order.tenant.id) }}" class="btn btn-outline-primary" title="View Guest Services">
+                                                                <i class="fas fa-eye"></i>
+                                                            </a>
+                                                        </div>
+                                                    </td>
+                                                </tr>
+                                                {% endfor %}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+
+                                <!-- Breakfast Sub-Tab -->
+                                <div class="tab-pane fade" id="breakfast" role="tabpanel">
+                                    {% set breakfast_orders = meal_orders|selectattr('service.meal_category', 'equalto', 'breakfast')|list %}
+                                    {% if breakfast_orders %}
+                                    <div class="table-responsive">
+                                        <table class="table table-hover">
+                                            <thead>
+                                                <tr>
+                                                    <th>Guest</th>
+                                                    <th>Breakfast Item</th>
+                                                    <th>Quantity</th>
+                                                    <th>Price</th>
+                                                    <th>Total</th>
+                                                    <th>Actions</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                {% for order in breakfast_orders %}
+                                                <tr>
+                                                    <td>
+                                                        <div class="d-flex align-items-center">
+                                                            <div class="bg-warning bg-opacity-10 rounded-circle p-2 me-3">
+                                                                <i class="fas fa-user text-warning"></i>
+                                                            </div>
+                                                            <div>
+                                                                <strong>{{ order.tenant.name }}</strong>
+                                                                {% if order.tenant.room_number %}
+                                                                <br><small class="text-muted">Room {{ order.tenant.room_number }}</small>
+                                                                {% endif %}
+                                                            </div>
+                                                        </div>
+                                                    </td>
+                                                    <td>
+                                                        <span class="badge bg-warning">
+                                                            {{ order.service.name }}
+                                                        </span>
+                                                    </td>
+                                                    <td>{{ order.quantity }}</td>
+                                                    <td>{{ "%.0f"|format(order.unit_price) }} MAD</td>
+                                                    <td>{{ "%.0f"|format(order.quantity * order.unit_price) }} MAD</td>
+                                                    <td>
+                                                        <div class="btn-group btn-group-sm" role="group">
+                                                            <a href="{{ url_for('food_extras.guest_services', tenant_id=order.tenant.id) }}" class="btn btn-outline-warning" title="View Guest Services">
+                                                                <i class="fas fa-eye"></i>
+                                                            </a>
+                                                        </div>
+                                                    </td>
+                                                </tr>
+                                                {% endfor %}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                    {% else %}
+                                    <div class="text-center py-4">
+                                        <i class="fas fa-sun fa-3x text-muted mb-3"></i>
+                                        <h6 class="text-muted">No breakfast orders for today</h6>
+                                        <p class="text-muted mb-0">No guests have breakfast services scheduled.</p>
+                                    </div>
+                                    {% endif %}
+                                </div>
+
+                                <!-- Dinner Sub-Tab -->
+                                <div class="tab-pane fade" id="dinner" role="tabpanel">
+                                    {% set dinner_orders = meal_orders|selectattr('service.meal_category', 'equalto', 'dinner')|list %}
+                                    {% if dinner_orders %}
+                                    <div class="table-responsive">
+                                        <table class="table table-hover">
+                                            <thead>
+                                                <tr>
+                                                    <th>Guest</th>
+                                                    <th>Dinner Item</th>
+                                                    <th>Quantity</th>
+                                                    <th>Price</th>
+                                                    <th>Total</th>
+                                                    <th>Actions</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                {% for order in dinner_orders %}
+                                                <tr>
+                                                    <td>
+                                                        <div class="d-flex align-items-center">
+                                                            <div class="bg-info bg-opacity-10 rounded-circle p-2 me-3">
+                                                                <i class="fas fa-user text-info"></i>
+                                                            </div>
+                                                            <div>
+                                                                <strong>{{ order.tenant.name }}</strong>
+                                                                {% if order.tenant.room_number %}
+                                                                <br><small class="text-muted">Room {{ order.tenant.room_number }}</small>
+                                                                {% endif %}
+                                                            </div>
+                                                        </div>
+                                                    </td>
+                                                    <td>
+                                                        <span class="badge bg-info">
+                                                            {{ order.service.name }}
+                                                        </span>
+                                                    </td>
+                                                    <td>{{ order.quantity }}</td>
+                                                    <td>{{ "%.0f"|format(order.unit_price) }} MAD</td>
+                                                    <td>{{ "%.0f"|format(order.quantity * order.unit_price) }} MAD</td>
+                                                    <td>
+                                                        <div class="btn-group btn-group-sm" role="group">
+                                                            <a href="{{ url_for('food_extras.guest_services', tenant_id=order.tenant.id) }}" class="btn btn-outline-info" title="View Guest Services">
+                                                                <i class="fas fa-eye"></i>
+                                                            </a>
+                                                        </div>
+                                                    </td>
+                                                </tr>
+                                                {% endfor %}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                    {% else %}
+                                    <div class="text-center py-4">
+                                        <i class="fas fa-moon fa-3x text-muted mb-3"></i>
+                                        <h6 class="text-muted">No dinner orders for today</h6>
+                                        <p class="text-muted mb-0">No guests have dinner services scheduled.</p>
+                                    </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            {% else %}
+                            <div class="text-center py-4">
+                                <i class="fas fa-utensils fa-3x text-muted mb-3"></i>
+                                <h6 class="text-muted">No meal orders for today</h6>
+                                <p class="text-muted mb-0">No guests have meal services scheduled.</p>
+                            </div>
+                            {% endif %}
+                        </div>
+
+                        <!-- Restaurant Tab -->
+                        <div class="tab-pane fade" id="restaurant" role="tabpanel">
+                            {% set restaurant_orders = today_orders|selectattr('service.service_type', 'equalto', 'restaurant')|list %}
+                            {% if restaurant_orders %}
+                            <div class="table-responsive">
+                                <table class="table table-hover">
+                                    <thead>
+                                        <tr>
+                                            <th>Guest</th>
+                                            <th>Item</th>
+                                            <th>Quantity</th>
+                                            <th>Price</th>
+                                            <th>Total</th>
+                                            <th>Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for order in restaurant_orders %}
+                                        <tr>
+                                            <td>
+                                                <div class="d-flex align-items-center">
+                                                    <div class="bg-success bg-opacity-10 rounded-circle p-2 me-3">
+                                                        <i class="fas fa-user text-success"></i>
+                                                    </div>
+                                                    <div>
+                                                        <strong>{{ order.tenant.name }}</strong>
+                                                        {% if order.tenant.room_number %}
+                                                        <br><small class="text-muted">Room {{ order.tenant.room_number }}</small>
+                                                        {% endif %}
+                                                    </div>
+                                                </div>
+                                            </td>
+                                            <td>
+                                                <span class="badge bg-success">
+                                                    {{ order.service.name }}
+                                                </span>
+                                            </td>
+                                            <td>{{ order.quantity }}</td>
+                                            <td>{{ "%.0f"|format(order.unit_price) }} MAD</td>
+                                            <td>{{ "%.0f"|format(order.quantity * order.unit_price) }} MAD</td>
+                                            <td>
+                                                <div class="btn-group btn-group-sm" role="group">
+                                                    <a href="{{ url_for('food_extras.guest_services', tenant_id=order.tenant.id) }}" class="btn btn-outline-success" title="View Guest Services">
+                                                        <i class="fas fa-eye"></i>
+                                                    </a>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                            {% else %}
+                            <div class="text-center py-4">
+                                <i class="fas fa-coffee fa-3x text-muted mb-3"></i>
+                                <h6 class="text-muted">No restaurant orders for today</h6>
+                                <p class="text-muted mb-0">No guests have restaurant services scheduled.</p>
+                            </div>
+                            {% endif %}
+                        </div>
+
+                        <!-- General Tab -->
+                        <div class="tab-pane fade" id="general" role="tabpanel">
+                            {% set general_orders = today_orders|selectattr('service.service_type', 'equalto', 'general')|list %}
+                            {% if general_orders %}
+                            <div class="table-responsive">
+                                <table class="table table-hover">
+                                    <thead>
+                                        <tr>
+                                            <th>Guest</th>
+                                            <th>Service</th>
+                                            <th>Quantity</th>
+                                            <th>Price</th>
+                                            <th>Total</th>
+                                            <th>Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for order in general_orders %}
+                                        <tr>
+                                            <td>
+                                                <div class="d-flex align-items-center">
+                                                    <div class="bg-info bg-opacity-10 rounded-circle p-2 me-3">
+                                                        <i class="fas fa-user text-info"></i>
+                                                    </div>
+                                                    <div>
+                                                        <strong>{{ order.tenant.name }}</strong>
+                                                        {% if order.tenant.room_number %}
+                                                        <br><small class="text-muted">Room {{ order.tenant.room_number }}</small>
+                                                        {% endif %}
+                                                    </div>
+                                                </div>
+                                            </td>
+                                            <td>
+                                                <span class="badge bg-info">
+                                                    {{ order.service.name }}
+                                                </span>
+                                            </td>
+                                            <td>{{ order.quantity }}</td>
+                                            <td>{{ "%.0f"|format(order.unit_price) }} MAD</td>
+                                            <td>{{ "%.0f"|format(order.quantity * order.unit_price) }} MAD</td>
+                                            <td>
+                                                <div class="btn-group btn-group-sm" role="group">
+                                                    <a href="{{ url_for('food_extras.guest_services', tenant_id=order.tenant.id) }}" class="btn btn-outline-info" title="View Guest Services">
+                                                        <i class="fas fa-eye"></i>
+                                                    </a>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                            {% else %}
+                            <div class="text-center py-4">
+                                <i class="fas fa-cog fa-3x text-muted mb-3"></i>
+                                <h6 class="text-muted">No general services for today</h6>
+                                <p class="text-muted mb-0">No guests have general services scheduled.</p>
+                            </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                    {% else %}
+                    <div class="text-center py-4">
+                        <i class="fas fa-utensils fa-3x text-muted mb-3"></i>
+                        <h6 class="text-muted">No orders for today</h6>
+                        <p class="text-muted mb-0">All guests are set for today's meals.</p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Upcoming Orders -->
+            {% if upcoming_orders %}
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-calendar-week me-2"></i>Upcoming Orders
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-sm">
+                            <thead>
+                                <tr>
+                                    <th>Guest</th>
+                                    <th>Service</th>
+                                    <th>Start Date</th>
+                                    <th>Quantity</th>
+                                    <th>Total</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for order in upcoming_orders %}
+                                <tr>
+                                    <td>{{ order.tenant.name }}</td>
+                                    <td>{{ order.service.name }}</td>
+                                    <td>{{ order.start_date.strftime('%b %d, %Y') }}</td>
+                                    <td>{{ order.quantity }}</td>
+                                    <td>{{ "%.0f"|format(order.quantity * order.unit_price) }} MAD</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- Quick Actions & Info -->
+        <div class="col-lg-4">
+            <!-- Quick Actions -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h6 class="card-title mb-0">
+                        <i class="fas fa-bolt me-2"></i>Quick Actions
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <div class="d-grid gap-2">
+                        <a href="{{ url_for('food_extras.add_service') }}" class="btn btn-outline-primary btn-sm">
+                            <i class="fas fa-plus me-2"></i>Add New Service
+                        </a>
+                        <a href="{{ url_for('food_extras.services') }}" class="btn btn-outline-secondary btn-sm">
+                            <i class="fas fa-cog me-2"></i>Manage Services
+                        </a>
+                        <button type="button" class="btn btn-outline-success btn-sm" onclick="generateDailyReport()">
+                            <i class="fas fa-file-alt me-2"></i>Daily Report
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Service Categories -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h6 class="card-title mb-0">
+                        <i class="fas fa-tags me-2"></i>Service Categories
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <span class="text-muted">Meals</span>
+                            <span class="badge bg-primary">{{ services|selectattr('service_type', 'equalto', 'meal')|list|length }}</span>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <span class="text-muted">Restaurant</span>
+                            <span class="badge bg-success">{{ services|selectattr('service_type', 'equalto', 'restaurant')|list|length }}</span>
+                        </div>
+                    </div>
+                    <div class="mb-0">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <span class="text-muted">General</span>
+                            <span class="badge bg-info">{{ services|selectattr('service_type', 'equalto', 'general')|list|length }}</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Today's Summary -->
+            <div class="card">
+                <div class="card-header">
+                    <h6 class="card-title mb-0">
+                        <i class="fas fa-chart-pie me-2"></i>Today's Summary
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <div class="d-flex justify-content-between">
+                            <span class="text-muted">Date:</span>
+                            <span class="fw-bold">{{ today.strftime('%B %d, %Y') }}</span>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <div class="d-flex justify-content-between">
+                            <span class="text-muted">Total Orders:</span>
+                            <span class="fw-bold">{{ today_orders|length }}</span>
+                        </div>
+                    </div>
+                    <div class="mb-0">
+                        <div class="d-flex justify-content-between">
+                            <span class="text-muted">Revenue:</span>
+                            <span class="fw-bold text-success">
+                                {{ "%.0f"|format(today_orders|sum(attribute='quantity') * (today_orders|sum(attribute='unit_price'))) }} MAD
+                            </span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Custom CSS -->
+<style>
+.stat-card {
+    border: none;
+    border-radius: 15px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    transition: transform 0.2s;
+}
+
+.stat-card:hover {
+    transform: translateY(-2px);
+}
+
+.stat-icon {
+    width: 50px;
+    height: 50px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 1.2rem;
+}
+
+.btn-modern {
+    border-radius: 10px;
+    font-weight: 500;
+    padding: 0.5rem 1rem;
+}
+
+/* Custom Tab Styling */
+.nav-tabs .nav-link {
+    border: none;
+    border-radius: 8px 8px 0 0;
+    color: #6c757d;
+    font-weight: 500;
+    padding: 0.75rem 1rem;
+    transition: all 0.2s;
+}
+
+/* Mobile tab optimization */
+@media (max-width: 575px) {
+    .nav-tabs {
+        flex-direction: column;
+        border-bottom: none;
+    }
+    
+    .nav-tabs .nav-link {
+        border-radius: var(--radius-md);
+        margin-bottom: 0.5rem;
+        text-align: center;
+        border: 1px solid var(--gray-200);
+    }
+    
+    .nav-tabs .nav-link.active {
+        border-bottom: 3px solid #0d6efd;
+        background: rgba(13, 110, 253, 0.1);
+    }
+    
+    .tab-content {
+        margin-top: 1rem;
+    }
+}
+
+.nav-tabs .nav-link:hover {
+    color: #495057;
+    background-color: #f8f9fa;
+    border-color: transparent;
+}
+
+.nav-tabs .nav-link.active {
+    color: #0d6efd;
+    background-color: white;
+    border-bottom: 3px solid #0d6efd;
+    font-weight: 600;
+}
+
+.nav-tabs .nav-link .badge {
+    font-size: 0.75rem;
+    padding: 0.25rem 0.5rem;
+}
+
+/* Tab Content Animation */
+.tab-pane {
+    transition: opacity 0.15s linear;
+}
+
+.tab-pane.fade {
+    opacity: 0;
+}
+
+.tab-pane.fade.show {
+    opacity: 1;
+}
+
+/* Service Type Badges */
+.badge.bg-primary { background-color: #0d6efd !important; }
+.badge.bg-success { background-color: #198754 !important; }
+.badge.bg-info { background-color: #0dcaf0 !important; }
+.badge.bg-secondary { background-color: #6c757d !important; }
+
+/* Meal Type Sub-Tabs Styling */
+.nav-pills .nav-link {
+    border-radius: 20px;
+    color: #6c757d;
+    font-weight: 500;
+    padding: 0.5rem 1rem;
+    margin: 0 0.25rem;
+    transition: all 0.2s;
+    border: 1px solid #dee2e6;
+}
+
+.nav-pills .nav-link:hover {
+    color: #495057;
+    background-color: #f8f9fa;
+    border-color: #adb5bd;
+}
+
+.nav-pills .nav-link.active {
+    color: white;
+    background-color: #0d6efd;
+    border-color: #0d6efd;
+    font-weight: 600;
+    box-shadow: 0 2px 4px rgba(13, 110, 253, 0.3);
+}
+
+.nav-pills .nav-link .badge {
+    font-size: 0.7rem;
+    padding: 0.2rem 0.4rem;
+    background-color: rgba(255, 255, 255, 0.2) !important;
+}
+
+/* Meal-specific colors */
+#breakfast-tab.active {
+    background-color: #ffc107 !important;
+    border-color: #ffc107 !important;
+}
+
+#dinner-tab.active {
+    background-color: #0dcaf0 !important;
+    border-color: #0dcaf0 !important;
+}
+
+#all-meals-tab.active {
+    background-color: #6c757d !important;
+    border-color: #6c757d !important;
+}
+</style>
+
+<!-- JavaScript -->
+<script>
+function generateDailyReport() {
+    // Generate daily food report
+    const today = new Date().toISOString().split('T')[0];
+    const reportUrl = `/food-extras/daily-summary?date=${today}`;
+    window.open(reportUrl, '_blank');
+}
+
+// Enhanced tab functionality
+document.addEventListener('DOMContentLoaded', function() {
+    // Handle main tabs (Orders by service type)
+    const mainTabButtons = document.querySelectorAll('#ordersTab [data-bs-toggle="tab"]');
+    
+    mainTabButtons.forEach(button => {
+        button.addEventListener('click', function(e) {
+            e.preventDefault();
+            
+            // Remove active class from all main tabs
+            mainTabButtons.forEach(btn => btn.classList.remove('active'));
+            
+            // Add active class to clicked tab
+            this.classList.add('active');
+            
+            // Hide all main tab content
+            const mainTabContents = document.querySelectorAll('#ordersTabContent .tab-pane');
+            mainTabContents.forEach(content => {
+                content.classList.remove('show', 'active');
+            });
+            
+            // Show selected main tab content
+            const targetId = this.getAttribute('data-bs-target');
+            const targetContent = document.querySelector(targetId);
+            if (targetContent) {
+                targetContent.classList.add('show', 'active');
+            }
+        });
+    });
+    
+    // Handle meal sub-tabs (Breakfast/Dinner)
+    const mealTabButtons = document.querySelectorAll('#mealTypeTab [data-bs-toggle="pill"]');
+    
+    mealTabButtons.forEach(button => {
+        button.addEventListener('click', function(e) {
+            e.preventDefault();
+            
+            // Remove active class from all meal tabs
+            mealTabButtons.forEach(btn => btn.classList.remove('active'));
+            
+            // Add active class to clicked tab
+            this.classList.add('active');
+            
+            // Hide all meal tab content
+            const mealTabContents = document.querySelectorAll('#mealTypeTabContent .tab-pane');
+            mealTabContents.forEach(content => {
+                content.classList.remove('show', 'active');
+            });
+            
+            // Show selected meal tab content
+            const targetId = this.getAttribute('data-bs-target');
+            const targetContent = document.querySelector(targetId);
+            if (targetContent) {
+                targetContent.classList.add('show', 'active');
+            }
+        });
+    });
+    
+    // Initialize first main tab as active
+    const firstMainTab = document.querySelector('#all-tab');
+    if (firstMainTab) {
+        firstMainTab.click();
+    }
+    
+    // Initialize first meal tab as active (when meals tab is shown)
+    const firstMealTab = document.querySelector('#all-meals-tab');
+    if (firstMealTab) {
+        firstMealTab.click();
+    }
+});
+
+// Auto-refresh page every 5 minutes to show updated orders
+setTimeout(function() {
+    location.reload();
+}, 300000);
+</script>
+{% endblock %}

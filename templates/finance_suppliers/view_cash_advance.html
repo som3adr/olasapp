@@ -1,0 +1,246 @@
+{% extends "base.html" %}
+
+{% block title %}Cash Advance Details - HostelFlow{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Page Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h1 class="h3 mb-0">Cash Advance Details</h1>
+            <p class="text-muted mb-0">View details for cash advance to {{ advance.staff_name }}</p>
+        </div>
+        <div class="d-flex gap-2">
+            <a href="{{ url_for('finance_suppliers.cash_advances') }}" class="btn btn-modern btn-outline-secondary">
+                <i class="fas fa-arrow-left me-2"></i>Back to Cash Advances
+            </a>
+            <a href="{{ url_for('finance_suppliers.edit_cash_advance', advance_id=advance.id) }}" class="btn btn-modern btn-warning">
+                <i class="fas fa-edit me-2"></i>Edit
+            </a>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-lg-8">
+            <!-- Cash Advance Details -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-hand-holding-usd me-2"></i>Cash Advance Information
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label fw-bold">Staff Name</label>
+                                <p class="form-control-plaintext">{{ advance.staff_name }}</p>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label fw-bold">Amount</label>
+                                <p class="form-control-plaintext">
+                                    <span class="text-warning fw-bold fs-5">{{ "%.0f"|format(advance.amount) }} MAD</span>
+                                </p>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label fw-bold">Purpose</label>
+                                <p class="form-control-plaintext">{{ advance.purpose }}</p>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label fw-bold">Date Given</label>
+                                <p class="form-control-plaintext">{{ advance.date_given.strftime('%B %d, %Y') }}</p>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label fw-bold">Expected Return Date</label>
+                                <p class="form-control-plaintext">
+                                    {% if advance.expected_return_date %}
+                                        {{ advance.expected_return_date.strftime('%B %d, %Y') }}
+                                    {% else %}
+                                        <span class="text-muted">Not specified</span>
+                                    {% endif %}
+                                </p>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label fw-bold">Status</label>
+                                <p class="form-control-plaintext">
+                                    {% if advance.status == 'pending' %}
+                                        <span class="badge bg-warning fs-6">Pending</span>
+                                    {% elif advance.status == 'completed' %}
+                                        <span class="badge bg-success fs-6">Completed</span>
+                                    {% elif advance.status == 'overdue' %}
+                                        <span class="badge bg-danger fs-6">Overdue</span>
+                                    {% endif %}
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+
+                    {% if advance.notes %}
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Notes</label>
+                        <div class="form-control-plaintext bg-light p-3 rounded">
+                            {{ advance.notes }}
+                        </div>
+                    </div>
+                    {% endif %}
+
+                    {% if advance.receipt_url %}
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Receipt</label>
+                        <p class="form-control-plaintext">
+                            <a href="{{ advance.receipt_url }}" target="_blank" class="btn btn-outline-primary btn-sm">
+                                <i class="fas fa-file-alt me-2"></i>View Receipt
+                            </a>
+                        </p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-4">
+            <!-- Status Card -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-chart-pie me-2"></i>Status Overview
+                    </h5>
+                </div>
+                <div class="card-body text-center">
+                    {% if advance.status == 'pending' %}
+                        <i class="fas fa-clock fa-3x text-warning mb-3"></i>
+                        <h5 class="text-warning">Pending</h5>
+                        <p class="text-muted">Waiting for staff to return with receipts</p>
+                    {% elif advance.status == 'completed' %}
+                        <i class="fas fa-check-circle fa-3x text-success mb-3"></i>
+                        <h5 class="text-success">Completed</h5>
+                        <p class="text-muted">Cash advance has been settled</p>
+                    {% elif advance.status == 'overdue' %}
+                        <i class="fas fa-exclamation-triangle fa-3x text-danger mb-3"></i>
+                        <h5 class="text-danger">Overdue</h5>
+                        <p class="text-muted">Expected return date has passed</p>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Timeline -->
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-history me-2"></i>Timeline
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="timeline">
+                        <!-- Initial cash advance -->
+                        <div class="timeline-item">
+                            <div class="timeline-marker bg-warning"></div>
+                            <div class="timeline-content">
+                                <h6 class="mb-1">Initial Cash Advance</h6>
+                                <small class="text-muted">{{ advance.date_given.strftime('%b %d, %Y at %I:%M %p') }}</small>
+                                <div class="mt-1">
+                                    <span class="badge bg-warning">{{ "%.0f"|format(original_amount) }} MAD</span>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- History transactions -->
+                        {% for history in advance.history %}
+                        <div class="timeline-item">
+                            {% if history.transaction_type == 'addition' %}
+                                <div class="timeline-marker bg-success"></div>
+                                <div class="timeline-content">
+                                    <h6 class="mb-1">Cash Added</h6>
+                                    <small class="text-muted">{{ history.created_at.strftime('%b %d, %Y at %I:%M %p') }}</small>
+                                    <div class="mt-1">
+                                        <span class="badge bg-success">+{{ "%.0f"|format(history.amount) }} MAD</span>
+                                        <small class="text-muted">{{ history.description }}</small>
+                                    </div>
+                                </div>
+                            {% elif history.transaction_type == 'expense' %}
+                                <div class="timeline-marker bg-danger"></div>
+                                <div class="timeline-content">
+                                    <h6 class="mb-1">Expense Deducted</h6>
+                                    <small class="text-muted">{{ history.created_at.strftime('%b %d, %Y at %I:%M %p') }}</small>
+                                    <div class="mt-1">
+                                        <span class="badge bg-danger">{{ "%.0f"|format(history.amount) }} MAD</span>
+                                        <small class="text-muted">{{ history.description }}</small>
+                                    </div>
+                                </div>
+                            {% endif %}
+                        </div>
+                        {% endfor %}
+                        
+                        <!-- Current status -->
+                        {% if advance.status == 'completed' %}
+                        <div class="timeline-item">
+                            <div class="timeline-marker bg-success"></div>
+                            <div class="timeline-content">
+                                <h6 class="mb-1">Fully Used</h6>
+                                <small class="text-muted">All cash has been spent</small>
+                            </div>
+                        </div>
+                        {% elif advance.status == 'partially_used' %}
+                        <div class="timeline-item">
+                            <div class="timeline-marker bg-info"></div>
+                            <div class="timeline-content">
+                                <h6 class="mb-1">Partially Used</h6>
+                                <small class="text-muted">Remaining: {{ "%.0f"|format(advance.amount) }} MAD</small>
+                            </div>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.btn-modern {
+    border-radius: 10px;
+    font-weight: 500;
+    padding: 0.5rem 1rem;
+}
+
+.timeline {
+    position: relative;
+    padding-left: 30px;
+}
+
+.timeline::before {
+    content: '';
+    position: absolute;
+    left: 15px;
+    top: 0;
+    bottom: 0;
+    width: 2px;
+    background: #dee2e6;
+}
+
+.timeline-item {
+    position: relative;
+    margin-bottom: 20px;
+}
+
+.timeline-marker {
+    position: absolute;
+    left: -22px;
+    top: 5px;
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    border: 2px solid #fff;
+    box-shadow: 0 0 0 2px #dee2e6;
+}
+
+.timeline-content {
+    background: #f8f9fa;
+    padding: 10px 15px;
+    border-radius: 8px;
+    border-left: 3px solid #007bff;
+}
+</style>
+{% endblock %}

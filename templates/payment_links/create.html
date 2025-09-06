@@ -1,0 +1,82 @@
+{% extends "base.html" %}
+
+{% block page_title %}Create Payment Link{% endblock %}
+
+{% block page_actions %}
+<a href="{{ url_for('payment_links.index') }}" class="btn btn-secondary">
+    <i class="fas fa-arrow-left me-2"></i>Back to Payment Links
+</a>
+{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="fas fa-link me-2"></i>Create Payment Link for {{ tenant.name }}
+                </h5>
+            </div>
+            <div class="card-body">
+                <form method="POST">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">Guest</label>
+                                <input type="text" class="form-control" value="{{ tenant.name }}" disabled>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">Amount *</label>
+                                <div class="input-group">
+                                    <span class="input-group-text">$</span>
+                                    <input type="number" name="amount" class="form-control" step="0.01" min="0.01" required
+                                           placeholder="0.00" value="{{ tenant.active_stay.daily_rate if tenant.active_stay else '' }}">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Description *</label>
+                        <input type="text" name="description" class="form-control" required
+                               placeholder="e.g., Daily rent payment, Service charges, etc."
+                               value="Daily rent payment">
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Link Expires In</label>
+                        <select name="expires_in_days" class="form-select">
+                            <option value="1">1 day</option>
+                            <option value="3">3 days</option>
+                            <option value="7" selected>7 days (1 week)</option>
+                            <option value="14">14 days (2 weeks)</option>
+                            <option value="30">30 days (1 month)</option>
+                        </select>
+                        <div class="form-text">
+                            The payment link will automatically expire after this period.
+                        </div>
+                    </div>
+                    
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle me-2"></i>
+                        <strong>Note:</strong> This is a demo payment system. In production, you would integrate with a real payment gateway like Stripe, PayPal, or similar service.
+                    </div>
+                    
+                    <div class="d-flex justify-content-between">
+                        <a href="{{ url_for('payment_links.index') }}" class="btn btn-secondary">
+                            <i class="fas fa-times me-2"></i>Cancel
+                        </a>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-link me-2"></i>Create Payment Link
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+

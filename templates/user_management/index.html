@@ -1,0 +1,345 @@
+{% extends "base.html" %}
+
+{% block page_title %}User & Staff Management{% endblock %}
+
+{% block page_subtitle %}
+<p class="text-muted mb-0">Manage users, roles, and permissions for your hostel management system</p>
+{% endblock %}
+
+{% block page_actions %}
+<div class="d-flex gap-2 align-items-center">
+    <a href="{{ url_for('user_management.add_user') }}" class="btn btn-modern btn-success">
+        <i class="fas fa-user-plus me-2"></i>Add User
+    </a>
+    <a href="{{ url_for('user_management.add_role') }}" class="btn btn-modern btn-primary">
+        <i class="fas fa-user-tag me-2"></i>Add Role
+    </a>
+    <a href="{{ url_for('user_management.add_permission') }}" class="btn btn-modern btn-info">
+        <i class="fas fa-key me-2"></i>Add Permission
+    </a>
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Overview Cards -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="dashboard-card bg-primary">
+                <div class="card-body text-center">
+                    <div class="d-flex align-items-center justify-content-center mb-3">
+                        <div class="bg-white bg-opacity-20 rounded-circle p-3 me-3">
+                            <i class="fas fa-users fa-2x text-white"></i>
+                        </div>
+                        <div>
+                            <h3 class="mb-0 text-white">{{ users|length }}</h3>
+                            <p class="mb-0 text-white-50">Total Users</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="dashboard-card bg-success">
+                <div class="card-body text-center">
+                    <div class="d-flex align-items-center justify-content-center mb-3">
+                        <div class="bg-white bg-opacity-20 rounded-circle p-3 me-3">
+                            <i class="fas fa-user-check fa-2x text-white"></i>
+                        </div>
+                        <div>
+                            <h3 class="mb-0 text-white">{{ users|selectattr('is_active')|list|length }}</h3>
+                            <p class="mb-0 text-white-50">Active Users</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="dashboard-card bg-warning">
+                <div class="card-body text-center">
+                    <div class="d-flex align-items-center justify-content-center mb-3">
+                        <div class="bg-white bg-opacity-20 rounded-circle p-3 me-3">
+                            <i class="fas fa-user-tag fa-2x text-white"></i>
+                        </div>
+                        <div>
+                            <h3 class="mb-0 text-white">{{ roles|length }}</h3>
+                            <p class="mb-0 text-white-50">Roles</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="dashboard-card bg-info">
+                <div class="card-body text-center">
+                    <div class="d-flex align-items-center justify-content-center mb-3">
+                        <div class="bg-white bg-opacity-20 rounded-circle p-3 me-3">
+                            <i class="fas fa-key fa-2x text-white"></i>
+                        </div>
+                        <div>
+                            <h3 class="mb-0 text-white">{{ permissions|length }}</h3>
+                            <p class="mb-0 text-white-50">Permissions</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Quick Actions -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h6 class="mb-0">
+                        <i class="fas fa-bolt me-2"></i>Quick Actions
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-4">
+                            <a href="{{ url_for('user_management.users_list') }}" class="btn btn-outline-primary w-100 mb-3">
+                                <i class="fas fa-users me-2"></i>Manage Users
+                                <br><small class="text-muted">Add, edit, and remove users</small>
+                            </a>
+                        </div>
+                        <div class="col-md-4">
+                            <a href="{{ url_for('user_management.roles_list') }}" class="btn btn-outline-success w-100 mb-3">
+                                <i class="fas fa-user-tag me-2"></i>Manage Roles
+                                <br><small class="text-muted">Create and configure user roles</small>
+                            </a>
+                        </div>
+                        <div class="col-md-4">
+                            <a href="{{ url_for('user_management.permissions_list') }}" class="btn btn-outline-info w-100 mb-3">
+                                <i class="fas fa-key me-2"></i>Manage Permissions
+                                <br><small class="text-muted">Define system permissions</small>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Recent Users -->
+    <div class="row">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h6 class="mb-0">
+                        <i class="fas fa-users me-2"></i>Recent Users
+                    </h6>
+                    <a href="{{ url_for('user_management.users_list') }}" class="btn btn-sm btn-outline-primary">View All</a>
+                </div>
+                <div class="card-body p-0">
+                    {% if users %}
+                    <div class="table-responsive">
+                        <table class="table table-hover mb-0">
+                            <thead>
+                                <tr>
+                                    <th>User</th>
+                                    <th>Roles</th>
+                                    <th>Status</th>
+                                    <th></th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for user in users[:5] %}
+                                <tr>
+                                    <td>
+                                        <div class="d-flex align-items-center">
+                                            <div class="bg-primary bg-opacity-10 rounded-circle p-2 me-3">
+                                                <i class="fas fa-user text-primary"></i>
+                                            </div>
+                                            <div>
+                                                <strong>{{ user.full_name or user.username }}</strong>
+                                                <br><small class="text-muted">{{ user.email }}</small>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        {% for role in user.roles %}
+                                        <span class="badge bg-secondary me-1">{{ role.name }}</span>
+                                        {% else %}
+                                        <span class="text-muted">No roles</span>
+                                        {% endfor %}
+                                    </td>
+                                    <td>
+                                        {% if user.is_active %}
+                                        <span class="badge bg-success">Active</span>
+                                        {% else %}
+                                        <span class="badge bg-danger">Inactive</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <div class="btn-group btn-group-sm">
+                                            <a href="{{ url_for('user_management.edit_user', user_id=user.id) }}" class="btn btn-outline-primary">
+                                                <i class="fas fa-edit"></i>
+                                            </a>
+                                            {% if user.id != current_user.id %}
+                                            <button class="btn btn-outline-danger" onclick="deleteUser({{ user.id }}, '{{ user.username }}')">
+                                                <i class="fas fa-trash"></i>
+                                            </button>
+                                            {% endif %}
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <div class="text-center py-4">
+                        <div class="bg-primary bg-opacity-10 rounded-circle d-inline-flex p-4 mb-3">
+                            <i class="fas fa-users fa-2x text-primary"></i>
+                        </div>
+                        <h5 class="text-muted">No Users Found</h5>
+                        <p class="text-muted">Start by adding your first user</p>
+                        <a href="{{ url_for('user_management.add_user') }}" class="btn btn-primary">
+                            <i class="fas fa-user-plus me-2"></i>Add First User
+                        </a>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h6 class="mb-0">
+                        <i class="fas fa-user-tag me-2"></i>Roles Overview
+                    </h6>
+                    <a href="{{ url_for('user_management.roles_list') }}" class="btn btn-sm btn-outline-success">View All</a>
+                </div>
+                <div class="card-body p-0">
+                    {% if roles %}
+                    <div class="table-responsive">
+                        <table class="table table-hover mb-0">
+                            <thead>
+                                <tr>
+                                    <th>Role</th>
+                                    <th>Users</th>
+                                    <th>Permissions</th>
+                                    <th></th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for role in roles %}
+                                <tr>
+                                    <td>
+                                        <div class="d-flex align-items-center">
+                                            <div class="bg-success bg-opacity-10 rounded-circle p-2 me-3">
+                                                <i class="fas fa-user-tag text-success"></i>
+                                            </div>
+                                            <div>
+                                                <strong>{{ role.name }}</strong>
+                                                <br><small class="text-muted">{{ role.description or 'No description' }}</small>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <span class="badge bg-primary">{{ role.users|length }}</span>
+                                    </td>
+                                    <td>
+                                        <span class="badge bg-info">{{ role.permissions|length }}</span>
+                                    </td>
+                                    <td>
+                                        <div class="btn-group btn-group-sm">
+                                            <a href="{{ url_for('user_management.edit_role', role_id=role.id) }}" class="btn btn-outline-success">
+                                                <i class="fas fa-edit"></i>
+                                            </a>
+                                            {% if role.users|length == 0 %}
+                                            <button class="btn btn-outline-danger" onclick="deleteRole({{ role.id }}, '{{ role.name }}')">
+                                                <i class="fas fa-trash"></i>
+                                            </button>
+                                            {% endif %}
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <div class="text-center py-4">
+                        <div class="bg-success bg-opacity-10 rounded-circle d-inline-flex p-4 mb-3">
+                            <i class="fas fa-user-tag fa-2x text-success"></i>
+                        </div>
+                        <h5 class="text-muted">No Roles Found</h5>
+                        <p class="text-muted">Create roles to organize user permissions</p>
+                        <a href="{{ url_for('user_management.add_role') }}" class="btn btn-success">
+                            <i class="fas fa-user-tag me-2"></i>Add First Role
+                        </a>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Delete User Modal -->
+<div class="modal fade" id="deleteUserModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Delete User</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p>Are you sure you want to delete user <strong id="deleteUserName"></strong>?</p>
+                <p class="text-danger"><small>This action cannot be undone.</small></p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <form id="deleteUserForm" method="POST" style="display: inline;">
+                    <button type="submit" class="btn btn-danger">Delete User</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Delete Role Modal -->
+<div class="modal fade" id="deleteRoleModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Delete Role</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p>Are you sure you want to delete role <strong id="deleteRoleName"></strong>?</p>
+                <p class="text-danger"><small>This action cannot be undone.</small></p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <form id="deleteRoleForm" method="POST" style="display: inline;">
+                    <button type="submit" class="btn btn-danger">Delete Role</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function deleteUser(userId, username) {
+    document.getElementById('deleteUserName').textContent = username;
+    document.getElementById('deleteUserForm').action = `/user-management/users/${userId}/delete`;
+    
+    const modal = new bootstrap.Modal(document.getElementById('deleteUserModal'));
+    modal.show();
+}
+
+function deleteRole(roleId, roleName) {
+    document.getElementById('deleteRoleName').textContent = roleName;
+    document.getElementById('deleteRoleForm').action = `/user-management/roles/${roleId}/delete`;
+    
+    const modal = new bootstrap.Modal(document.getElementById('deleteRoleModal'));
+    modal.show();
+}
+</script>
+{% endblock %}

@@ -1,0 +1,434 @@
+{% extends "base.html" %}
+
+{% block title %}Finance & Suppliers - HostelFlow{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Page Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h1 class="h3 mb-0">Finance & Suppliers</h1>
+            <p class="text-muted mb-0">Manage finances, expenses, income, and supplier relationships</p>
+        </div>
+        <div class="d-flex gap-2">
+            <a href="{{ url_for('finance_suppliers.cash_advances') }}" class="btn btn-modern btn-outline-warning">
+                <i class="fas fa-hand-holding-usd me-2"></i>Cash Advances
+            </a>
+            <a href="{{ url_for('finance_suppliers.expenses') }}" class="btn btn-modern btn-outline-primary">
+                <i class="fas fa-receipt me-2"></i>Manage Expenses
+            </a>
+            <a href="{{ url_for('finance_suppliers.add_cash_advance') }}" class="btn btn-modern btn-warning">
+                <i class="fas fa-plus me-2"></i>Add Cash Advance
+            </a>
+        </div>
+    </div>
+
+    <!-- Financial Summary Row -->
+    <div class="row g-3 mb-4">
+        <div class="col-xl-3 col-md-6">
+            <div class="card stat-card">
+                <div class="card-body">
+                    <div class="d-flex align-items-center">
+                        <div class="stat-icon bg-warning">
+                            <i class="fas fa-hand-holding-usd"></i>
+                        </div>
+                        <div class="ms-3">
+                            <h3 class="mb-1 fw-bold">{{ "%.0f"|format(monthly_cash_advances) }} MAD</h3>
+                            <p class="mb-0 small opacity-90">Staff Cash Advances</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-xl-3 col-md-6">
+            <div class="card stat-card">
+                <div class="card-body">
+                    <div class="d-flex align-items-center">
+                        <div class="stat-icon bg-danger">
+                            <i class="fas fa-arrow-down"></i>
+                        </div>
+                        <div class="ms-3">
+                            <h3 class="mb-1 fw-bold">{{ "%.0f"|format(monthly_expenses) }} MAD</h3>
+                            <p class="mb-0 small opacity-90">Monthly Expenses</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        {% if current_user.is_admin %}
+        <div class="col-xl-3 col-md-6">
+            <div class="card stat-card">
+                <div class="card-body">
+                    <div class="d-flex align-items-center">
+                        <div class="stat-icon bg-info">
+                            <i class="fas fa-credit-card"></i>
+                        </div>
+                        <div class="ms-3">
+                            <h3 class="mb-1 fw-bold">{{ "%.0f"|format(monthly_payments) }} MAD</h3>
+                            <p class="mb-0 small opacity-90">Monthly Payments</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-xl-3 col-md-6">
+            <div class="card stat-card">
+                <div class="card-body">
+                    <div class="d-flex align-items-center">
+                        <div class="stat-icon {% if monthly_profit >= 0 %}bg-success{% else %}bg-danger{% endif %}">
+                            <i class="fas fa-chart-line"></i>
+                        </div>
+                        <div class="ms-3">
+                            <h3 class="mb-1 fw-bold">{{ "%.0f"|format(monthly_profit) }} MAD</h3>
+                            <p class="mb-0 small opacity-90">Monthly Profit</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+
+    <div class="row">
+        <!-- Recent Transactions -->
+        <div class="col-lg-8">
+            <!-- Recent Expenses -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-receipt me-2"></i>Recent Expenses
+                    </h5>
+                </div>
+                <div class="card-body">
+                    {% if recent_expenses %}
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Description</th>
+                                    <th>Category</th>
+                                    <th>Amount</th>
+                                    <th>Date</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for expense in recent_expenses %}
+                                <tr>
+                                    <td>
+                                        <div>
+                                            <strong>{{ expense.description }}</strong>
+                                            {% if expense.notes %}
+                                            <br><small class="text-muted">{{ expense.notes }}</small>
+                                            {% endif %}
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <span class="badge bg-light text-dark">
+                                            {{ expense.category|title }}
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <span class="text-danger fw-bold">
+                                            {{ "%.0f"|format(expense.amount) }} MAD
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <small class="text-muted">
+                                            {{ expense.date.strftime('%b %d, %Y') }}
+                                        </small>
+                                    </td>
+                                    <td>
+                                        <div class="btn-group btn-group-sm" role="group">
+                                            <a href="{{ url_for('finance_suppliers.view_expense', expense_id=expense.id) }}" 
+                                               class="btn btn-outline-primary" title="View Details">
+                                                <i class="fas fa-eye"></i>
+                                            </a>
+                                            <a href="{{ url_for('finance_suppliers.edit_expense', expense_id=expense.id) }}" 
+                                               class="btn btn-outline-warning" title="Edit">
+                                                <i class="fas fa-edit"></i>
+                                            </a>
+                                            {% if current_user.is_admin %}
+                                            <button type="button" class="btn btn-outline-danger" title="Delete" 
+                                                    onclick="deleteExpense({{ expense.id }}, '{{ expense.description }}')">
+                                                <i class="fas fa-trash"></i>
+                                            </button>
+                                            {% endif %}
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <div class="text-center py-4">
+                        <i class="fas fa-receipt fa-3x text-muted mb-3"></i>
+                        <h6 class="text-muted">No expenses recorded</h6>
+                        <p class="text-muted mb-0">Start tracking your expenses to monitor spending.</p>
+                        <a href="{{ url_for('finance_suppliers.add_expense') }}" class="btn btn-primary mt-3">
+                            <i class="fas fa-plus me-2"></i>Add First Expense
+                        </a>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Recent Cash Advances -->
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-hand-holding-usd me-2"></i>Recent Cash Advances
+                    </h5>
+                </div>
+                <div class="card-body">
+                    {% if recent_cash_advances %}
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Staff Name</th>
+                                    <th>Purpose</th>
+                                    <th>Amount</th>
+                                    <th>Date Given</th>
+                                    <th>Status</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for advance in recent_cash_advances %}
+                                <tr>
+                                    <td>
+                                        <div>
+                                            <strong>{{ advance.staff_name }}</strong>
+                                            {% if advance.notes %}
+                                            <br><small class="text-muted">{{ advance.notes }}</small>
+                                            {% endif %}
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <span class="badge bg-light text-dark">
+                                            {{ advance.purpose|title }}
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <span class="text-warning fw-bold">
+                                            {{ "%.0f"|format(advance.amount) }} MAD
+                                        </span>
+                                        {% if advance.status == 'partially_used' %}
+                                        <br><small class="text-muted">Remaining</small>
+                                        {% elif advance.status == 'completed' %}
+                                        <br><small class="text-success">Used Up</small>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <small class="text-muted">
+                                            {{ advance.date_given.strftime('%b %d, %Y') }}
+                                        </small>
+                                    </td>
+                                    <td>
+                                        {% if advance.status == 'pending' %}
+                                            <span class="badge bg-warning">Pending</span>
+                                        {% elif advance.status == 'partially_used' %}
+                                            <span class="badge bg-info">Partially Used</span>
+                                        {% elif advance.status == 'completed' %}
+                                            <span class="badge bg-success">Completed</span>
+                                        {% elif advance.status == 'overdue' %}
+                                            <span class="badge bg-danger">Overdue</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <div class="btn-group btn-group-sm" role="group">
+                                            <a href="{{ url_for('finance_suppliers.view_cash_advance', advance_id=advance.id) }}" 
+                                               class="btn btn-outline-primary" title="View Details">
+                                                <i class="fas fa-eye"></i>
+                                            </a>
+                                            <a href="{{ url_for('finance_suppliers.edit_cash_advance', advance_id=advance.id) }}" 
+                                               class="btn btn-outline-warning" title="Edit">
+                                                <i class="fas fa-edit"></i>
+                                            </a>
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <div class="text-center py-4">
+                        <i class="fas fa-hand-holding-usd fa-3x text-muted mb-3"></i>
+                        <h6 class="text-muted">No cash advances recorded</h6>
+                        <p class="text-muted mb-0">Start tracking staff cash advances.</p>
+                        <a href="{{ url_for('finance_suppliers.add_cash_advance') }}" class="btn btn-primary mt-3">
+                            <i class="fas fa-plus me-2"></i>Add First Cash Advance
+                        </a>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Quick Actions & Info -->
+        <div class="col-lg-4">
+            <!-- Quick Actions -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h6 class="card-title mb-0">
+                        <i class="fas fa-bolt me-2"></i>Quick Actions
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <div class="d-grid gap-2">
+                        <a href="{{ url_for('finance_suppliers.add_expense') }}" class="btn btn-outline-danger btn-sm">
+                            <i class="fas fa-plus me-2"></i>Add Expense
+                        </a>
+                        <a href="{{ url_for('finance_suppliers.suppliers') }}" class="btn btn-outline-primary btn-sm">
+                            <i class="fas fa-truck me-2"></i>Manage Suppliers
+                        </a>
+                        <a href="{{ url_for('finance_suppliers.reports') }}" class="btn btn-outline-info btn-sm">
+                            <i class="fas fa-chart-bar me-2"></i>Financial Reports
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Expense Categories -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h6 class="card-title mb-0">
+                        <i class="fas fa-tags me-2"></i>Expense Categories
+                    </h6>
+                </div>
+                <div class="card-body">
+                    {% if expense_categories %}
+                    {% for category, total in expense_categories %}
+                    <div class="mb-3">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <span class="text-muted">{{ category|title }}</span>
+                            <span class="badge bg-danger">{{ "%.0f"|format(total) }} MAD</span>
+                        </div>
+                    </div>
+                    {% endfor %}
+                    {% else %}
+                    <div class="text-center py-3">
+                        <small class="text-muted">No expenses this month</small>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Monthly Summary -->
+            <div class="card">
+                <div class="card-header">
+                    <h6 class="card-title mb-0">
+                        <i class="fas fa-chart-pie me-2"></i>Monthly Summary
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <div class="d-flex justify-content-between">
+                            <span class="text-muted">Period:</span>
+                            <span class="fw-bold">{{ this_month.strftime('%B %Y') }}</span>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <div class="d-flex justify-content-between">
+                            <span class="text-muted">Cash Advances:</span>
+                            <span class="fw-bold text-warning">{{ "%.0f"|format(monthly_cash_advances) }} MAD</span>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <div class="d-flex justify-content-between">
+                            <span class="text-muted">Total Expenses:</span>
+                            <span class="fw-bold text-danger">{{ "%.0f"|format(monthly_expenses) }} MAD</span>
+                        </div>
+                    </div>
+                    {% if current_user.is_admin %}
+                    <div class="mb-0">
+                        <div class="d-flex justify-content-between">
+                            <span class="text-muted">Net Profit:</span>
+                            <span class="fw-bold {% if monthly_profit >= 0 %}text-success{% else %}text-danger{% endif %}">
+                                {{ "%.0f"|format(monthly_profit) }} MAD
+                            </span>
+                        </div>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Custom CSS -->
+<style>
+.stat-card {
+    border: none;
+    border-radius: 15px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    transition: transform 0.2s;
+}
+
+.stat-card:hover {
+    transform: translateY(-2px);
+}
+
+.stat-icon {
+    width: 50px;
+    height: 50px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 1.2rem;
+}
+
+.btn-modern {
+    border-radius: 10px;
+    font-weight: 500;
+    padding: 0.5rem 1rem;
+}
+</style>
+
+<!-- Delete Confirmation Modal -->
+<div class="modal fade" id="deleteModal" tabindex="-1" aria-labelledby="deleteModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="deleteModalLabel">Confirm Delete</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p>Are you sure you want to delete the expense "<span id="expenseDescription"></span>"?</p>
+                <p class="text-danger"><strong>This action cannot be undone.</strong></p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <form id="deleteForm" method="POST" style="display: inline;">
+                    <button type="submit" class="btn btn-danger">Delete Expense</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- JavaScript -->
+<script>
+// Auto-refresh page every 5 minutes to show updated financial data
+setTimeout(function() {
+    location.reload();
+}, 300000);
+
+// Delete expense function
+function deleteExpense(expenseId, description) {
+    document.getElementById('expenseDescription').textContent = description;
+    document.getElementById('deleteForm').action = "{{ url_for('finance_suppliers.delete_expense', expense_id=0) }}".replace('0', expenseId);
+    
+    const deleteModal = new bootstrap.Modal(document.getElementById('deleteModal'));
+    deleteModal.show();
+}
+</script>
+{% endblock %}

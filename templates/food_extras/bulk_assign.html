@@ -1,0 +1,684 @@
+{% extends "base.html" %}
+
+{% block title %}Bulk Service Assignment - HostelFlow{% endblock %}
+
+{% block page_title %}Bulk Service Assignment{% endblock %}
+
+{% block page_subtitle %}
+<p class="text-muted mb-0">Efficiently assign multiple services to multiple guests in one operation</p>
+{% endblock %}
+
+{% block page_actions %}
+<div class="d-flex gap-2">
+    <a href="{{ url_for('food_extras.index') }}" class="btn btn-modern btn-outline-secondary">
+        <i class="fas fa-arrow-left me-2"></i>Back to Dashboard
+    </a>
+    <a href="{{ url_for('food_extras.assign_service') }}" class="btn btn-modern btn-outline-primary">
+        <i class="fas fa-user-plus me-2"></i>Single Assignment
+    </a>
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Progress Steps -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div class="d-flex align-items-center">
+                            <div class="bg-primary rounded-circle p-2 me-3">
+                                <i class="fas fa-users text-white"></i>
+                            </div>
+                            <div>
+                                <h6 class="mb-1">Step 1: Guest Selection</h6>
+                                <small class="text-muted">Select the guests you want to assign services to</small>
+                            </div>
+                        </div>
+                        <div class="d-flex align-items-center">
+                            <div class="bg-secondary rounded-circle p-2 me-3">
+                                <i class="fas fa-cog text-white"></i>
+                            </div>
+                            <div>
+                                <h6 class="mb-1">Step 2: Service Selection</h6>
+                                <small class="text-muted">Choose the services to assign</small>
+                            </div>
+                        </div>
+                        <div class="d-flex align-items-center">
+                            <div class="bg-info rounded-circle p-2 me-3">
+                                <i class="fas fa-table text-white"></i>
+                            </div>
+                            <div>
+                                <h6 class="mb-1">Step 3: Assignment Matrix</h6>
+                                <small class="text-muted">Configure quantities and prices</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- Guest Selection -->
+        <div class="col-lg-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-users me-2"></i>Guest Selection
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <div>
+                            <button type="button" class="btn btn-sm btn-outline-primary" onclick="selectAllGuests()">
+                                <i class="fas fa-check-double me-1"></i>Select All
+                            </button>
+                            <button type="button" class="btn btn-sm btn-outline-secondary" onclick="clearGuestSelection()">
+                                <i class="fas fa-times me-1"></i>Clear All
+                            </button>
+                        </div>
+                        <div class="d-flex gap-2">
+                            <span class="badge bg-primary" id="guestSelectionCounter">0 selected</span>
+                            <span class="badge bg-success" id="vegetarianCounter">0 vegetarian</span>
+                        </div>
+                    </div>
+                    
+                    <div class="guest-list" style="max-height: 400px; overflow-y: auto;">
+                        {% for guest in guests %}
+                        <div class="d-flex align-items-center p-2 border rounded mb-2 guest-item">
+                            <div class="form-check me-3">
+                                <input class="form-check-input guest-checkbox" type="checkbox" 
+                                       value="{{ guest.id }}" id="guest_{{ guest.id }}">
+                                <label class="form-check-label" for="guest_{{ guest.id }}">
+                                    <strong>{{ guest.name }}</strong>
+                                    {% if guest.room_number %}
+                                        <br><small class="text-muted">Room {{ guest.room_number }}</small>
+                                    {% endif %}
+                                </label>
+                            </div>
+                            <div class="form-check ms-auto">
+                                <input class="form-check-input vegetarian-checkbox" type="checkbox" 
+                                       id="vegetarian_{{ guest.id }}" data-guest-id="{{ guest.id }}">
+                                <label class="form-check-label text-success" for="vegetarian_{{ guest.id }}">
+                                    <i class="fas fa-leaf me-1"></i>Vegetarian
+                                </label>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Service Selection -->
+        <div class="col-lg-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-cog me-2"></i>Service Selection
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <div>
+                            <button type="button" class="btn btn-sm btn-outline-primary" onclick="selectAllServices()">
+                                <i class="fas fa-check-double me-1"></i>Select All
+                            </button>
+                            <button type="button" class="btn btn-sm btn-outline-secondary" onclick="clearServiceSelection()">
+                                <i class="fas fa-times me-1"></i>Clear All
+                            </button>
+                        </div>
+                        <span class="badge bg-success" id="serviceSelectionCounter">0 selected</span>
+                    </div>
+                    
+                    <div class="service-list" style="max-height: 400px; overflow-y: auto;">
+                        {% for service in services %}
+                        <div class="d-flex align-items-center p-2 border rounded mb-2 service-item">
+                            <div class="form-check me-3">
+                                <input class="form-check-input service-checkbox" type="checkbox" 
+                                       value="{{ service.id }}" id="service_{{ service.id }}">
+                                <label class="form-check-label" for="service_{{ service.id }}">
+                                    <strong>{{ service.name }}</strong>
+                                    <br><small class="text-muted">{{ service.service_type|title }} • {{ "%.2f"|format(service.price) }} MAD</small>
+                                </label>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Assignment Matrix -->
+    <div class="row mt-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-table me-2"></i>Assignment Matrix
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div id="assignmentMatrix">
+                        <div class="text-center text-muted py-4">
+                            <i class="fas fa-table fa-3x mb-3"></i>
+                            <h6>Select guests and services to see the assignment matrix</h6>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Summary and Submit -->
+    <div class="row mt-4">
+        <div class="col-lg-8">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-sticky-note me-2"></i>Notes & Additional Information
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="form-group mb-3">
+                        <label for="bulk_notes" class="form-label">Bulk Assignment Notes</label>
+                        <textarea class="form-control" id="bulk_notes" name="bulk_notes" rows="3" 
+                                  placeholder="Add any special instructions or notes for this bulk assignment..."></textarea>
+                    </div>
+                    <div class="form-group mb-3">
+                        <label for="dietary_notes" class="form-label">Dietary Preferences Notes</label>
+                        <textarea class="form-control" id="dietary_notes" name="dietary_notes" rows="2" 
+                                  placeholder="Special dietary requirements, allergies, or meal preferences..."></textarea>
+                        <div class="form-text">
+                            <i class="fas fa-info-circle me-1"></i>
+                            Use this for special meal instructions, allergies, or dietary restrictions
+                        </div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="service_date" class="form-label">Service Date</label>
+                        <div class="row g-2">
+                            <div class="col-md-6">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="radio" name="date_option" id="date_immediate" value="immediate" checked>
+                                    <label class="form-check-label" for="date_immediate">
+                                        <i class="fas fa-bolt text-warning me-1"></i>Immediately (Today)
+                                    </label>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="radio" name="date_option" id="date_custom" value="custom">
+                                    <label class="form-check-label" for="date_custom">
+                                        <i class="fas fa-calendar text-primary me-1"></i>Specific Date
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="mt-2" id="custom_date_container" style="display: none;">
+                            <input type="date" class="form-control" id="service_date" name="service_date" 
+                                   min="{{ today }}" value="{{ today }}">
+                            <div class="form-text">
+                                <i class="fas fa-info-circle me-1"></i>
+                                Select the date when these services should be provided
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-lg-4">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-chart-pie me-2"></i>Summary
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="d-flex justify-content-between mb-2">
+                        <span>Total Guests:</span>
+                        <span class="fw-bold" id="totalGuests">0</span>
+                    </div>
+                    <div class="d-flex justify-content-between mb-2">
+                        <span>Total Services:</span>
+                        <span class="fw-bold" id="totalServices">0</span>
+                    </div>
+                    <div class="d-flex justify-content-between mb-2">
+                        <span>Total Assignments:</span>
+                        <span class="fw-bold" id="totalAssignments">0</span>
+                    </div>
+                    <div class="d-flex justify-content-between mb-2">
+                        <span>Total Meals:</span>
+                        <span class="fw-bold text-primary" id="totalMeals" title="Sum of all quantities in the assignment matrix">0</span>
+                    </div>
+                    <div class="d-flex justify-content-between mb-3">
+                        <span>Estimated Revenue:</span>
+                        <span class="fw-bold text-success" id="estimatedRevenue">0.00 MAD</span>
+                    </div>
+                    
+                    <hr>
+                    
+                    <div class="d-flex justify-content-between mb-2">
+                        <span>Vegetarian Guests:</span>
+                        <span class="fw-bold text-success" id="summaryVegetarian">0</span>
+                    </div>
+                    <div class="d-flex justify-content-between mb-3">
+                        <span>Dietary Notes:</span>
+                        <span class="fw-bold text-info" id="summaryDietary">None</span>
+                    </div>
+                    
+                    <div class="d-flex justify-content-between mb-3">
+                        <span>Service Date:</span>
+                        <span class="fw-bold text-warning" id="summaryServiceDate">Today</span>
+                    </div>
+                    
+                    <button type="button" class="btn btn-success w-100" id="submitBulkAssignment">
+                        <i class="fas fa-check me-2"></i>Complete Bulk Assignment
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Failed Assignments Display -->
+    {% if failed_assignments %}
+    <div class="row mt-4">
+        <div class="col-12">
+            <div class="alert alert-warning alert-dismissible fade show" role="alert">
+                <h6 class="alert-heading">
+                    <i class="fas fa-exclamation-triangle me-2"></i>Some assignments failed
+                </h6>
+                <ul class="mb-0">
+                    {% for failure in failed_assignments %}
+                    <li>{{ failure }}</li>
+                    {% endfor %}
+                </ul>
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+<!-- Hidden form for submission -->
+<form id="bulkAssignmentForm" method="POST" style="display: none;">
+    <input type="hidden" name="guest_ids[]" id="guestIdsInput">
+    <input type="hidden" name="service_ids[]" id="serviceIdsInput">
+    <input type="hidden" name="quantities[]" id="quantitiesInput">
+    <input type="hidden" name="custom_prices[]" id="customPricesInput">
+    <input type="hidden" name="bulk_notes" id="bulkNotesInput">
+    <input type="hidden" name="dietary_notes" id="dietaryNotesInput">
+    <input type="hidden" name="vegetarian_guests[]" id="vegetarianGuestsInput">
+    <input type="hidden" name="service_date" id="serviceDateInput">
+</form>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('DOM loaded, initializing...');
+    
+    // Check if elements exist
+    const guestCheckboxes = document.querySelectorAll('.guest-checkbox');
+    const serviceCheckboxes = document.querySelectorAll('.service-checkbox');
+    const submitButton = document.getElementById('submitBulkAssignment');
+    
+    console.log('Found guest checkboxes:', guestCheckboxes.length);
+    console.log('Found service checkboxes:', serviceCheckboxes.length);
+    console.log('Submit button found:', !!submitButton);
+    
+    updateSelections();
+    
+    // Add event listeners to checkboxes
+    guestCheckboxes.forEach(checkbox => {
+        checkbox.addEventListener('change', function() {
+            updateSelections();
+        });
+    });
+    
+    serviceCheckboxes.forEach(checkbox => {
+        checkbox.addEventListener('change', function() {
+            updateSelections();
+        });
+    });
+    
+    // Add event listeners to vegetarian checkboxes
+    document.querySelectorAll('.vegetarian-checkbox').forEach(checkbox => {
+        checkbox.addEventListener('change', updateVegetarianCount);
+    });
+    
+    // Add event listener to dietary notes
+    document.getElementById('dietary_notes').addEventListener('input', updateDietarySummary);
+    
+    // Add event listeners to date option radio buttons
+    document.getElementById('date_immediate').addEventListener('change', toggleDateSelection);
+    document.getElementById('date_custom').addEventListener('change', toggleDateSelection);
+    
+    // Submit button event listener
+    submitButton.addEventListener('click', function() {
+        if (validateForm()) {
+            prepareFormData();
+            document.getElementById('bulkAssignmentForm').submit();
+        }
+    });
+});
+
+function updateSelections() {
+    const selectedGuests = document.querySelectorAll('.guest-checkbox:checked');
+    const selectedServices = document.querySelectorAll('.service-checkbox:checked');
+    
+    // Update counters
+    document.getElementById('guestSelectionCounter').textContent = `${selectedGuests.length} selected`;
+    document.getElementById('serviceSelectionCounter').textContent = `${selectedServices.length} selected`;
+    
+    // Update summary
+    document.getElementById('totalGuests').textContent = selectedGuests.length;
+    document.getElementById('totalServices').textContent = selectedServices.length;
+    document.getElementById('totalAssignments').textContent = selectedGuests.length * selectedServices.length;
+    
+    // Don't reset total meals here - let updateTotalMeals handle it when matrix is generated
+    
+    // Update dietary summary
+    const vegetarianCount = document.querySelectorAll('.vegetarian-checkbox:checked').length;
+    const dietaryNotes = document.getElementById('dietary_notes').value.trim();
+    
+    document.getElementById('summaryVegetarian').textContent = vegetarianCount;
+    document.getElementById('summaryDietary').textContent = dietaryNotes || 'None';
+    
+    // Update service date summary
+    updateServiceDateSummary();
+    
+    // Generate matrix if both are selected
+    if (selectedGuests.length > 0 && selectedServices.length > 0) {
+        generateAssignmentMatrix(selectedGuests, selectedServices);
+    } else {
+        document.getElementById('assignmentMatrix').innerHTML = `
+            <div class="text-center text-muted py-4">
+                <i class="fas fa-table fa-3x mb-3"></i>
+                <h6>Select guests and services to see the assignment matrix</h6>
+            </div>
+        `;
+        // Reset total meals when no matrix is shown
+        document.getElementById('totalMeals').textContent = '0';
+    }
+    
+
+}
+
+function updateVegetarianCount() {
+    const vegetarianGuests = document.querySelectorAll('.vegetarian-checkbox:checked');
+    document.getElementById('vegetarianCounter').textContent = `${vegetarianGuests.length} vegetarian`;
+    
+    // Also update the summary if it exists
+    const summaryElement = document.getElementById('summaryVegetarian');
+    if (summaryElement) {
+        summaryElement.textContent = vegetarianGuests.length;
+    }
+}
+
+function updateDietarySummary() {
+    const dietaryNotes = document.getElementById('dietary_notes').value.trim();
+    document.getElementById('summaryDietary').textContent = dietaryNotes || 'None';
+}
+
+
+
+function toggleDateSelection() {
+    const immediateRadio = document.getElementById('date_immediate');
+    const customDateContainer = document.getElementById('custom_date_container');
+    const serviceDateInput = document.getElementById('service_date');
+    
+    if (immediateRadio.checked) {
+        customDateContainer.style.display = 'none';
+        serviceDateInput.value = new Date().toISOString().split('T')[0]; // Today's date
+    } else {
+        customDateContainer.style.display = 'block';
+        // Set minimum date to today
+        const today = new Date().toISOString().split('T')[0];
+        serviceDateInput.min = today;
+        if (!serviceDateInput.value || serviceDateInput.value < today) {
+            serviceDateInput.value = today;
+        }
+    }
+    
+    // Update the summary display
+    updateServiceDateSummary();
+}
+
+function updateServiceDateSummary() {
+    const immediateRadio = document.getElementById('date_immediate');
+    const summaryElement = document.getElementById('summaryServiceDate');
+    
+    if (immediateRadio.checked) {
+        summaryElement.textContent = 'Today';
+        summaryElement.className = 'fw-bold text-warning';
+    } else {
+        const selectedDate = document.getElementById('service_date').value;
+        if (selectedDate) {
+            const dateObj = new Date(selectedDate);
+            const formattedDate = dateObj.toLocaleDateString('en-US', { 
+                weekday: 'short', 
+                month: 'short', 
+                day: 'numeric' 
+            });
+            summaryElement.textContent = formattedDate;
+            summaryElement.className = 'fw-bold text-primary';
+        } else {
+            summaryElement.textContent = 'Not set';
+            summaryElement.className = 'fw-bold text-danger';
+        }
+    }
+}
+
+function generateAssignmentMatrix(selectedGuests, selectedServices) {
+    let matrixHTML = `
+        <div class="table-responsive">
+            <table class="table table-bordered table-hover">
+                <thead class="table-light">
+                    <tr>
+                        <th>Guest</th>
+                        ${Array.from(selectedServices).map(service => 
+                            `<th class="text-center">${service.closest('.service-item').querySelector('label strong').textContent}</th>`
+                        ).join('')}
+                        <th class="text-center">Row Total</th>
+                    </tr>
+                </thead>
+                <tbody>
+    `;
+    
+            selectedGuests.forEach(guest => {
+            const guestName = guest.closest('.guest-item').querySelector('label strong').textContent;
+            const isVegetarian = document.getElementById(`vegetarian_${guest.value}`).checked;
+            const vegetarianIcon = isVegetarian ? '<i class="fas fa-leaf text-success me-2" title="Vegetarian"></i>' : '';
+            matrixHTML += `<tr>
+                <td><strong>${vegetarianIcon}${guestName}</strong></td>`;
+        
+        let rowTotal = 0;
+        selectedServices.forEach(service => {
+            const servicePrice = parseFloat(service.closest('.service-item').querySelector('small').textContent.match(/[\d.]+/)[0]);
+            matrixHTML += `
+                <td class="text-center">
+                    <div class="row g-2">
+                        <div class="col-6">
+                            <input type="number" class="form-control form-control-sm quantity-input" 
+                                   value="1" min="1" max="10" 
+                                   data-guest-id="${guest.value}" 
+                                   data-service-id="${service.value}"
+                                   onchange="updateRowTotal(this)">
+                        </div>
+                        <div class="col-6">
+                            <input type="number" class="form-control form-control-sm price-input" 
+                                   value="${servicePrice}" min="0" step="0.01" 
+                                   data-guest-id="${guest.value}" 
+                                   data-service-id="${service.value}"
+                                   onchange="updateRowTotal(this)">
+                        </div>
+                    </div>
+                </td>`;
+        });
+        
+        matrixHTML += `<td class="text-center fw-bold" id="rowTotal_${guest.value}">0.00 MAD</td></tr>`;
+    });
+    
+    matrixHTML += `
+                </tbody>
+            </table>
+        </div>
+    `;
+    
+    document.getElementById('assignmentMatrix').innerHTML = matrixHTML;
+    
+    // Calculate initial row totals
+    selectedGuests.forEach(guest => {
+        updateRowTotal(guest);
+    });
+    
+    // Update total meals after matrix is generated
+    updateTotalMeals();
+}
+
+function updateRowTotal(changedInput) {
+    const guestId = changedInput.dataset.guestId;
+    const rowTotalElement = document.getElementById(`rowTotal_${guestId}`);
+    
+    let rowTotal = 0;
+    const inputs = document.querySelectorAll(`[data-guest-id="${guestId}"]`);
+    
+    for (let i = 0; i < inputs.length; i += 2) {
+        const quantity = parseFloat(inputs[i].value) || 0;
+        const price = parseFloat(inputs[i + 1].value) || 0;
+        rowTotal += quantity * price;
+    }
+    
+    rowTotalElement.textContent = `${rowTotal.toFixed(2)} MAD`;
+    updateEstimatedRevenue();
+    updateTotalMeals();
+}
+
+function updateEstimatedRevenue() {
+    let totalRevenue = 0;
+    const rowTotals = document.querySelectorAll('[id^="rowTotal_"]');
+    
+    rowTotals.forEach(rowTotal => {
+        const amount = parseFloat(rowTotal.textContent) || 0;
+        totalRevenue += amount;
+    });
+    
+    document.getElementById('estimatedRevenue').textContent = `${totalRevenue.toFixed(2)} MAD`;
+}
+
+function updateTotalMeals() {
+    let totalMeals = 0;
+    const quantityInputs = document.querySelectorAll('.quantity-input');
+    
+    console.log('=== updateTotalMeals Debug ===');
+    console.log('Found quantity inputs:', quantityInputs.length);
+    
+    quantityInputs.forEach((input, index) => {
+        const value = parseInt(input.value) || 0;
+        totalMeals += value;
+        console.log(`Input ${index + 1}: value="${input.value}", parsed=${value}, running total=${totalMeals}`);
+    });
+    
+    console.log('Final total meals:', totalMeals);
+    document.getElementById('totalMeals').textContent = totalMeals;
+}
+
+function selectAllGuests() {
+    document.querySelectorAll('.guest-checkbox').forEach(checkbox => {
+        checkbox.checked = true;
+    });
+    updateSelections();
+}
+
+function clearGuestSelection() {
+    document.querySelectorAll('.guest-checkbox').forEach(checkbox => {
+        checkbox.checked = false;
+    });
+    updateSelections();
+}
+
+function selectAllServices() {
+    document.querySelectorAll('.service-checkbox').forEach(checkbox => {
+        checkbox.checked = true;
+    });
+    updateSelections();
+}
+
+function clearServiceSelection() {
+    document.querySelectorAll('.service-checkbox').forEach(checkbox => {
+        checkbox.checked = false;
+    });
+    updateSelections();
+}
+
+function validateForm() {
+    const selectedGuests = document.querySelectorAll('.guest-checkbox:checked');
+    const selectedServices = document.querySelectorAll('.service-checkbox:checked');
+    
+    if (selectedGuests.length === 0) {
+        alert('Please select at least one guest.');
+        return false;
+    }
+    
+    if (selectedServices.length === 0) {
+        alert('Please select at least one service.');
+        return false;
+    }
+    
+    // Validate quantities and prices
+    const inputs = document.querySelectorAll('.quantity-input, .price-input');
+    for (let input of inputs) {
+        if (input.value <= 0) {
+            alert('All quantities and prices must be greater than 0.');
+            return false;
+        }
+    }
+    
+    return true;
+}
+
+function prepareFormData() {
+    const selectedGuests = Array.from(document.querySelectorAll('.guest-checkbox:checked')).map(cb => cb.value);
+    const selectedServices = Array.from(document.querySelectorAll('.service-checkbox:checked')).map(cb => cb.value);
+    
+    const quantities = [];
+    const customPrices = [];
+    
+    selectedGuests.forEach(guestId => {
+        selectedServices.forEach(serviceId => {
+            const quantityInput = document.querySelector(`[data-guest-id="${guestId}"][data-service-id="${serviceId}"].quantity-input`);
+            const priceInput = document.querySelector(`[data-guest-id="${guestId}"][data-service-id="${serviceId}"].price-input`);
+            
+            quantities.push(quantityInput.value);
+            customPrices.push(priceInput.value);
+        });
+    });
+    
+    // Get vegetarian guests
+    const vegetarianGuests = Array.from(document.querySelectorAll('.vegetarian-checkbox:checked')).map(cb => cb.dataset.guestId);
+    
+    document.getElementById('guestIdsInput').value = selectedGuests.join(',');
+    document.getElementById('serviceIdsInput').value = selectedServices.join(',');
+    document.getElementById('quantitiesInput').value = quantities.join(',');
+    document.getElementById('customPricesInput').value = customPrices.join(',');
+    document.getElementById('bulkNotesInput').value = document.getElementById('bulk_notes').value;
+    document.getElementById('dietaryNotesInput').value = document.getElementById('dietary_notes').value;
+    document.getElementById('vegetarianGuestsInput').value = vegetarianGuests.join(',');
+    
+    // Get service date
+    const immediateRadio = document.getElementById('date_immediate');
+    let serviceDate;
+    if (immediateRadio.checked) {
+        serviceDate = new Date().toISOString().split('T')[0]; // Today
+    } else {
+        serviceDate = document.getElementById('service_date').value;
+    }
+    document.getElementById('serviceDateInput').value = serviceDate;
+}
+</script>
+{% endblock %}

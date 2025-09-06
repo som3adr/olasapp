@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Payment - HostelFlow</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        .payment-card {
+            max-width: 500px;
+            margin: 2rem auto;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        .payment-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 2rem;
+            text-align: center;
+        }
+        .amount-display {
+            font-size: 2.5rem;
+            font-weight: bold;
+            margin: 1rem 0;
+        }
+        .demo-notice {
+            background-color: #fff3cd;
+            border: 1px solid #ffeaa7;
+            color: #856404;
+            padding: 1rem;
+            border-radius: 0.5rem;
+            margin-bottom: 1.5rem;
+        }
+    </style>
+</head>
+<body class="bg-light">
+    <div class="container">
+        <div class="payment-card">
+            <div class="payment-header">
+                <h2><i class="fas fa-credit-card me-2"></i>Payment Request</h2>
+                <div class="amount-display">${{ "%.2f"|format(payment_link.amount) }}</div>
+            </div>
+            
+            <div class="card-body p-4">
+                <div class="demo-notice">
+                    <i class="fas fa-exclamation-triangle me-2"></i>
+                    <strong>Demo Payment System</strong><br>
+                    This is a demonstration. No real payment will be processed. Click "Pay Now" to simulate a successful payment.
+                </div>
+                
+                <div class="mb-3">
+                    <h5>Payment Details</h5>
+                    <table class="table table-borderless">
+                        <tr>
+                            <td><strong>Guest:</strong></td>
+                            <td>{{ payment_link.tenant.name }}</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Description:</strong></td>
+                            <td>{{ payment_link.description }}</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Amount:</strong></td>
+                            <td class="text-success fw-bold">${{ "%.2f"|format(payment_link.amount) }}</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Expires:</strong></td>
+                            <td>{{ payment_link.expires_at.strftime('%Y-%m-%d %H:%M') }}</td>
+                        </tr>
+                    </table>
+                </div>
+                
+                <div class="mb-4">
+                    <h6>Demo Payment Form</h6>
+                    <div class="row g-3">
+                        <div class="col-12">
+                            <label class="form-label">Card Number</label>
+                            <input type="text" class="form-control" placeholder="4111 1111 1111 1111" disabled>
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label">Expiry</label>
+                            <input type="text" class="form-control" placeholder="MM/YY" disabled>
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label">CVC</label>
+                            <input type="text" class="form-control" placeholder="123" disabled>
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label">Cardholder Name</label>
+                            <input type="text" class="form-control" placeholder="{{ payment_link.tenant.name }}" disabled>
+                        </div>
+                    </div>
+                </div>
+                
+                <form method="POST" action="{{ url_for('payment_links.process_payment', token=payment_link.token) }}">
+                    <div class="d-grid">
+                        <button type="submit" class="btn btn-success btn-lg">
+                            <i class="fas fa-credit-card me-2"></i>Pay Now - ${{ "%.2f"|format(payment_link.amount) }}
+                        </button>
+                    </div>
+                </form>
+                
+                <div class="text-center mt-3">
+                    <small class="text-muted">
+                        <i class="fas fa-lock me-1"></i>
+                        Secure payment powered by HostelFlow
+                    </small>
+                </div>
+            </div>
+        </div>
+        
+        <div class="text-center mt-4">
+            <small class="text-muted">
+                Having trouble? Contact the hostel directly for assistance.
+            </small>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
+
+

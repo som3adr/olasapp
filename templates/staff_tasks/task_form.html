@@ -1,0 +1,122 @@
+{% extends "base.html" %}
+
+{% block title %}Add Task - Staff Tasks{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Page Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h1 class="h3 mb-0">Add New Task</h1>
+            <p class="text-muted mb-0">Create a new task assignment for staff members</p>
+        </div>
+        <div class="d-flex gap-2">
+            <a href="{{ url_for('staff_tasks.tasks_list') }}" class="btn btn-modern btn-outline-secondary">
+                <i class="fas fa-arrow-left me-2"></i>Back to Tasks
+            </a>
+        </div>
+    </div>
+
+    <!-- Task Form -->
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-plus me-2"></i>Task Information
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <form method="POST" id="taskForm">
+                        <div class="row">
+                            <div class="col-md-8">
+                                <div class="mb-3">
+                                    <label for="title" class="form-label">Task Title *</label>
+                                    <input type="text" class="form-control" id="title" name="title" required>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="mb-3">
+                                    <label for="priority" class="form-label">Priority</label>
+                                    <select class="form-select" id="priority" name="priority">
+                                        <option value="low">Low</option>
+                                        <option value="medium" selected>Medium</option>
+                                        <option value="high">High</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="assigned_to" class="form-label">Assign To *</label>
+                                    <select class="form-select" id="assigned_to" name="assigned_to" required>
+                                        <option value="">Select Staff Member</option>
+                                        {% for staff in staff_members %}
+                                        <option value="{{ staff.id }}">{{ staff.username }}</option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="due_date" class="form-label">Due Date</label>
+                                    <input type="date" class="form-control" id="due_date" name="due_date">
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="description" class="form-label">Description</label>
+                            <textarea class="form-control" id="description" name="description" rows="4" placeholder="Describe the task details, requirements, or special instructions..."></textarea>
+                        </div>
+
+                        <div class="d-flex gap-2">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-save me-2"></i>Create Task
+                            </button>
+                            <a href="{{ url_for('staff_tasks.tasks_list') }}" class="btn btn-outline-secondary">
+                                <i class="fas fa-times me-2"></i>Cancel
+                            </a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Custom CSS -->
+<style>
+.btn-modern {
+    border-radius: 10px;
+    font-weight: 500;
+    padding: 0.5rem 1rem;
+}
+
+.card {
+    border: none;
+    border-radius: 15px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+}
+</style>
+
+<!-- JavaScript -->
+<script>
+// Form validation
+document.getElementById('taskForm').addEventListener('submit', function(e) {
+    const title = document.getElementById('title').value.trim();
+    const assignedTo = document.getElementById('assigned_to').value;
+    
+    if (!title || !assignedTo) {
+        e.preventDefault();
+        alert('Please fill in all required fields.');
+        return false;
+    }
+});
+
+// Set minimum date to today
+document.getElementById('due_date').min = new Date().toISOString().split('T')[0];
+</script>
+{% endblock %}

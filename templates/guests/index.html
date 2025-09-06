@@ -1,0 +1,735 @@
+{% extends "base.html" %}
+
+{% block title %}Guests - HostelFlow{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Page Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h1 class="h3 mb-0">Guest Management</h1>
+            <p class="text-muted">Manage all guests and their information</p>
+        </div>
+        <div class="d-flex gap-2">
+            <a href="{{ url_for('guests.add') }}" class="btn btn-modern btn-outline-primary">
+                <i class="fas fa-user-plus me-2"></i>Add Guest
+            </a>
+        </div>
+    </div>
+
+    <!-- Quick Stats Row -->
+    <div class="row g-3 mb-4">
+        <div class="col-xl-3 col-md-6">
+            <div class="card stat-card">
+                <div class="card-body">
+                    <div class="d-flex align-items-center">
+                        <div class="stat-icon bg-primary">
+                            <i class="fas fa-users"></i>
+                        </div>
+                        <div class="ms-3">
+                            <h3 class="mb-1 fw-bold">{{ total_active }}</h3>
+                            <p class="mb-0 small opacity-90">Active Guests</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-xl-3 col-md-6">
+            <div class="card stat-card">
+                <div class="card-body">
+                    <div class="d-flex align-items-center">
+                        <div class="stat-icon bg-warning">
+                            <i class="fas fa-money-bill-wave"></i>
+                        </div>
+                        <div class="ms-3">
+                            <h3 class="mb-1 fw-bold">{{ total_payments }}</h3>
+                            <p class="mb-0 small opacity-90">Total Payments</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-xl-3 col-md-6">
+            <div class="card stat-card">
+                <div class="card-body">
+                    <div class="d-flex align-items-center">
+                        <div class="stat-icon bg-info">
+                            <i class="fas fa-chart-line"></i>
+                        </div>
+                        <div class="ms-3">
+                            <h3 class="mb-1 fw-bold">{{ total_guests - total_active }}</h3>
+                            <p class="mb-0 small opacity-90">Inactive Guests</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-xl-3 col-md-6">
+            <div class="card stat-card">
+                <div class="card-body">
+                    <div class="d-flex align-items-center">
+                        <div class="stat-icon bg-success">
+                            <i class="fas fa-calculator"></i>
+                        </div>
+                        <div class="ms-3">
+                            <h3 class="mb-1 fw-bold">{{ "%.0f"|format(filtered_total_amount) }} MAD</h3>
+                            <p class="mb-0 small opacity-90">Total Amount</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Search and Filters -->
+    <div class="card mb-4">
+        <div class="card-body">
+            <form method="GET" class="row g-3">
+                <div class="col-md-3">
+                    <input type="text" class="form-control" name="search" placeholder="Search by name or email..." value="{{ request.args.get('search', '') }}"
+                           style="font-size: 1rem; padding: 0.75rem; width: 100%;">
+                </div>
+                <div class="col-md-2">
+                    <select class="form-select" name="hostel">
+                        <option value="">All Hostels</option>
+                        <option value="Olas" {% if request.args.get('hostel') == 'Olas' %}selected{% endif %}>Olas</option>
+                        <option value="Tide" {% if request.args.get('hostel') == 'Tide' %}selected{% endif %}>Tide</option>
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <select class="form-select" name="status">
+                        <option value="active" {% if request.args.get('status') == 'active' %}selected{% endif %}>Active Guests</option>
+                        <option value="inactive" {% if request.args.get('status') == 'inactive' %}selected{% endif %}>Inactive Guests</option>
+                        <option value="all" {% if request.args.get('status') == 'all' %}selected{% endif %}>All Guests</option>
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <select class="form-select" name="sort">
+                        <option value="name" {% if request.args.get('sort') == 'name' %}selected{% endif %}>Sort by Name</option>
+                        <option value="check_in" {% if request.args.get('sort') == 'check_in' %}selected{% endif %}>Sort by Check-in Date</option>
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <button type="submit" class="btn btn-primary w-100">
+                        <i class="fas fa-search me-2"></i>Search
+                    </button>
+                </div>
+            </form>
+        </div>
+        
+        <!-- Date Range Filter -->
+        <div class="card-body border-top">
+            <div class="row g-3">
+                <div class="col-md-3">
+                    <label for="date_from" class="form-label small text-muted">From Date</label>
+                    <input type="date" class="form-control" id="date_from" name="date_from" 
+                           value="{{ request.args.get('date_from', '') }}"
+                           style="font-size: 1rem; padding: 0.75rem; width: 100%;">
+                </div>
+                <div class="col-md-3">
+                    <label for="date_to" class="form-label small text-muted">To Date</label>
+                    <input type="date" class="form-control" id="date_to" name="date_to" 
+                           value="{{ request.args.get('date_to', '') }}"
+                           style="font-size: 1rem; padding: 0.75rem; width: 100%;">
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label small text-muted">&nbsp;</label>
+                    <div class="d-flex gap-2">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-filter me-2"></i>Apply Date Filter
+                        </button>
+                        <a href="{{ url_for('guests.index') }}" class="btn btn-outline-secondary">
+                            <i class="fas fa-times me-2"></i>Clear
+                        </a>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label small text-muted">Quick Filters</label>
+                    <div class="d-flex gap-1">
+                        <a href="{{ url_for('guests.index', date_from=date.today().isoformat()) }}" 
+                           class="btn btn-sm btn-outline-info">Today</a>
+                        <a href="{{ url_for('guests.index', date_from=(date.today() - timedelta(days=7)).isoformat(), date_to=date.today().isoformat()) }}" 
+                           class="btn btn-sm btn-outline-info">Last 7 Days</a>
+                        <a href="{{ url_for('guests.index', date_from=(date.today() - timedelta(days=30)).isoformat(), date_to=date.today().isoformat()) }}" 
+                           class="btn btn-sm btn-outline-info">Last 30 Days</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Payment Status Filter -->
+        <div class="row mb-3">
+            <div class="col-12">
+                <div class="btn-group" role="group" aria-label="Payment Status Filter">
+                    <a href="{{ url_for('guests.index') }}" class="btn btn-outline-secondary {% if not request.args.get('payment_status') %}active{% endif %}">
+                        All Guests
+                    </a>
+                    <a href="{{ url_for('guests.index', payment_status='paid') }}" class="btn btn-outline-success {% if request.args.get('payment_status') == 'paid' %}active{% endif %}">
+                        <i class="fas fa-check-circle me-1"></i>Paid
+                    </a>
+                    <a href="{{ url_for('guests.index', payment_status='partial') }}" class="btn btn-outline-warning {% if request.args.get('payment_status') == 'partial' %}active{% endif %}">
+                        <i class="fas fa-exclamation-triangle me-1"></i>Partially Paid
+                    </a>
+                    <a href="{{ url_for('guests.index', payment_status='unpaid') }}" class="btn btn-outline-danger {% if request.args.get('payment_status') == 'unpaid' %}active{% endif %}">
+                        <i class="fas fa-times-circle me-1"></i>Not Paid
+                    </a>
+                    <a href="{{ url_for('guests.index', payment_status='prepaid') }}" class="btn btn-outline-success {% if request.args.get('payment_status') == 'prepaid' %}active{% endif %}">
+                        <i class="fas fa-check-circle me-1"></i>Prepaid
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Guests Table -->
+    <div class="card">
+        <div class="card-header">
+            <h5 class="card-title mb-0">
+                <i class="fas fa-list me-2"></i>Guest List
+            </h5>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-hover" id="guestsTable" data-columns="8">
+                    <thead>
+                        <tr>
+                            <th>Guest</th>
+                            <th>Hostel</th>
+                            <th>Check-in Date</th>
+                            <th>Check Out Date</th>
+                            <th>Duration</th>
+                            <th>Total Amount</th>
+                            <th>Payment Status</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for tenant in tenants %}
+                        <tr>
+                            <td>
+                                <div class="d-flex align-items-center">
+                                    <div class="bg-primary bg-opacity-10 rounded-circle p-2 me-3">
+                                        <i class="fas fa-user text-primary"></i>
+                                    </div>
+                                    <div>
+                                        <a href="{{ url_for('guests.view', tenant_id=tenant.id) }}" class="text-decoration-none">
+                                            <strong class="text-primary">{{ tenant.name }}</strong>
+                                        </a>
+                                        {% if tenant.number_of_guests > 1 %}
+                                        <br><small class="text-info">
+                                            <i class="fas fa-users me-1"></i>{{ tenant.number_of_guests }} guests
+                                        </small>
+                                        {% endif %}
+                                        {% if tenant.is_prepaid %}
+                                        <br><span class="badge bg-success">
+                                            <i class="fas fa-check-circle me-1"></i>Prepaid
+                                        </span>
+                                        {% endif %}
+                                        {% if tenant.email %}
+                                        <br><small class="text-muted">{{ tenant.email }}</small>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </td>
+                            <td>
+                                {% if tenant.hostel_name %}
+                                    <span class="badge bg-secondary">
+                                        <i class="fas fa-building me-1"></i>{{ tenant.hostel_name }}
+                                    </span>
+                                {% else %}
+                                    <span class="text-muted">-</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <small class="text-muted">
+                                    {{ tenant.start_date.strftime('%b %d, %Y') }}
+                                </small>
+                            </td>
+                            <td>
+                                {% if tenant.end_date %}
+                                    <small class="text-muted">
+                                        {{ tenant.end_date.strftime('%b %d, %Y') }}
+                                    </small>
+                                {% else %}
+                                    <span class="text-muted">-</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if tenant.end_date %}
+                                    <span class="badge bg-info">{{ (tenant.end_date - tenant.start_date).days }} days</span>
+                                {% else %}
+                                    <span class="badge bg-info">{{ (date.today() - tenant.start_date).days }} days</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if tenant.is_prepaid %}
+                                    {% if tenant.calculated_total != 0 %}
+                                        <strong class="text-warning">{{ "%.0f"|format(tenant.calculated_total) }} MAD</strong>
+                                        <br><small class="text-warning">
+                                            <i class="fas fa-exclamation-triangle me-1"></i>
+                                            Balance Due
+                                        </small>
+                                    {% else %}
+                                        <span class="text-success">
+                                            <i class="fas fa-check-circle me-1"></i>
+                                            Fully Paid
+                                        </span>
+                                    {% endif %}
+                                {% else %}
+                                    <strong>{{ "%.0f"|format(tenant.calculated_total) }} MAD</strong>
+                                    {% if tenant.multiply_rent_by_guests and tenant.number_of_guests > 1 %}
+                                        <br><small class="text-info">
+                                            <i class="fas fa-calculator me-1"></i>
+                                            {{ "%.0f"|format(tenant.daily_rent) }} × {{ tenant.number_of_guests }}
+                                        </small>
+                                    {% endif %}
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if tenant.is_prepaid %}
+                                    <span class="badge bg-success">
+                                        <i class="fas fa-check-circle me-1"></i>Prepaid
+                                    </span>
+                                {% elif tenant.payment_status == 'paid' %}
+                                    <span class="badge bg-success">Paid</span>
+                                {% elif tenant.payment_status == 'partial' %}
+                                    <span class="badge bg-warning">Partially Paid</span>
+                                {% elif tenant.payment_status == 'unpaid' %}
+                                    <span class="badge bg-danger">Not Paid</span>
+                                {% else %}
+                                    <span class="badge bg-secondary">Inactive</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <div class="btn-group" role="group">
+                                    <a href="{{ url_for('guests.edit', tenant_id=tenant.id) }}" class="btn btn-outline-secondary btn-sm" title="Edit">
+                                        <i class="fas fa-edit"></i>
+                                    </a>
+                                    <a href="{{ url_for('guests.payments', tenant_id=tenant.id) }}" class="btn btn-outline-success btn-sm" title="Payments">
+                                        <i class="fas fa-credit-card"></i>
+                                    </a>
+                                    <button type="button" class="btn btn-outline-warning btn-sm" onclick="confirmDeactivate({{ tenant.id }}, '{{ tenant.name }}')" title="Deactivate">
+                                        <i class="fas fa-user-times"></i>
+                                    </button>
+                                    {% if current_user.is_admin %}
+                                    <button type="button" class="btn btn-outline-danger btn-sm" onclick="confirmDelete({{ tenant.id }}, '{{ tenant.name }}')" title="Delete Permanently">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                    {% endif %}
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            
+            {% if not tenants %}
+            <div class="text-center py-4">
+                <i class="fas fa-users fa-3x text-muted mb-3"></i>
+                <h6 class="text-muted">No guests found</h6>
+                <p class="text-muted mb-0">Try adjusting your search criteria or add a new guest.</p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<!-- Deactivate Confirmation Modal -->
+<div class="modal fade" id="deactivateModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Deactivate Guest</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p>Are you sure you want to deactivate <strong id="guestName"></strong>?</p>
+                <p class="text-muted small">This will mark the guest as inactive and free up their assigned bed.</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <form id="deactivateForm" method="POST" style="display: inline;">
+                    <button type="submit" class="btn btn-danger">Deactivate Guest</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Delete Confirmation Modal -->
+<div class="modal fade" id="deleteModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-danger text-white">
+                <h5 class="modal-title">
+                    <i class="fas fa-exclamation-triangle me-2"></i>Delete Guest Permanently
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="alert alert-danger">
+                    <i class="fas fa-exclamation-triangle me-2"></i>
+                    <strong>Warning:</strong> This action cannot be undone!
+                </div>
+                <p>Are you sure you want to permanently delete <strong id="deleteGuestName"></strong>?</p>
+                <p class="text-muted small">This will permanently remove:</p>
+                <ul class="text-muted small">
+                    <li>Guest information and personal data</li>
+                    <li>All payment records</li>
+                    <li>All meal plans and extra services</li>
+                    <li>All check-in/check-out records</li>
+                    <li>Any assigned bed will be freed up</li>
+                </ul>
+                <p class="text-danger fw-bold">This action is irreversible!</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <form id="deleteForm" method="POST" style="display: inline;">
+                    <button type="submit" class="btn btn-danger">
+                        <i class="fas fa-trash me-2"></i>Delete Permanently
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Custom CSS -->
+<style>
+.stat-card {
+    border: none;
+    border-radius: 15px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    transition: transform 0.2s;
+}
+
+.stat-card:hover {
+    transform: translateY(-2px);
+}
+
+.stat-icon {
+    width: 50px;
+    height: 50px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 1.2rem;
+}
+
+.btn-modern {
+    border-radius: 10px;
+    font-weight: 500;
+    padding: 0.5rem 1rem;
+}
+</style>
+
+<!-- JavaScript -->
+<script>
+function confirmDeactivate(tenantId, guestName) {
+    document.getElementById('guestName').textContent = guestName;
+    document.getElementById('deactivateForm').action = `/guests/${tenantId}/deactivate`;
+    
+    const modal = new bootstrap.Modal(document.getElementById('deactivateModal'));
+    modal.show();
+}
+
+function confirmDelete(tenantId, guestName) {
+    document.getElementById('deleteGuestName').textContent = guestName;
+    document.getElementById('deleteForm').action = `/guests/${tenantId}/delete`;
+    
+    const modal = new bootstrap.Modal(document.getElementById('deleteModal'));
+    modal.show();
+}
+
+// Export functionality
+function exportToCSV() {
+    const table = document.querySelector('table');
+    const rows = Array.from(table.querySelectorAll('tr'));
+    
+    let csv = [];
+    rows.forEach(row => {
+        const cols = Array.from(row.querySelectorAll('td, th'));
+        const rowData = cols.map(col => {
+            let text = col.textContent.trim();
+            // Remove extra whitespace and newlines
+            text = text.replace(/\s+/g, ' ');
+            // Escape quotes
+            text = text.replace(/"/g, '""');
+            return `"${text}"`;
+        });
+        csv.push(rowData.join(','));
+    });
+    
+    const csvContent = csv.join('\n');
+    const blob = new Blob([csvContent], { type: 'text/csv' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'guests.csv';
+    a.click();
+    window.URL.revokeObjectURL(url);
+}
+
+// Refresh stats
+function refreshStats() {
+    fetch('/guests/api/quick-stats')
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                // Update stats display
+                console.log('Stats refreshed:', data.stats);
+            }
+        })
+        .catch(error => console.error('Error refreshing stats:', error));
+}
+
+// Initialize Bulk Actions for Guests Table
+document.addEventListener('DOMContentLoaded', function() {
+    const guestsTable = document.getElementById('guestsTable');
+    if (guestsTable) {
+        window.guestsBulkActions = initBulkActions('guestsTable', {
+            actions: [
+                {
+                    id: 'export',
+                    label: 'Export Selected',
+                    icon: 'fas fa-download',
+                    danger: false
+                },
+                {
+                    id: 'send_email',
+                    label: 'Send Email',
+                    icon: 'fas fa-envelope',
+                    danger: false
+                },
+                {
+                    id: 'mark_paid',
+                    label: 'Mark as Paid',
+                    icon: 'fas fa-check-circle',
+                    danger: false
+                },
+                {
+                    id: 'send_reminder',
+                    label: 'Send Payment Reminder',
+                    icon: 'fas fa-bell',
+                    danger: false
+                },
+                {
+                    id: 'checkout',
+                    label: 'Bulk Checkout',
+                    icon: 'fas fa-sign-out-alt',
+                    danger: false
+                },
+                {
+                    id: 'delete',
+                    label: 'Delete Selected',
+                    icon: 'fas fa-trash',
+                    danger: true
+                }
+            ],
+            onSelectionChange: function(selectedItems) {
+                console.log('Selected guests:', selectedItems);
+            },
+            onAction: function(actionId, selectedItems) {
+                console.log(`Executing action: ${actionId} on guests:`, selectedItems);
+                
+                switch(actionId) {
+                    case 'export':
+                        exportSelectedGuests(selectedItems);
+                        break;
+                    case 'send_email':
+                        sendBulkEmail(selectedItems);
+                        break;
+                    case 'mark_paid':
+                        markAsPaid(selectedItems);
+                        break;
+                    case 'send_reminder':
+                        sendPaymentReminder(selectedItems);
+                        break;
+                    case 'checkout':
+                        bulkCheckout(selectedItems);
+                        break;
+                    case 'delete':
+                        deleteSelectedGuests(selectedItems);
+                        break;
+                }
+            }
+        });
+    }
+});
+
+// Bulk action functions
+function exportSelectedGuests(selectedItems) {
+    if (selectedItems.length === 0) {
+        alert('Please select guests to export.');
+        return;
+    }
+    
+    // Create CSV data
+    const csvData = generateGuestsCSV(selectedItems);
+    downloadCSV(csvData, 'guests_export.csv');
+}
+
+function sendBulkEmail(selectedItems) {
+    if (selectedItems.length === 0) {
+        alert('Please select guests to send email to.');
+        return;
+    }
+    
+    // Redirect to email composition with selected guests
+    const guestIds = selectedItems.join(',');
+    window.location.href = `/guest-communications/send-email?guests=${guestIds}`;
+}
+
+function markAsPaid(selectedItems) {
+    if (selectedItems.length === 0) {
+        alert('Please select guests to mark as paid.');
+        return;
+    }
+    
+    if (confirm(`Mark ${selectedItems.length} guests as paid?`)) {
+        // Send request to mark guests as paid
+        fetch('/guests/bulk-mark-paid', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ guest_ids: selectedItems })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                alert('Guests marked as paid successfully!');
+                location.reload();
+            } else {
+                alert('Error: ' + data.message);
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('An error occurred while updating payment status.');
+        });
+    }
+}
+
+function sendPaymentReminder(selectedItems) {
+    if (selectedItems.length === 0) {
+        alert('Please select guests to send payment reminders to.');
+        return;
+    }
+    
+    if (confirm(`Send payment reminders to ${selectedItems.length} guests?`)) {
+        // Send payment reminders
+        fetch('/guests/bulk-send-reminder', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ guest_ids: selectedItems })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                alert('Payment reminders sent successfully!');
+            } else {
+                alert('Error: ' + data.message);
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('An error occurred while sending reminders.');
+        });
+    }
+}
+
+function bulkCheckout(selectedItems) {
+    if (selectedItems.length === 0) {
+        alert('Please select guests to checkout.');
+        return;
+    }
+    
+    if (confirm(`Checkout ${selectedItems.length} guests?`)) {
+        // Process bulk checkout
+        fetch('/guests/bulk-checkout', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ guest_ids: selectedItems })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                alert('Guests checked out successfully!');
+                location.reload();
+            } else {
+                alert('Error: ' + data.message);
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('An error occurred during checkout.');
+        });
+    }
+}
+
+function deleteSelectedGuests(selectedItems) {
+    if (selectedItems.length === 0) {
+        alert('Please select guests to delete.');
+        return;
+    }
+    
+    if (confirm(`Are you sure you want to delete ${selectedItems.length} guests? This action cannot be undone.`)) {
+        // Delete selected guests
+        fetch('/guests/bulk-delete', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ guest_ids: selectedItems })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                alert('Guests deleted successfully!');
+                location.reload();
+            } else {
+                alert('Error: ' + data.message);
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('An error occurred while deleting guests.');
+        });
+    }
+}
+
+function generateGuestsCSV(selectedItems) {
+    // This would generate CSV data from selected guests
+    // For now, return a simple CSV structure
+    const headers = ['ID', 'Name', 'Email', 'Phone', 'Check-in Date', 'Check-out Date', 'Total Amount', 'Payment Status'];
+    const csvContent = [
+        headers.join(','),
+        // Add guest data here based on selectedItems
+        selectedItems.map(id => `Guest ${id}`).join('\n')
+    ].join('\n');
+    
+    return csvContent;
+}
+
+function downloadCSV(csvContent, filename) {
+    const blob = new Blob([csvContent], { type: 'text/csv' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    a.click();
+    window.URL.revokeObjectURL(url);
+}
+</script>
+{% endblock %}

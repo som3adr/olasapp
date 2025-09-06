@@ -1,0 +1,382 @@
+{% extends "base.html" %}
+
+{% block page_title %}Check-In/Check-Out Dashboard{% endblock %}
+
+{% block page_actions %}
+<a href="{{ url_for('checkin.new_checkin') }}" class="btn btn-primary">
+    <i class="fas fa-plus me-2"></i>New Check-In
+</a>
+<a href="{{ url_for('checkin.history') }}" class="btn btn-outline-primary">
+    <i class="fas fa-history me-2"></i>History
+</a>
+{% endblock %}
+
+{% block content %}
+<!-- Summary Cards -->
+<div class="row mb-4">
+    <div class="col-md-3">
+        <div class="card bg-primary text-white">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h4>{{ total_occupied }}/{{ total_beds }}</h4>
+                        <p class="mb-0">Beds Occupied</p>
+                    </div>
+                    <div class="align-self-center">
+                        <i class="fas fa-bed fa-2x"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card bg-success text-white">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h4>{{ "%.1f"|format(occupancy_rate) }}%</h4>
+                        <p class="mb-0">Occupancy Rate</p>
+                    </div>
+                    <div class="align-self-center">
+                        <i class="fas fa-chart-pie fa-2x"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card bg-warning text-dark">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h4>{{ todays_checkouts|length }}</h4>
+                        <p class="mb-0">Today's Check-outs</p>
+                    </div>
+                    <div class="align-self-center">
+                        <i class="fas fa-sign-out-alt fa-2x"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card bg-danger text-white">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h4>{{ overdue_checkouts|length }}</h4>
+                        <p class="mb-0">Overdue Check-outs</p>
+                    </div>
+                    <div class="align-self-center">
+                        <i class="fas fa-exclamation-triangle fa-2x"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <!-- Current Check-ins -->
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="fas fa-users me-2"></i>Current Check-ins
+                </h5>
+            </div>
+            <div class="card-body">
+                {% if current_checkins %}
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>Guest</th>
+                                <th>Room/Bed</th>
+                                <th>Check-in</th>
+                                <th>Expected Check-out</th>
+                                <th>Status</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for checkin in current_checkins %}
+                            <tr class="{% if checkin.expected_check_out_date < current_time %}table-warning{% endif %}">
+                                <td>
+                                    <strong>{{ checkin.tenant.name }}</strong>
+                                    {% if checkin.tenant.email %}
+                                    <br><small class="text-muted">{{ checkin.tenant.email }}</small>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if checkin.bed %}
+                                        Room {{ checkin.bed.room.room_number }} - Bed {{ checkin.bed.bed_number }}
+                                    {% else %}
+                                        <span class="text-muted">No bed assigned</span>
+                                    {% endif %}
+                                </td>
+                                <td>{{ checkin.check_in_date.strftime('%m/%d %H:%M') }}</td>
+                                <td>
+                                    {{ checkin.expected_check_out_date.strftime('%m/%d %H:%M') }}
+                                    {% set now = current_time %}
+                            {% if checkin.expected_check_out_date < now %}
+                                        <br><small class="text-danger">Overdue</small>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <span class="badge 
+                                        {% if checkin.status == 'checked_in' %}bg-success
+                                        {% elif checkin.status == 'extended' %}bg-info
+                                        {% else %}bg-secondary
+                                        {% endif %}">
+                                        {{ checkin.status.replace('_', ' ').title() }}
+                                    </span>
+                                </td>
+                                <td>
+                                    <div class="btn-group btn-group-sm">
+                                        <a href="{{ url_for('checkin.checkout', checkin_id=checkin.id) }}" class="btn btn-outline-primary">
+                                            <i class="fas fa-sign-out-alt me-1"></i>Check Out
+                                        </a>
+                                        <button class="btn btn-outline-secondary extend-btn" data-checkin-id="{{ checkin.id }}">
+                                            <i class="fas fa-clock me-1"></i>Extend
+                                        </button>
+                                    </div>
+                                    
+                                    <!-- Inline Extend Form -->
+                                    <div class="extend-form" id="extendForm{{ checkin.id }}" style="display: none;">
+                                        <div class="card mt-2">
+                                            <div class="card-header bg-light">
+                                                <h6 class="mb-0">
+                                                    <i class="fas fa-clock me-2"></i>Extend Stay - {{ checkin.tenant.name }}
+                                                </h6>
+                                            </div>
+                                            <div class="card-body">
+                                                <form method="POST" action="{{ url_for('checkin.extend_stay', checkin_id=checkin.id) }}">
+                                                    <div class="row">
+                                                        <div class="col-md-6">
+                                                            <div class="mb-3">
+                                                                <label class="form-label">New Check-out Date & Time</label>
+                                                                <input type="datetime-local" name="new_checkout_date" class="form-control" 
+                                                                       value="{{ checkin.expected_check_out_date.strftime('%Y-%m-%dT%H:%M') }}" required>
+                                                            </div>
+                                                        </div>
+                                                        <div class="col-md-6">
+                                                            <div class="mb-3">
+                                                                <label class="form-label">Extension Notes</label>
+                                                                <textarea name="extension_notes" class="form-control" rows="2" 
+                                                                          placeholder="Reason for extension..."></textarea>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                    <div class="d-flex gap-2">
+                                                        <button type="submit" class="btn btn-primary btn-sm">
+                                                            <i class="fas fa-save me-1"></i>Extend Stay
+                                                        </button>
+                                                        <button type="button" class="btn btn-secondary btn-sm cancel-extend" data-checkin-id="{{ checkin.id }}">
+                                                            <i class="fas fa-times me-1"></i>Cancel
+                                                        </button>
+                                                    </div>
+                                                </form>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <div class="text-center text-muted py-4">
+                    <i class="fas fa-bed fa-3x mb-3"></i>
+                    <h5>No current check-ins</h5>
+                    <p>All beds are currently available.</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Available Beds -->
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="fas fa-bed me-2"></i>Available Beds
+                </h5>
+            </div>
+            <div class="card-body">
+                {% if available_beds %}
+                <div class="list-group list-group-flush">
+                    {% for bed in available_beds[:10] %}
+                    <div class="list-group-item d-flex justify-content-between align-items-center">
+                        <div>
+                            <strong>Room {{ bed.room.room_number }}</strong> - Bed {{ bed.bed_number }}
+                            <br><small class="text-muted">{{ bed.places }} place(s)</small>
+                        </div>
+                        <span class="badge bg-success">Clean</span>
+                    </div>
+                    {% endfor %}
+                    {% if available_beds|length > 10 %}
+                    <div class="list-group-item text-center text-muted">
+                        <small>{{ available_beds|length - 10 }} more available...</small>
+                    </div>
+                    {% endif %}
+                </div>
+                {% else %}
+                <div class="text-center text-muted py-4">
+                    <i class="fas fa-bed fa-2x mb-2"></i>
+                    <p>No clean beds available</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Today's Check-outs -->
+        {% if todays_checkouts %}
+        <div class="card mt-3">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="fas fa-calendar-day me-2"></i>Today's Check-outs
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="list-group list-group-flush">
+                    {% for checkout in todays_checkouts %}
+                    <div class="list-group-item d-flex justify-content-between align-items-center">
+                        <div>
+                            <strong>{{ checkout.tenant.name }}</strong>
+                            <br><small class="text-muted">{{ checkout.expected_check_out_date.strftime('%H:%M') }}</small>
+                        </div>
+                        <a href="{{ url_for('checkin.checkout', checkin_id=checkout.id) }}" class="btn btn-sm btn-outline-primary">
+                            Check Out
+                        </a>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<style>
+/* Extend form styles */
+.extend-form {
+    transition: all 0.3s ease;
+}
+
+.extend-form.show {
+    display: block !important;
+}
+
+.extend-form .card {
+    border: 1px solid #dee2e6;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.extend-form .card-header {
+    background-color: #f8f9fa;
+    border-bottom: 1px solid #dee2e6;
+}
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('Checkin index page loaded');
+    
+    // Handle extend button clicks
+    const extendButtons = document.querySelectorAll('.extend-btn');
+    console.log('Found extend buttons:', extendButtons.length);
+    
+    extendButtons.forEach(button => {
+        button.addEventListener('click', function(e) {
+            e.preventDefault();
+            
+            const checkinId = this.getAttribute('data-checkin-id');
+            const formId = `extendForm${checkinId}`;
+            const form = document.getElementById(formId);
+            
+            if (form) {
+                console.log('Showing extend form for checkin:', checkinId);
+                
+                // Hide all other forms first
+                document.querySelectorAll('.extend-form').forEach(f => {
+                    f.style.display = 'none';
+                });
+                
+                // Show this form
+                form.style.display = 'block';
+                form.classList.add('show');
+                
+                // Change button text
+                this.innerHTML = '<i class="fas fa-clock me-1"></i>Hide Extend';
+                this.classList.remove('btn-outline-secondary');
+                this.classList.add('btn-outline-warning');
+            } else {
+                console.error('Extend form not found:', formId);
+            }
+        });
+    });
+    
+    // Handle cancel button clicks
+    const cancelButtons = document.querySelectorAll('.cancel-extend');
+    cancelButtons.forEach(button => {
+        button.addEventListener('click', function(e) {
+            e.preventDefault();
+            
+            const checkinId = this.getAttribute('data-checkin-id');
+            const formId = `extendForm${checkinId}`;
+            const form = document.getElementById(formId);
+            const extendBtn = document.querySelector(`.extend-btn[data-checkin-id="${checkinId}"]`);
+            
+            if (form && extendBtn) {
+                console.log('Hiding extend form for checkin:', checkinId);
+                
+                // Hide the form
+                form.style.display = 'none';
+                form.classList.remove('show');
+                
+                // Reset button
+                extendBtn.innerHTML = '<i class="fas fa-clock me-1"></i>Extend';
+                extendBtn.classList.remove('btn-outline-warning');
+                extendBtn.classList.add('btn-outline-secondary');
+            }
+        });
+    });
+    
+    // Handle form submissions
+    const extendForms = document.querySelectorAll('form[action*="extend_stay"]');
+    extendForms.forEach(form => {
+        form.addEventListener('submit', function(e) {
+            console.log('Extend form submitting...');
+            
+            // Add loading state to submit button
+            const submitBtn = this.querySelector('button[type="submit"]');
+            if (submitBtn) {
+                const originalText = submitBtn.innerHTML;
+                submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Processing...';
+                submitBtn.disabled = true;
+                
+                // Re-enable after 5 seconds as fallback
+                setTimeout(() => {
+                    submitBtn.innerHTML = originalText;
+                    submitBtn.disabled = false;
+                }, 5000);
+            }
+        });
+    });
+    
+    // Add error handling
+    window.addEventListener('error', function(e) {
+        console.error('JavaScript error:', e.error);
+    });
+    
+    window.addEventListener('unhandledrejection', function(e) {
+        console.error('Unhandled promise rejection:', e.reason);
+    });
+});
+</script>
+{% endblock %}

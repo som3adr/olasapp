@@ -1,0 +1,646 @@
+{% extends "base.html" %}
+
+{% block title %}Breakfast Order Auto-Generator - HostelFlow{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Header Section -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h1 class="h3 mb-0">
+                <i class="fas fa-magic text-primary me-2"></i>
+                Breakfast Order Auto-Generator
+            </h1>
+            <p class="text-muted">Automatically generate breakfast orders for guests with breakfast included in their bookings</p>
+        </div>
+        <div>
+            <button class="btn btn-success me-2" onclick="generateToday()">
+                <i class="fas fa-calendar-day"></i> Generate Today
+            </button>
+            <button class="btn btn-primary" onclick="generateWeek()">
+                <i class="fas fa-calendar-week"></i> Generate Week
+            </button>
+        </div>
+    </div>
+
+    <!-- Quick Stats -->
+    <div class="row mb-4">
+        <div class="col-lg-3 col-md-6 mb-3">
+            <div class="card bg-info text-white h-100">
+                <div class="card-body d-flex align-items-center">
+                    <div class="flex-shrink-0 me-3">
+                        <i class="fas fa-users fa-2x"></i>
+                    </div>
+                    <div class="flex-grow-1">
+                        <h3 class="card-title mb-1">{{ guests_with_breakfast|length }}</h3>
+                        <p class="card-text mb-0">Guests with Breakfast</p>
+                        <small class="opacity-75">Active bookings</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-3 col-md-6 mb-3">
+            <div class="card bg-warning text-white h-100">
+                <div class="card-body d-flex align-items-center">
+                    <div class="flex-shrink-0 me-3">
+                        <i class="fas fa-list-alt fa-2x"></i>
+                    </div>
+                    <div class="flex-grow-1">
+                        <h3 class="card-title mb-1">{{ existing_orders|length }}</h3>
+                        <p class="card-text mb-0">Existing Orders</p>
+                        <small class="opacity-75">Next 7 days</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-3 col-md-6 mb-3">
+            <div class="card bg-success text-white h-100">
+                <div class="card-body d-flex align-items-center">
+                    <div class="flex-shrink-0 me-3">
+                        <i class="fas fa-calendar-day fa-2x"></i>
+                    </div>
+                    <div class="flex-grow-1">
+                        <h3 class="card-title mb-1">{{ today.strftime('%d') }}</h3>
+                        <p class="card-text mb-0">Today</p>
+                        <small class="opacity-75">{{ today.strftime('%B %Y') }}</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-3 col-md-6 mb-3">
+            <div class="card bg-primary text-white h-100">
+                <div class="card-body d-flex align-items-center">
+                    <div class="flex-shrink-0 me-3">
+                        <i class="fas fa-calendar-week fa-2x"></i>
+                    </div>
+                    <div class="flex-grow-1">
+                        <h3 class="card-title mb-1">7</h3>
+                        <p class="card-text mb-0">Days Ahead</p>
+                        <small class="opacity-75">Preview range</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Custom Date Range Generator -->
+    <div class="card mb-4">
+        <div class="card-header">
+            <h5 class="mb-0">
+                <i class="fas fa-calendar-alt me-2"></i>
+                Custom Date Range Generator
+            </h5>
+        </div>
+        <div class="card-body">
+            <div class="row g-3">
+                <div class="col-md-4">
+                    <label for="start-date" class="form-label">Start Date</label>
+                    <input type="date" id="start-date" class="form-control" 
+                           value="{{ today.isoformat() }}">
+                </div>
+                <div class="col-md-4">
+                    <label for="end-date" class="form-label">End Date</label>
+                    <input type="date" id="end-date" class="form-control" 
+                           value="{{ next_week.isoformat() }}">
+                </div>
+                <div class="col-md-4 d-flex align-items-end">
+                    <div class="btn-group w-100">
+                        <button class="btn btn-outline-primary" onclick="previewOrders()">
+                            <i class="fas fa-eye"></i> Preview
+                        </button>
+                        <button class="btn btn-primary" onclick="generateCustomRange()">
+                            <i class="fas fa-magic"></i> Generate
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Preview Results Modal -->
+    <div class="modal fade" id="previewModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">
+                        <i class="fas fa-eye me-2"></i>Preview Breakfast Orders
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div id="preview-content">
+                        <div class="text-center">
+                            <div class="spinner-border" role="status">
+                                <span class="visually-hidden">Loading...</span>
+                            </div>
+                            <p class="mt-2">Generating preview...</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    <button type="button" class="btn btn-primary" onclick="confirmGeneration()">
+                        <i class="fas fa-check"></i> Confirm & Generate
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Guests with Breakfast Services -->
+    <div class="card mb-4">
+        <div class="card-header">
+            <h5 class="mb-0">
+                <i class="fas fa-users me-2"></i>
+                Guests with Breakfast Services
+            </h5>
+        </div>
+        <div class="card-body">
+            {% if guests_with_breakfast %}
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>Guest Name</th>
+                            <th>Booking Period</th>
+                            <th>Number of Guests</th>
+                            <th>Breakfast Days</th>
+                            <th>Service Period</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for guest in guests_with_breakfast %}
+                        <tr>
+                            <td>
+                                <strong>{{ guest.name }}</strong>
+                                {% if guest.is_prepaid %}
+                                    <span class="badge bg-success ms-2">Prepaid</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {{ guest.start_date.strftime('%Y-%m-%d') }} to 
+                                {{ guest.end_date.strftime('%Y-%m-%d') if guest.end_date else 'Ongoing' }}
+                            </td>
+                            <td>
+                                <span class="badge bg-info">{{ guest.number_of_guests }}</span>
+                            </td>
+                            <td>
+                                <span class="badge bg-warning">{{ guest.breakfast_days }}</span>
+                            </td>
+                            <td>
+                                {% if guest.meal_plan_start and guest.meal_plan_end %}
+                                    {{ guest.meal_plan_start.strftime('%Y-%m-%d') }} to 
+                                    {{ guest.meal_plan_end.strftime('%Y-%m-%d') }}
+                                {% else %}
+                                    <span class="text-muted">Same as booking</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <button class="btn btn-sm btn-outline-primary" 
+                                        onclick="viewGuestDetails({{ guest.id }})">
+                                    <i class="fas fa-info-circle"></i> Details
+                                </button>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div class="text-center py-4">
+                <i class="fas fa-users fa-3x text-muted mb-3"></i>
+                <h5 class="text-muted">No guests with breakfast services found</h5>
+                <p class="text-muted">Add breakfast services to guest bookings to enable auto-generation</p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Existing Orders -->
+    <div class="card">
+        <div class="card-header">
+            <h5 class="mb-0">
+                <i class="fas fa-list-alt me-2"></i>
+                Existing Breakfast Orders (Next 7 Days)
+            </h5>
+        </div>
+        <div class="card-body">
+            {% if existing_orders %}
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>Date</th>
+                            <th>Guest</th>
+                            <th>Quantity</th>
+                            <th>Status</th>
+                            <th>Created</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for order in existing_orders %}
+                        <tr>
+                            <td>
+                                <span class="badge bg-primary">
+                                    {{ order.order_date.strftime('%Y-%m-%d') }}
+                                </span>
+                            </td>
+                            <td>{{ order.tenant.name }}</td>
+                            <td>
+                                <span class="badge bg-info">{{ order.quantity }}</span>
+                            </td>
+                            <td>
+                                <span class="badge 
+                                    {% if order.status == 'pending' %}bg-warning
+                                    {% elif order.status == 'preparing' %}bg-info
+                                    {% elif order.status == 'ready' %}bg-success
+                                    {% elif order.status == 'served' %}bg-secondary
+                                    {% else %}bg-light text-dark{% endif %}">
+                                    {{ order.status.title() }}
+                                </span>
+                            </td>
+                            <td>
+                                <small class="text-muted">
+                                    {{ order.created_at.strftime('%Y-%m-%d %H:%M') }}
+                                </small>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div class="text-center py-4">
+                <i class="fas fa-list-alt fa-3x text-muted mb-3"></i>
+                <h5 class="text-muted">No existing breakfast orders</h5>
+                <p class="text-muted">Generate orders to see them here</p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<!-- Guest Details Modal -->
+<div class="modal fade" id="guestDetailsModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="fas fa-user me-2"></i>Guest Breakfast Details
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" id="guest-details-content">
+                <div class="text-center">
+                    <div class="spinner-border" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+let pendingGenerationData = null;
+
+function generateToday() {
+    if (confirm('Generate breakfast orders for today only?')) {
+        fetch('/breakfast-auto/generate-today', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.error) {
+                alert('Error: ' + data.error);
+            } else {
+                location.reload();
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('An error occurred while generating orders');
+        });
+    }
+}
+
+function generateWeek() {
+    if (confirm('Generate breakfast orders for the next 7 days?')) {
+        fetch('/breakfast-auto/generate-week', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.error) {
+                alert('Error: ' + data.error);
+            } else {
+                location.reload();
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('An error occurred while generating orders');
+        });
+    }
+}
+
+function previewOrders() {
+    const startDate = document.getElementById('start-date').value;
+    const endDate = document.getElementById('end-date').value;
+    
+    if (!startDate || !endDate) {
+        alert('Please select both start and end dates');
+        return;
+    }
+    
+    if (new Date(startDate) > new Date(endDate)) {
+        alert('Start date must be before end date');
+        return;
+    }
+    
+    // Show modal
+    const modal = new bootstrap.Modal(document.getElementById('previewModal'));
+    modal.show();
+    
+    // Fetch preview data
+    fetch('/breakfast-auto/preview', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            start_date: startDate,
+            end_date: endDate
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        displayPreview(data);
+        pendingGenerationData = { start_date: startDate, end_date: endDate };
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        document.getElementById('preview-content').innerHTML = 
+            '<div class="alert alert-danger">Error loading preview data</div>';
+    });
+}
+
+function displayPreview(data) {
+    const content = document.getElementById('preview-content');
+    
+    if (data.error) {
+        content.innerHTML = `<div class="alert alert-danger">${data.error}</div>`;
+        return;
+    }
+    
+    let html = `
+        <div class="row mb-3">
+            <div class="col-md-4">
+                <div class="card bg-primary text-white">
+                    <div class="card-body text-center">
+                        <h4>${data.total_guests_processed}</h4>
+                        <small>Guests Processed</small>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card bg-success text-white">
+                    <div class="card-body text-center">
+                        <h4>${data.total_orders_generated}</h4>
+                        <small>Orders to Generate</small>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card bg-warning text-white">
+                    <div class="card-body text-center">
+                        <h4>${data.failed_guests.length}</h4>
+                        <small>Failed</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    if (data.preview_orders && data.preview_orders.length > 0) {
+        html += `
+            <h6>Orders to be Generated:</h6>
+            <div class="table-responsive">
+                <table class="table table-sm">
+                    <thead>
+                        <tr>
+                            <th>Guest</th>
+                            <th>Date</th>
+                            <th>Quantity</th>
+                            <th>Service</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+        `;
+        
+        data.preview_orders.forEach(order => {
+            html += `
+                <tr>
+                    <td>${order.guest_name}</td>
+                    <td>${order.date}</td>
+                    <td><span class="badge bg-info">${order.quantity}</span></td>
+                    <td>${order.service_name}</td>
+                </tr>
+            `;
+        });
+        
+        html += `
+                    </tbody>
+                </table>
+            </div>
+        `;
+    }
+    
+    if (data.failed_guests && data.failed_guests.length > 0) {
+        html += `
+            <h6 class="text-danger">Failed Orders:</h6>
+            <div class="alert alert-warning">
+                <ul class="mb-0">
+        `;
+        
+        data.failed_guests.forEach(failed => {
+            html += `<li>${failed.guest_name} (${failed.date}): ${failed.error}</li>`;
+        });
+        
+        html += `
+                </ul>
+            </div>
+        `;
+    }
+    
+    content.innerHTML = html;
+}
+
+function generateCustomRange() {
+    const startDate = document.getElementById('start-date').value;
+    const endDate = document.getElementById('end-date').value;
+    
+    if (!startDate || !endDate) {
+        alert('Please select both start and end dates');
+        return;
+    }
+    
+    if (new Date(startDate) > new Date(endDate)) {
+        alert('Start date must be before end date');
+        return;
+    }
+    
+    if (confirm(`Generate breakfast orders from ${startDate} to ${endDate}?`)) {
+        fetch('/breakfast-auto/generate', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                start_date: startDate,
+                end_date: endDate
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.error) {
+                alert('Error: ' + data.error);
+            } else {
+                alert(`Successfully generated ${data.total_orders_generated} breakfast orders!`);
+                location.reload();
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('An error occurred while generating orders');
+        });
+    }
+}
+
+function confirmGeneration() {
+    if (!pendingGenerationData) {
+        alert('No pending generation data');
+        return;
+    }
+    
+    if (confirm('Are you sure you want to generate these breakfast orders?')) {
+        fetch('/breakfast-auto/generate', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(pendingGenerationData)
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.error) {
+                alert('Error: ' + data.error);
+            } else {
+                alert(`Successfully generated ${data.total_orders_generated} breakfast orders!`);
+                location.reload();
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('An error occurred while generating orders');
+        });
+    }
+}
+
+function viewGuestDetails(guestId) {
+    const modal = new bootstrap.Modal(document.getElementById('guestDetailsModal'));
+    modal.show();
+    
+    fetch(`/breakfast-auto/api/guest-breakfast-status/${guestId}`)
+    .then(response => response.json())
+    .then(data => {
+        if (data.error) {
+            document.getElementById('guest-details-content').innerHTML = 
+                `<div class="alert alert-danger">${data.error}</div>`;
+            return;
+        }
+        
+        let html = `
+            <div class="row">
+                <div class="col-md-6">
+                    <h6>Service Details:</h6>
+                    <ul class="list-unstyled">
+                        <li><strong>Has Breakfast:</strong> ${data.has_breakfast ? 'Yes' : 'No'}</li>
+        `;
+        
+        if (data.has_breakfast && data.service_details) {
+            html += `
+                        <li><strong>Quantity:</strong> ${data.service_details.quantity}</li>
+                        <li><strong>Start Date:</strong> ${data.service_details.start_date || 'N/A'}</li>
+                        <li><strong>End Date:</strong> ${data.service_details.end_date || 'N/A'}</li>
+                        <li><strong>Unit Price:</strong> ${data.service_details.unit_price || 'N/A'} MAD</li>
+            `;
+        }
+        
+        html += `
+                    </ul>
+                </div>
+                <div class="col-md-6">
+                    <h6>Existing Orders (Next 7 Days):</h6>
+        `;
+        
+        if (data.existing_orders && data.existing_orders.length > 0) {
+            html += `
+                <div class="table-responsive">
+                    <table class="table table-sm">
+                        <thead>
+                            <tr>
+                                <th>Date</th>
+                                <th>Quantity</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+            `;
+            
+            data.existing_orders.forEach(order => {
+                html += `
+                    <tr>
+                        <td>${order.order_date}</td>
+                        <td><span class="badge bg-info">${order.quantity}</span></td>
+                        <td><span class="badge bg-warning">${order.status}</span></td>
+                    </tr>
+                `;
+            });
+            
+            html += `
+                        </tbody>
+                    </table>
+                </div>
+            `;
+        } else {
+            html += '<p class="text-muted">No existing orders</p>';
+        }
+        
+        html += `
+                </div>
+            </div>
+        `;
+        
+        document.getElementById('guest-details-content').innerHTML = html;
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        document.getElementById('guest-details-content').innerHTML = 
+            '<div class="alert alert-danger">Error loading guest details</div>';
+    });
+}
+</script>
+{% endblock %}

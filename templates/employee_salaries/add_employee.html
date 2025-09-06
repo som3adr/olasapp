@@ -1,0 +1,155 @@
+{% extends "base.html" %}
+
+{% block title %}Add Employee - HostelFlow{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Header Section -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h1 class="h3 mb-0">
+                <i class="fas fa-user-plus text-primary me-2"></i>
+                Add New Employee
+            </h1>
+            <p class="text-muted">Add a new employee to the system</p>
+        </div>
+        <div>
+            <a href="{{ url_for('employee_salaries.index') }}" class="btn btn-secondary">
+                <i class="fas fa-arrow-left"></i> Back to Employees
+            </a>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-lg-8">
+            <div class="card shadow">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">Employee Information</h6>
+                </div>
+                <div class="card-body">
+                    <form method="POST">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="first_name" class="form-label">First Name *</label>
+                                    <input type="text" class="form-control" id="first_name" name="first_name" required>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="last_name" class="form-label">Last Name *</label>
+                                    <input type="text" class="form-control" id="last_name" name="last_name" required>
+                                </div>
+                            </div>
+                        </div>
+
+
+
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="department" class="form-label">Department *</label>
+                                    <select class="form-select" id="department" name="department" required>
+                                        <option value="">Select Department</option>
+                                        {% for dept in departments %}
+                                        <option value="{{ dept }}">{{ dept }}</option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="position" class="form-label">Position *</label>
+                                    <input type="text" class="form-control" id="position" name="position" required>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="employment_type" class="form-label">Employment Type *</label>
+                                    <select class="form-select" id="employment_type" name="employment_type" required>
+                                        <option value="">Select Type</option>
+                                        {% for type in employment_types %}
+                                        <option value="{{ type }}">{{ type }}</option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="hire_date" class="form-label">Hire Date *</label>
+                                    <input type="date" class="form-control" id="hire_date" name="hire_date" 
+                                           value="{{ date.today().strftime('%Y-%m-%d') }}" required>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="basic_salary" class="form-label">Basic Salary (MAD) *</label>
+                                    <input type="number" class="form-control" id="basic_salary" name="basic_salary" 
+                                           step="0.01" min="0" required>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="bank_account" class="form-label">Bank Account</label>
+                                    <input type="text" class="form-control" id="bank_account" name="bank_account">
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="address" class="form-label">Address</label>
+                            <textarea class="form-control" id="address" name="address" rows="3"></textarea>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="notes" class="form-label">Notes</label>
+                            <textarea class="form-control" id="notes" name="notes" rows="3"></textarea>
+                        </div>
+
+                        <div class="d-flex justify-content-end">
+                            <a href="{{ url_for('employee_salaries.index') }}" class="btn btn-secondary me-2">Cancel</a>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-save"></i> Add Employee
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-4">
+            <div class="card shadow">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">Quick Info</h6>
+                </div>
+                <div class="card-body">
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle me-2"></i>
+                        <strong>Employee Code:</strong> Will be auto-generated
+                    </div>
+                    
+                    <div class="alert alert-warning">
+                        <i class="fas fa-exclamation-triangle me-2"></i>
+                        <strong>Note:</strong> Basic salary can be updated later in salary management.
+                    </div>
+
+                    <h6 class="font-weight-bold">Departments:</h6>
+                    <ul class="list-unstyled">
+                        <li><i class="fas fa-door-open text-primary me-2"></i> Reception</li>
+                        <li><i class="fas fa-broom text-success me-2"></i> Housekeeping</li>
+                        <li><i class="fas fa-utensils text-warning me-2"></i> Kitchen</li>
+                        <li><i class="fas fa-tools text-info me-2"></i> Maintenance</li>
+                        <li><i class="fas fa-user-tie text-danger me-2"></i> Management</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

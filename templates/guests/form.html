@@ -1,0 +1,689 @@
+{% extends "base.html" %}
+
+{% block title %}{% if tenant %}Edit Guest{% else %}Add New Guest{% endif %} - HostelFlow{% endblock %}
+
+{% block page_title %}{% if tenant %}Edit Guest{% else %}Add New Guest{% endif %}{% endblock %}
+
+{% block page_subtitle %}
+<p class="text-muted mb-0">
+    {% if tenant %}
+    Update guest information and preferences
+    {% else %}
+    Add a new guest to your hostel with optional meal planning
+    {% endif %}
+</p>
+{% endblock %}
+
+{% block page_actions %}
+<div class="d-flex gap-2">
+    <a href="{{ url_for('guests.index') }}" class="btn btn-outline-secondary">
+        <i class="fas fa-arrow-left me-2"></i>Back to Guests
+    </a>
+</div>
+{% endblock %}
+
+{% block content %}
+<!-- Mobile Page Title -->
+<div class="d-md-none mb-4">
+    <div class="text-center">
+        <h3 class="fw-bold mb-2">{% if tenant %}Edit Guest{% else %}Add New Guest{% endif %}</h3>
+        <p class="text-muted mb-0">
+            {% if tenant %}Update guest information{% else %}Add a new guest to your hostel{% endif %}
+        </p>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-lg-8">
+        <!-- Guest Form -->
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="fas fa-user me-2"></i>Guest Information
+                </h5>
+            </div>
+            <div class="card-body">
+                <form method="POST" id="guestForm">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="name" class="form-label">Full Name *</label>
+                                <input type="text" class="form-control" id="name" name="name" 
+                                       value="{{ tenant.name if tenant else '' }}" required>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="mb-3">
+                                <label for="number_of_guests" class="form-label">Number of Guests *</label>
+                                <input type="number" class="form-control" id="number_of_guests" name="number_of_guests" 
+                                       value="{{ tenant.number_of_guests if tenant else 1 }}" 
+                                       min="1" max="10" required>
+                                <small class="text-muted">For couples, families, etc.</small>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="mb-3">
+                                <label for="hostel_name" class="form-label">Hostel</label>
+                                <select class="form-control" id="hostel_name" name="hostel_name">
+                                    <option value="">Select Hostel</option>
+                                    <option value="Olas" 
+                                            {% if tenant and tenant.hostel_name == 'Olas' %}selected{% endif %}>
+                                        Olas
+                                    </option>
+                                    <option value="Tide" 
+                                            {% if tenant and tenant.hostel_name == 'Tide' %}selected{% endif %}>
+                                        Tide
+                                    </option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-12">
+                            <div class="mb-3">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" id="multiply_rent_by_guests" 
+                                           name="multiply_rent_by_guests" value="1"
+                                           {% if tenant and tenant.multiply_rent_by_guests %}checked{% endif %}>
+                                    <label class="form-check-label" for="multiply_rent_by_guests">
+                                        <strong>Multiply daily rent by number of guests</strong>
+                                    </label>
+                                    <small class="form-text text-muted d-block">
+                                        Check this for shared dormitory rooms where each person pays their own daily rate.
+                                        <br><strong>Example:</strong> If daily rent is 50 MAD and there are 3 guests, total daily rent will be 150 MAD (50 × 3).
+                                    </small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="daily_rent" class="form-label">Daily Rent (MAD) *</label>
+                                <input type="number" class="form-control" id="daily_rent" name="daily_rent" 
+                                       value="{{ "%.0f"|format(tenant.daily_rent) if tenant else '' }}" 
+                                       min="0" step="0.01" required>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="number_of_days" class="form-label">Number of Days *</label>
+                                <input type="number" class="form-control" id="number_of_days" name="number_of_days" 
+                                       value="{% if tenant and tenant.start_date and tenant.end_date %}{{ (tenant.end_date - tenant.start_date).days }}{% endif %}" 
+                                       min="1" max="365" required>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="start_date" class="form-label">Start Date *</label>
+                                <input type="date" class="form-control" id="start_date" name="start_date" 
+                                       value="{{ tenant.start_date.strftime('%Y-%m-%d') if tenant else '' }}" required>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="end_date" class="form-label">End Date</label>
+                                <input type="date" class="form-control" id="end_date" name="end_date" 
+                                       value="{{ tenant.end_date.strftime('%Y-%m-%d') if tenant else '' }}" readonly>
+                                <small class="text-muted">Calculated automatically</small>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Payment Status Section -->
+                    <div class="card mt-4">
+                        <div class="card-header bg-light">
+                            <h6 class="mb-0">
+                                <i class="fas fa-credit-card me-2"></i>Payment Status
+                            </h6>
+                        </div>
+                        <div class="card-body">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="is_prepaid" name="is_prepaid" 
+                                       {% if tenant and tenant.is_prepaid %}checked{% endif %}>
+                                <label class="form-check-label" for="is_prepaid">
+                                    <strong>Guest already paid online (prepaid)</strong>
+                                </label>
+                                <div class="form-text">
+                                    When selected, this guest is marked as prepaid. Room charges are set to 0, but you can still add extra services like meals, surfing, etc.
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Meal Planning Section -->
+                    <div class="card mt-4">
+                        <div class="card-header bg-light">
+                            <h6 class="mb-0">
+                                <i class="fas fa-utensils me-2"></i>Extra Services & Meal Planning (Optional)
+                            </h6>
+                        </div>
+                        <div class="card-body">
+                            <div class="alert alert-info" id="meal-planning-info">
+                                <i class="fas fa-info-circle me-2"></i>
+                                <strong>For Regular Guests:</strong> Add meals and services that will be charged.<br>
+                                <strong>For Prepaid Guests:</strong> This section is disabled as meals and services are already included in the prepaid price.
+                            </div>
+                            
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label for="breakfast_days" class="form-label">Breakfast Days</label>
+                                        <input type="number" class="form-control" id="breakfast_days" name="breakfast_days" 
+                                               value="{{ tenant.breakfast_days if tenant else 0 }}" 
+                                               min="0" max="365">
+                                        <small class="text-muted">Number of breakfasts to include</small>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label for="meal_plan_start" class="form-label">Meal Plan Start Date</label>
+                                        <input type="date" class="form-control" id="meal_plan_start" name="meal_plan_start" 
+                                               value="{{ tenant.meal_plan_start.strftime('%Y-%m-%d') if tenant and tenant.meal_plan_start else '' }}" readonly>
+                                        <small class="text-muted">Automatically set from stay start date</small>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label for="meal_plan_end" class="form-label">Meal Plan End Date</label>
+                                        <input type="date" class="form-control" id="meal_plan_end" name="meal_plan_end" 
+                                               value="{{ tenant.meal_plan_end.strftime('%Y-%m-%d') if tenant and tenant.meal_plan_end else '' }}" readonly>
+                                        <small class="text-muted">Automatically set from stay end date</small>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Additional Information -->
+                    <div class="card mt-4">
+                        <div class="card-header bg-light">
+                            <h6 class="mb-0">
+                                <i class="fas fa-info-circle me-2"></i>Additional Information
+                            </h6>
+                        </div>
+                        <div class="card-body">
+                            <div class="mb-3">
+                                <label for="notes" class="form-label">Notes</label>
+                                <textarea class="form-control" id="notes" name="notes" rows="3" 
+                                          placeholder="Any special requirements or notes about this guest">{{ tenant.notes if tenant else '' }}</textarea>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Form Actions -->
+                    <div class="d-flex gap-2 mt-4">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-save me-2"></i>
+                            {% if tenant %}Update Guest{% else %}Add Guest{% endif %}
+                        </button>
+                        <a href="{{ url_for('guests.index') }}" class="btn btn-outline-secondary">Cancel</a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-4">
+        <!-- Help & Tips -->
+        <div class="card">
+            <div class="card-header">
+                <h6 class="mb-0">
+                    <i class="fas fa-lightbulb me-2"></i>Tips & Help
+                </h6>
+            </div>
+            <div class="card-body">
+
+                
+                <div class="mb-3">
+                    <h6 class="text-primary">Meal Planning</h6>
+                    <p class="small text-muted mb-0">
+                        Specify how many breakfasts and dinners the guest wants. 
+                        This helps with kitchen planning and billing.
+                    </p>
+                </div>
+                
+                <div class="mb-3">
+                    <h6 class="text-primary">Daily Rent</h6>
+                    <p class="small text-muted mb-0">
+                        Set the daily rate for accommodation. 
+                        Total cost will be calculated automatically.
+                    </p>
+                </div>
+                
+                <div class="alert alert-info">
+                    <i class="fas fa-info-circle me-2"></i>
+                    <strong>Pro Tip:</strong> Use the quick check-in option from the main page 
+                    to add guests and assign rooms in one step.
+                </div>
+            </div>
+        </div>
+
+        <!-- Cost Preview -->
+        <div class="card mt-3">
+            <div class="card-header">
+                <h6 class="mb-0">
+                    <i class="fas fa-calculator me-2"></i>Cost Preview
+                </h6>
+            </div>
+            <div class="card-body">
+                <div class="row mb-2">
+                    <div class="col-6">Daily Rent:</div>
+                    <div class="col-6 text-end">
+                        <span id="dailyRentDisplay">0</span> MAD
+                    </div>
+                </div>
+                <div class="row mb-2">
+                    <div class="col-6">Duration:</div>
+                    <div class="col-6 text-end">
+                        <span id="durationDisplay">0</span> days
+                    </div>
+                </div>
+                <hr>
+                <div class="row">
+                    <div class="col-6"><strong>Total:</strong></div>
+                    <div class="col-6 text-end">
+                        <strong><span id="totalCostDisplay">0</span> MAD</strong>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+// Auto-calculate end date, meal plan dates, and total cost
+document.addEventListener('DOMContentLoaded', function() {
+    const startDateInput = document.getElementById('start_date');
+    const numberOfDaysInput = document.getElementById('number_of_days');
+    const endDateInput = document.getElementById('end_date');
+    const dailyRentInput = document.getElementById('daily_rent');
+    const mealPlanStartInput = document.getElementById('meal_plan_start');
+    const mealPlanEndInput = document.getElementById('meal_plan_end');
+    
+    function updateCalculations() {
+        // Update end date
+        if (startDateInput.value && numberOfDaysInput.value) {
+            const startDate = new Date(startDateInput.value);
+            const numberOfDays = parseInt(numberOfDaysInput.value);
+            const endDate = new Date(startDate);
+            endDate.setDate(startDate.getDate() + numberOfDays);
+            
+            endDateInput.value = endDate.toISOString().split('T')[0];
+            
+            // Auto-populate meal plan dates (start +1 day, end same as end date)
+            const mealPlanStartDate = new Date(startDate);
+            mealPlanStartDate.setDate(startDate.getDate() + 1);
+            const mealPlanEndDate = new Date(endDate); // Use the same date as end date
+            
+            mealPlanStartInput.value = mealPlanStartDate.toISOString().split('T')[0];
+            mealPlanEndInput.value = mealPlanEndDate.toISOString().split('T')[0];
+            
+            // Auto-fill breakfast days (same as number of days)
+            const mealDays = Math.max(0, numberOfDays); // Use the same number of days
+            document.getElementById('breakfast_days').value = mealDays;
+        }
+        
+        // Update cost preview
+        updateCostPreview();
+    }
+    
+    function updateCostPreview() {
+        const dailyRent = parseFloat(dailyRentInput.value) || 0;
+        const numberOfDays = parseInt(numberOfDaysInput.value) || 0;
+        const totalCost = dailyRent * numberOfDays;
+        
+        document.getElementById('dailyRentDisplay').textContent = dailyRent;
+        document.getElementById('durationDisplay').textContent = numberOfDays;
+        document.getElementById('totalCostDisplay').textContent = totalCost;
+    }
+    
+    // Add event listeners
+    startDateInput.addEventListener('change', updateCalculations);
+    numberOfDaysInput.addEventListener('change', updateCalculations);
+    dailyRentInput.addEventListener('input', updateCostPreview);
+    
+    // Initialize calculations
+    updateCalculations();
+    
+    // Allow earlier dates for start date
+    // const today = new Date().toISOString().split('T')[0];
+    // startDateInput.min = today;
+});
+
+// Form validation
+document.getElementById('guestForm').addEventListener('submit', function(e) {
+    const name = document.getElementById('name').value.trim();
+    const dailyRent = document.getElementById('daily_rent').value;
+    const numberOfDays = document.getElementById('number_of_days').value;
+    const startDate = document.getElementById('start_date').value;
+    const isPrepaid = document.getElementById('is_prepaid').checked;
+    
+    console.log('Form validation check:');
+    console.log('  name:', name);
+    console.log('  dailyRent:', dailyRent);
+    console.log('  numberOfDays:', numberOfDays);
+    console.log('  startDate:', startDate);
+    console.log('  isPrepaid:', isPrepaid);
+    
+    // Always required fields
+    if (!name || !startDate) {
+        e.preventDefault();
+        alert('Please fill in all required fields (Name and Start Date).');
+        console.log('❌ Form submission prevented: Missing required fields');
+        return false;
+    }
+    
+    // For non-prepaid guests, validate rent and days
+    if (!isPrepaid) {
+        if (!dailyRent || !numberOfDays) {
+            e.preventDefault();
+            alert('Please fill in all required fields (Daily Rent and Number of Days).');
+            console.log('❌ Form submission prevented: Missing rent/days fields');
+            return false;
+        }
+        
+        if (parseFloat(dailyRent) <= 0) {
+            e.preventDefault();
+            alert('Daily rent must be greater than 0.');
+            console.log('❌ Form submission prevented: Invalid daily rent');
+            return false;
+        }
+        
+        if (parseInt(numberOfDays) <= 0) {
+            e.preventDefault();
+            alert('Number of days must be greater than 0.');
+            console.log('❌ Form submission prevented: Invalid number of days');
+            return false;
+        }
+    } else {
+        // For prepaid guests, validate number of days but not daily rent
+        if (!numberOfDays) {
+            e.preventDefault();
+            alert('Please fill in Number of Days.');
+            console.log('❌ Form submission prevented: Missing number of days');
+            return false;
+        }
+        
+        if (parseInt(numberOfDays) <= 0) {
+            e.preventDefault();
+            alert('Number of days must be greater than 0.');
+            console.log('❌ Form submission prevented: Invalid number of days');
+            return false;
+        }
+    }
+    
+    // For prepaid guests, no additional validation needed
+    // They can have just basic info (name, dates, notes)
+    
+    console.log('✅ Form validation passed, submitting...');
+    return true;
+});
+
+// Multiply rent by guests functionality
+document.addEventListener('DOMContentLoaded', function() {
+    const dailyRentInput = document.getElementById('daily_rent');
+    const numberOfGuestsInput = document.getElementById('number_of_guests');
+    const multiplyRentCheckbox = document.getElementById('multiply_rent_by_guests');
+    
+    // Create a display element for the calculated rent
+    const rentDisplay = document.createElement('div');
+    rentDisplay.id = 'calculated-rent-display';
+    rentDisplay.className = 'alert alert-info mt-2';
+    rentDisplay.style.display = 'none';
+    
+    // Insert the display after the daily rent input
+    dailyRentInput.parentNode.appendChild(rentDisplay);
+    
+    function updateRentDisplay() {
+        const dailyRent = parseFloat(dailyRentInput.value) || 0;
+        const numberOfGuests = parseInt(numberOfGuestsInput.value) || 1;
+        const isMultiplyChecked = multiplyRentCheckbox.checked;
+        
+        if (dailyRent > 0 && numberOfGuests > 1 && isMultiplyChecked) {
+            const totalDailyRent = dailyRent * numberOfGuests;
+            rentDisplay.innerHTML = `
+                <i class="fas fa-calculator me-2"></i>
+                <strong>Calculated Daily Rent:</strong> ${dailyRent} MAD × ${numberOfGuests} guests = <strong>${totalDailyRent} MAD</strong>
+                <br><small class="text-muted">Each guest pays ${dailyRent} MAD per day</small>
+            `;
+            rentDisplay.style.display = 'block';
+        } else if (dailyRent > 0 && numberOfGuests > 1 && !isMultiplyChecked) {
+            rentDisplay.innerHTML = `
+                <i class="fas fa-info-circle me-2"></i>
+                <strong>Shared Rate:</strong> ${dailyRent} MAD per day for all ${numberOfGuests} guests
+                <br><small class="text-muted">Total shared cost: ${dailyRent} MAD per day</small>
+            `;
+            rentDisplay.style.display = 'block';
+        } else {
+            rentDisplay.style.display = 'none';
+        }
+    }
+    
+    // Add event listeners
+    dailyRentInput.addEventListener('input', updateRentDisplay);
+    numberOfGuestsInput.addEventListener('input', updateRentDisplay);
+    multiplyRentCheckbox.addEventListener('change', updateRentDisplay);
+    
+    // Initialize display
+    updateRentDisplay();
+});
+
+// Meal cost calculation functionality
+document.addEventListener('DOMContentLoaded', function() {
+    const dailyRentInput = document.getElementById('daily_rent');
+    const numberOfGuestsInput = document.getElementById('number_of_guests');
+    const multiplyRentCheckbox = document.getElementById('multiply_rent_by_guests');
+    const breakfastDaysInput = document.getElementById('breakfast_days');
+    // Create display element for meal costs
+    const breakfastDisplay = document.createElement('div');
+    breakfastDisplay.id = 'breakfast-cost-display';
+    breakfastDisplay.className = 'alert alert-warning mt-2';
+    breakfastDisplay.style.display = 'none';
+    
+    // Insert display after breakfast input
+    breakfastDaysInput.parentNode.appendChild(breakfastDisplay);
+    
+    function updateMealCosts() {
+        const numberOfGuests = parseInt(numberOfGuestsInput.value) || 1;
+        const isMultiplyChecked = multiplyRentCheckbox.checked;
+        const breakfastDays = parseInt(breakfastDaysInput.value) || 0;
+        
+        // Assume breakfast costs 25 MAD (you can adjust this)
+        const breakfastPrice = 25;
+        
+        // Update breakfast cost display
+        if (breakfastDays > 0) {
+            // Always multiply breakfast by number of guests
+            const breakfastQuantity = breakfastDays * numberOfGuests;
+            const totalBreakfastCost = breakfastQuantity * breakfastPrice;
+            
+            breakfastDisplay.innerHTML = `
+                <i class="fas fa-coffee me-2"></i>
+                <strong>Breakfast Cost:</strong> ${breakfastQuantity} × ${breakfastPrice} MAD = <strong>${totalBreakfastCost} MAD</strong>
+                ${numberOfGuests > 1 ? `<br><small class="text-muted">${breakfastDays} days × ${numberOfGuests} guests = ${breakfastQuantity} breakfasts</small>` : ''}
+            `;
+            breakfastDisplay.style.display = 'block';
+        } else {
+            breakfastDisplay.style.display = 'none';
+        }
+    }
+    
+    // Add event listeners
+    numberOfGuestsInput.addEventListener('input', updateMealCosts);
+    multiplyRentCheckbox.addEventListener('change', updateMealCosts);
+    breakfastDaysInput.addEventListener('input', updateMealCosts);
+    
+    // Initialize display
+    updateMealCosts();
+});
+
+// Prepaid Guest functionality
+document.addEventListener('DOMContentLoaded', function() {
+    const isPrepaidCheckbox = document.getElementById('is_prepaid');
+    const dailyRentInput = document.getElementById('daily_rent');
+    const numberOfDaysInput = document.getElementById('number_of_days');
+    const breakfastDaysInput = document.getElementById('breakfast_days');
+    const mealPlanStartInput = document.getElementById('meal_plan_start');
+    const mealPlanEndInput = document.getElementById('meal_plan_end');
+    // Find the meal planning card more specifically
+    const mealPlanningCard = document.querySelector('.card .fa-utensils')?.closest('.card');
+    console.log('mealPlanningCard found:', mealPlanningCard);
+    
+    // Alternative: find by the card that contains "Extra Services & Meal Planning"
+    const mealPlanningCardAlt = Array.from(document.querySelectorAll('.card')).find(card => 
+        card.textContent.includes('Extra Services & Meal Planning')
+    );
+    console.log('mealPlanningCardAlt found:', mealPlanningCardAlt);
+    
+    function toggleFieldsBasedOnPrepaidStatus() {
+        const isPrepaid = isPrepaidCheckbox.checked;
+        
+        console.log('toggleFieldsBasedOnPrepaidStatus called, isPrepaid:', isPrepaid);
+        
+        if (isPrepaid) {
+            // Disable only the daily rent field and set it to 0
+            dailyRentInput.disabled = true;
+            dailyRentInput.value = '0';
+            console.log('Disabled daily rent field');
+            
+            // Keep all other fields enabled for prepaid guests:
+            // - Full Name (already enabled)
+            // - Number of Guests (already enabled) 
+            // - Number of Days (already enabled)
+            // - Start Date (already enabled)
+            // - End Date (already enabled)
+            
+            // Explicitly ensure these fields are enabled
+            numberOfDaysInput.disabled = false;
+            console.log('Ensured number of days is enabled');
+            
+            // Disable meal planning for prepaid guests (services already included in prepaid price)
+            breakfastDaysInput.disabled = true;
+            mealPlanStartInput.disabled = true;
+            mealPlanEndInput.disabled = true;
+            console.log('Disabled meal planning fields for prepaid guests');
+            
+            // Hide meal planning section for prepaid guests
+            const cardToShow = mealPlanningCard || mealPlanningCardAlt;
+            if (cardToShow) {
+                cardToShow.style.display = 'none';
+                console.log('Hidden meal planning section for prepaid guests');
+            }
+            
+            showPrepaidMessage();
+            
+            // Update cost preview to show 0 for rent
+            updateCostPreviewForPrepaid();
+            
+            // Debug: Check field states
+            console.log('Field states after prepaid setup:');
+            console.log('  dailyRentInput.disabled:', dailyRentInput.disabled);
+            console.log('  numberOfDaysInput.disabled:', numberOfDaysInput.disabled);
+            console.log('  breakfastDaysInput.disabled:', breakfastDaysInput.disabled);
+            
+            // Check if fields are actually accessible
+            console.log('Field accessibility check:');
+            console.log('  numberOfDaysInput.readOnly:', numberOfDaysInput.readOnly);
+            console.log('  numberOfDaysInput.style.display:', numberOfDaysInput.style.display);
+            console.log('  numberOfDaysInput.style.visibility:', numberOfDaysInput.style.visibility);
+        } else {
+            // Enable all fields
+            dailyRentInput.disabled = false;
+            numberOfDaysInput.disabled = false;
+            breakfastDaysInput.disabled = false;
+            mealPlanStartInput.disabled = false;
+            mealPlanEndInput.disabled = false;
+            console.log('Enabled all fields');
+            
+            // Show meal planning section
+            const cardToShow = mealPlanningCard || mealPlanningCardAlt;
+            if (cardToShow) {
+                cardToShow.style.display = 'block';
+                console.log('Shown meal planning section');
+            }
+            
+            // Hide info messages
+            hidePrepaidMessage();
+            
+            // Restore normal cost calculation
+            updateCalculations();
+        }
+    }
+    
+    function showPrepaidMessage() {
+        // Remove existing messages
+        hidePrepaidMessage();
+        
+        // Create prepaid info message
+        const message = document.createElement('div');
+        message.id = 'prepaid-message';
+        message.className = 'alert alert-success mt-3';
+        message.innerHTML = `
+            <i class="fas fa-check-circle me-2"></i>
+            <strong>Prepaid Guest</strong><br>
+            <small>This guest has already paid for accommodation online. Room charges are set to 0, and meal planning is disabled as it's already included in the prepaid price.</small>
+        `;
+        
+        // Insert after payment status card
+        const paymentCard = document.querySelector('.card:has(.fa-credit-card)');
+        if (paymentCard) {
+            paymentCard.parentNode.insertBefore(message, paymentCard.nextSibling);
+        }
+    }
+    
+    function hidePrepaidMessage() {
+        const existingMessage = document.getElementById('prepaid-message');
+        if (existingMessage) {
+            existingMessage.remove();
+        }
+    }
+    
+    function updateCostPreviewForPrepaid() {
+        const isPrepaid = isPrepaidCheckbox.checked;
+        
+        if (isPrepaid) {
+            // For prepaid guests, show 0 for rent but calculate service costs
+            document.getElementById('dailyRentDisplay').textContent = '0';
+            document.getElementById('durationDisplay').textContent = '0';
+            
+            // Calculate service costs
+            const breakfastDays = parseInt(breakfastDaysInput.value) || 0;
+            const numberOfGuests = parseInt(numberOfGuestsInput.value) || 1;
+            const breakfastPrice = 25; // Same as in meal cost calculation
+            
+            let serviceCost = 0;
+            if (breakfastDays > 0) {
+                const mealQuantity = breakfastDays * numberOfGuests;
+                serviceCost = mealQuantity * breakfastPrice;
+            }
+            
+            document.getElementById('totalCostDisplay').textContent = serviceCost;
+        } else {
+            // For regular guests, show normal calculation
+            updateCalculations();
+        }
+    }
+    
+    // Add event listeners
+    isPrepaidCheckbox.addEventListener('change', function() {
+        console.log('Prepaid checkbox changed, checked:', isPrepaidCheckbox.checked);
+        toggleFieldsBasedOnPrepaidStatus();
+    });
+    
+    // Initialize on page load
+    console.log('Initializing prepaid functionality...');
+    toggleFieldsBasedOnPrepaidStatus();
+});
+</script>
+{% endblock %}

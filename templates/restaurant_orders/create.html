@@ -1,0 +1,388 @@
+{% extends "base.html" %}
+
+{% block title %}Create Restaurant Order - HostelFlow{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Header Section -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h1 class="h3 mb-0">🍽️ Create Restaurant Order</h1>
+            <p class="text-muted">Add a new meal order for a guest</p>
+        </div>
+        <div>
+            <a href="{{ url_for('restaurant_orders.index') }}" class="btn btn-outline-secondary">
+                <i class="fas fa-arrow-left"></i> Back to Orders
+            </a>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-lg-8">
+            <!-- Order Form -->
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">Order Details</h5>
+                </div>
+                <div class="card-body">
+                    <form method="POST" id="orderForm">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="tenant_id" class="form-label">Guest *</label>
+                                    <div class="position-relative">
+                                        <input type="text" id="guest_search" class="form-control" placeholder="Search for a guest..." autocomplete="off"
+                                               style="font-size: 1rem; padding: 0.75rem; width: 100%;">
+                                        <select name="tenant_id" id="tenant_id" class="form-select" required style="display: none;">
+                                            <option value="">Select a guest</option>
+                                            {% for tenant in tenants %}
+                                            <option value="{{ tenant.id }}" data-name="{{ tenant.name|lower }}">
+                                                {{ tenant.name }}
+                                            </option>
+                                            {% endfor %}
+                                        </select>
+                                        <div id="guest_dropdown" class="dropdown-menu w-100" style="display: none; max-height: 200px; overflow-y: auto;">
+                                            {% for tenant in tenants %}
+                                            <a class="dropdown-item" href="#" data-value="{{ tenant.id }}" data-name="{{ tenant.name|lower }}">
+                                                {{ tenant.name }}
+                                            </a>
+                                            {% endfor %}
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="service_id" class="form-label">Service/Meal *</label>
+                                    <select name="service_id" id="service_id" class="form-select" required>
+                                        <option value="">Select a service</option>
+                                        {% for service in services %}
+                                        <option value="{{ service.id }}" 
+                                                data-price="{{ service.price }}"
+                                                data-category="{{ service.meal_category or 'general' }}">
+                                            {{ service.name }} 
+                                            {% if service.price > 0 %}
+                                                - {{ service.price }} MAD
+                                            {% endif %}
+                                        </option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="order_date" class="form-label">Order Date *</label>
+                                    <input type="date" name="order_date" id="order_date" 
+                                           class="form-control" required 
+                                           value="{{ date.today().isoformat() }}">
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="meal_time" class="form-label">Meal Time *</label>
+                                    <select name="meal_time" id="meal_time" class="form-select" required>
+                                        <option value="">Select meal time</option>
+                                        <option value="breakfast">Breakfast</option>
+                                        <option value="lunch">Lunch</option>
+                                        <option value="dinner">Dinner</option>
+                                        <option value="snack">Snack</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="quantity" class="form-label">Quantity</label>
+                                    <input type="number" name="quantity" id="quantity" 
+                                           class="form-control" value="1" min="1" max="10">
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="total_price" class="form-label">Total Price</label>
+                                    <div class="input-group">
+                                        <input type="text" id="total_price" class="form-control form-control-lg" readonly style="font-size: 1.2rem; font-weight: bold; min-width: 120px;">
+                                        <span class="input-group-text">MAD</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="special_requests" class="form-label">Special Requests</label>
+                            <textarea name="special_requests" id="special_requests" 
+                                      class="form-control" rows="3" 
+                                      placeholder="e.g., Vegetarian, No onions, Extra spicy, etc."></textarea>
+                        </div>
+
+                        <div class="d-flex justify-content-between">
+                            <a href="{{ url_for('restaurant_orders.index') }}" class="btn btn-secondary">
+                                Cancel
+                            </a>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-save"></i> Create Order
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-4">
+            <!-- Guest Information -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h6 class="mb-0">👤 Guest Information</h6>
+                </div>
+                <div class="card-body" id="guestInfo">
+                    <div class="text-center text-muted py-4">
+                        <i class="fas fa-user fa-2x mb-2"></i>
+                        <p>Select a guest to view details</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Service Information -->
+            <div class="card">
+                <div class="card-header">
+                    <h6 class="mb-0">🍽️ Service Details</h6>
+                </div>
+                <div class="card-body" id="serviceInfo">
+                    <div class="text-center text-muted py-4">
+                        <i class="fas fa-utensils fa-2x mb-2"></i>
+                        <p>Select a service to view details</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const tenantSelect = document.getElementById('tenant_id');
+    const serviceSelect = document.getElementById('service_id');
+    const quantityInput = document.getElementById('quantity');
+    const totalPriceInput = document.getElementById('total_price');
+    const mealTimeSelect = document.getElementById('meal_time');
+    const guestSearch = document.getElementById('guest_search');
+    const guestDropdown = document.getElementById('guest_dropdown');
+
+    // Update total price when quantity or service changes
+    function updateTotalPrice() {
+        const selectedOption = serviceSelect.options[serviceSelect.selectedIndex];
+        const price = parseFloat(selectedOption.dataset.price) || 0;
+        const quantity = parseInt(quantityInput.value) || 1;
+        const total = price * quantity;
+        totalPriceInput.value = total.toFixed(2);
+    }
+
+    // Load guest information
+    function loadGuestInfo(tenantId) {
+        if (!tenantId) {
+            document.getElementById('guestInfo').innerHTML = `
+                <div class="text-center text-muted py-4">
+                    <i class="fas fa-user fa-2x mb-2"></i>
+                    <p>Select a guest to view details</p>
+                </div>
+            `;
+            return;
+        }
+
+        // Find the selected tenant from the options
+        const selectedOption = tenantSelect.options[tenantSelect.selectedIndex];
+        const tenantName = selectedOption.text;
+        
+        document.getElementById('guestInfo').innerHTML = `
+            <div class="text-center">
+                <i class="fas fa-user fa-2x text-primary mb-2"></i>
+                <h6 class="mb-1">${tenantName}</h6>
+                <small class="text-muted">Guest selected</small>
+            </div>
+        `;
+    }
+
+    // Load service information
+    function loadServiceInfo(serviceId) {
+        if (!serviceId) {
+            document.getElementById('serviceInfo').innerHTML = `
+                <div class="text-center text-muted py-4">
+                    <i class="fas fa-utensils fa-2x mb-2"></i>
+                    <p>Select a service to view details</p>
+                </div>
+            `;
+            return;
+        }
+
+        const selectedOption = serviceSelect.options[serviceSelect.selectedIndex];
+        const serviceName = selectedOption.text;
+        const price = selectedOption.dataset.price || '0';
+        const category = selectedOption.dataset.category || 'general';
+        
+        document.getElementById('serviceInfo').innerHTML = `
+            <div class="text-center">
+                <i class="fas fa-utensils fa-2x text-success mb-2"></i>
+                <h6 class="mb-1">${serviceName}</h6>
+                <p class="mb-1"><strong>Price:</strong> ${price} MAD</p>
+                <p class="mb-0"><strong>Category:</strong> ${category}</p>
+            </div>
+        `;
+    }
+
+    // Auto-select meal time based on service category
+    function autoSelectMealTime() {
+        const selectedOption = serviceSelect.options[serviceSelect.selectedIndex];
+        const category = selectedOption.dataset.category;
+        
+        if (category && mealTimeSelect.value === '') {
+            if (category === 'breakfast') {
+                mealTimeSelect.value = 'breakfast';
+            } else if (category === 'dinner') {
+                mealTimeSelect.value = 'dinner';
+            } else if (category === 'lunch') {
+                mealTimeSelect.value = 'lunch';
+            }
+        }
+    }
+
+    // Guest search functionality
+    function filterGuests(searchTerm) {
+        const dropdownItems = guestDropdown.querySelectorAll('.dropdown-item');
+        const term = searchTerm.toLowerCase();
+        
+        dropdownItems.forEach(item => {
+            const guestName = item.dataset.name;
+            if (guestName.includes(term)) {
+                item.style.display = 'block';
+            } else {
+                item.style.display = 'none';
+            }
+        });
+    }
+
+    function selectGuest(guestId, guestName) {
+        guestSearch.value = guestName;
+        tenantSelect.value = guestId;
+        guestDropdown.style.display = 'none';
+        loadGuestInfo(guestId);
+    }
+
+    function showGuestDropdown() {
+        guestDropdown.style.display = 'block';
+        filterGuests(guestSearch.value);
+    }
+
+    function hideGuestDropdown() {
+        setTimeout(() => {
+            guestDropdown.style.display = 'none';
+        }, 200);
+    }
+
+    // Event listeners
+    tenantSelect.addEventListener('change', function() {
+        loadGuestInfo(this.value);
+    });
+
+    serviceSelect.addEventListener('change', function() {
+        loadServiceInfo(this.value);
+        autoSelectMealTime();
+        updateTotalPrice();
+    });
+
+    quantityInput.addEventListener('input', updateTotalPrice);
+
+    // Guest search event listeners
+    guestSearch.addEventListener('focus', showGuestDropdown);
+    guestSearch.addEventListener('input', function() {
+        showGuestDropdown();
+        filterGuests(this.value);
+    });
+    guestSearch.addEventListener('blur', hideGuestDropdown);
+
+    // Guest dropdown item clicks
+    guestDropdown.addEventListener('click', function(e) {
+        e.preventDefault();
+        if (e.target.classList.contains('dropdown-item')) {
+            const guestId = e.target.dataset.value;
+            const guestName = e.target.textContent.trim();
+            selectGuest(guestId, guestName);
+        }
+    });
+
+    // Close dropdown when clicking outside
+    document.addEventListener('click', function(e) {
+        if (!e.target.closest('.position-relative')) {
+            guestDropdown.style.display = 'none';
+        }
+    });
+
+    // Form validation
+    document.getElementById('orderForm').addEventListener('submit', function(e) {
+        const tenantId = tenantSelect.value;
+        const serviceId = serviceSelect.value;
+        const orderDate = document.getElementById('order_date').value;
+        const mealTime = mealTimeSelect.value;
+
+        if (!tenantId || !serviceId || !orderDate || !mealTime) {
+            e.preventDefault();
+            alert('Please fill in all required fields.');
+            return false;
+        }
+
+        // Check if order date is not in the past
+        const selectedDate = new Date(orderDate);
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        
+        if (selectedDate < today) {
+            e.preventDefault();
+            alert('Order date cannot be in the past.');
+            return false;
+        }
+    });
+
+    // Initialize
+    updateTotalPrice();
+});
+</script>
+
+<style>
+/* Guest search dropdown styling */
+#guest_dropdown {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    z-index: 1000;
+    background: white;
+    border: 1px solid #ced4da;
+    border-radius: 0.375rem;
+    box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+}
+
+#guest_dropdown .dropdown-item {
+    padding: 0.5rem 1rem;
+    cursor: pointer;
+    border-bottom: 1px solid #f8f9fa;
+}
+
+#guest_dropdown .dropdown-item:hover {
+    background-color: #f8f9fa;
+}
+
+#guest_dropdown .dropdown-item:last-child {
+    border-bottom: none;
+}
+
+.position-relative {
+    position: relative;
+}
+</style>
+{% endblock %}

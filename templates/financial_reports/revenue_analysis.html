@@ -1,0 +1,208 @@
+{% extends "base.html" %}
+
+{% block title %}Revenue Analysis - HostelFlow{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+        <h1 class="h2">
+            <i class="fas fa-chart-area me-2"></i>Revenue Analysis
+        </h1>
+        <div class="btn-toolbar mb-2 mb-md-0">
+            <a href="{{ url_for('financial_reports.index') }}" class="btn btn-outline-secondary">
+                <i class="fas fa-arrow-left me-1"></i>Back to Reports
+            </a>
+        </div>
+    </div>
+
+    <!-- Monthly Revenue Trend -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="fas fa-line-chart me-2"></i>Monthly Revenue Trend (Last 12 Months)
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <canvas id="revenueChart" height="100"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- Revenue by Source -->
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="fas fa-pie-chart me-2"></i>Revenue by Source (Current Month)
+                    </h5>
+                </div>
+                <div class="card-body">
+                    {% if revenue_sources %}
+                    <div class="table-responsive">
+                        <table class="table table-sm">
+                            <thead>
+                                <tr>
+                                    <th>Payment Type</th>
+                                    <th class="text-end">Amount</th>
+                                    <th class="text-end">%</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% set total_source_revenue = revenue_sources | sum(attribute='total') %}
+                                {% for source in revenue_sources %}
+                                <tr>
+                                    <td>{{ source.payment_type }}</td>
+                                    <td class="text-end">${{ "%.2f"|format(source.total) }}</td>
+                                    <td class="text-end">{{ "%.1f"|format((source.total / total_source_revenue * 100) if total_source_revenue > 0 else 0) }}%</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    <canvas id="revenueSourceChart" height="200"></canvas>
+                    {% else %}
+                    <p class="text-muted text-center">No revenue data available for current month</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Top Guests by Revenue -->
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="fas fa-users me-2"></i>Top Guests by Revenue (Current Month)
+                    </h5>
+                </div>
+                <div class="card-body">
+                    {% if top_guests %}
+                    <div class="table-responsive">
+                        <table class="table table-sm">
+                            <thead>
+                                <tr>
+                                    <th>Guest Name</th>
+                                    <th class="text-end">Total Paid</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for guest in top_guests %}
+                                <tr>
+                                    <td>{{ guest.name }}</td>
+                                    <td class="text-end">${{ "%.2f"|format(guest.total_paid) }}</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <p class="text-muted text-center">No guest payment data available</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// Monthly Revenue Chart
+const monthlyData = {{ monthly_revenue | tojson }};
+const ctx1 = document.getElementById('revenueChart').getContext('2d');
+new Chart(ctx1, {
+    type: 'line',
+    data: {
+        labels: monthlyData.map(d => d.month),
+        datasets: [{
+            label: 'Monthly Revenue',
+            data: monthlyData.map(d => d.revenue),
+            borderColor: 'rgb(75, 192, 192)',
+            backgroundColor: 'rgba(75, 192, 192, 0.1)',
+            tension: 0.1,
+            fill: true
+        }]
+    },
+    options: {
+        responsive: true,
+        scales: {
+            y: {
+                beginAtZero: true,
+                ticks: {
+                    callback: function(value) {
+                        return '$' + value.toFixed(2);
+                    }
+                }
+            }
+        },
+        plugins: {
+            legend: {
+                display: true,
+                position: 'top'
+            }
+        }
+    }
+});
+
+// Revenue Source Pie Chart
+{% if revenue_sources %}
+const sourceData = {{ revenue_sources | tojson }};
+const ctx2 = document.getElementById('revenueSourceChart').getContext('2d');
+new Chart(ctx2, {
+    type: 'doughnut',
+    data: {
+        labels: sourceData.map(s => s.payment_type),
+        datasets: [{
+            data: sourceData.map(s => s.total),
+            backgroundColor: [
+                'rgba(54, 162, 235, 0.8)',
+                'rgba(255, 99, 132, 0.8)',
+                'rgba(255, 205, 86, 0.8)',
+                'rgba(75, 192, 192, 0.8)',
+                'rgba(153, 102, 255, 0.8)',
+                'rgba(255, 159, 64, 0.8)'
+            ],
+            borderWidth: 2,
+            borderColor: '#fff'
+        }]
+    },
+    options: {
+        responsive: true,
+        plugins: {
+            legend: {
+                position: 'bottom'
+            },
+            tooltip: {
+                callbacks: {
+                    label: function(context) {
+                        return context.label + ': $' + context.parsed.toFixed(2);
+                    }
+                }
+            }
+        }
+    }
+});
+{% endif %}
+</script>
+
+<style>
+.card {
+    box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+    border: 1px solid rgba(0, 0, 0, 0.125);
+}
+
+.card-header {
+    background-color: #f8f9fa;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.125);
+}
+
+.table th {
+    border-top: none;
+    font-weight: 600;
+}
+</style>
+{% endblock %}
+
+

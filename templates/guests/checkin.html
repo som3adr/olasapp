@@ -1,0 +1,265 @@
+{% extends "base.html" %}
+
+{% block title %}Check In {{ tenant.name }} - HostelFlow{% endblock %}
+
+{% block page_title %}Check In Guest{% endblock %}
+
+{% block page_subtitle %}
+<p class="text-muted mb-0">Check in {{ tenant.name }} to a specific room and bed</p>
+{% endblock %}
+
+{% block page_actions %}
+<div class="d-flex gap-2">
+    <a href="{{ url_for('guests.view', tenant_id=tenant.id) }}" class="btn btn-outline-secondary">
+        <i class="fas fa-arrow-left me-2"></i>Back to Guest
+    </a>
+</div>
+{% endblock %}
+
+{% block content %}
+<!-- Mobile Page Title -->
+<div class="d-md-none mb-4">
+    <div class="text-center">
+        <h3 class="fw-bold mb-2">Check In Guest</h3>
+        <p class="text-muted mb-0">{{ tenant.name }}</p>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-lg-8">
+        <!-- Check-in Form -->
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="fas fa-sign-in-alt me-2"></i>Check-in Details
+                </h5>
+            </div>
+            <div class="card-body">
+                <form method="POST" id="checkinForm">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="bed_id" class="form-label">Select Bed *</label>
+                                <select name="bed_id" id="bed_id" class="form-select" required>
+                                    <option value="">Choose a bed</option>
+                                    {% for bed in available_beds %}
+                                    <option value="{{ bed.id }}" 
+                                            data-room="{{ bed.room.room_number }}"
+                                            data-bed="{{ bed.bed_number }}"
+                                            data-type="{{ bed.room.room_type or 'Standard' }}">
+                                        Room {{ bed.room.room_number }} - Bed {{ bed.bed_number }}
+                                        {% if bed.room.room_type %}
+                                            ({{ bed.room.room_type }})
+                                        {% endif %}
+                                    </option>
+                                    {% endfor %}
+                                </select>
+                                <small class="text-muted">Select an available bed for this guest</small>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="check_in_date" class="form-label">Check-in Date *</label>
+                                <input type="date" class="form-control" id="check_in_date" name="check_in_date" 
+                                       value="{{ today }}" required>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="expected_check_out" class="form-label">Expected Check-out *</label>
+                                <input type="date" class="form-control" id="expected_check_out" name="expected_check_out" 
+                                       value="{{ tenant.end_date.strftime('%Y-%m-%d') if tenant.end_date else '' }}" required>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="check_in_time" class="form-label">Check-in Time</label>
+                                <input type="time" class="form-control" id="check_in_time" name="check_in_time" 
+                                       value="{{ now.strftime('%H:%M') }}">
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="notes" class="form-label">Check-in Notes</label>
+                        <textarea class="form-control" id="notes" name="notes" rows="3" 
+                                  placeholder="Any special instructions or notes for this check-in"></textarea>
+                    </div>
+
+                    <!-- Form Actions -->
+                    <div class="d-flex gap-2">
+                        <button type="submit" class="btn btn-success">
+                            <i class="fas fa-sign-in-alt me-2"></i>Check In Guest
+                        </button>
+                        <a href="{{ url_for('guests.view', tenant_id=tenant.id) }}" class="btn btn-outline-secondary">Cancel</a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-4">
+        <!-- Guest Information -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h6 class="mb-0">
+                    <i class="fas fa-user me-2"></i>Guest Information
+                </h6>
+            </div>
+            <div class="card-body">
+                <div class="text-center mb-3">
+                    <div class="avatar-lg mx-auto mb-3">
+                        <i class="fas fa-user-circle fa-4x text-primary"></i>
+                    </div>
+                    <h5 class="mb-1">{{ tenant.name }}</h5>
+                    {% if tenant.email %}
+                    <p class="text-muted mb-2">{{ tenant.email }}</p>
+                    {% endif %}
+                </div>
+                
+                <div class="row mb-2">
+                    <div class="col-6"><strong>Daily Rent:</strong></div>
+                    <div class="col-6 text-end">{{ "%.0f"|format(tenant.daily_rent) }} MAD</div>
+                </div>
+                
+                <div class="row mb-2">
+                    <div class="col-6"><strong>Duration:</strong></div>
+                    <div class="col-6 text-end">{{ tenant.number_of_days }} days</div>
+                </div>
+                
+                <div class="row mb-2">
+                    <div class="col-6"><strong>Start Date:</strong></div>
+                    <div class="col-6 text-end">{{ tenant.start_date.strftime('%b %d, %Y') }}</div>
+                </div>
+                
+                <div class="row">
+                    <div class="col-6"><strong>End Date:</strong></div>
+                    <div class="col-6 text-end">{{ tenant.end_date.strftime('%b %d, %Y') if tenant.end_date else 'N/A' }}</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Selected Bed Preview -->
+        <div class="card mb-4" id="bedPreview" style="display: none;">
+            <div class="card-header">
+                <h6 class="mb-0">
+                    <i class="fas fa-bed me-2"></i>Selected Bed
+                </h6>
+            </div>
+            <div class="card-body">
+                <div class="text-center">
+                    <div class="display-6 text-primary mb-2" id="selectedRoom">-</div>
+                    <p class="mb-1"><strong>Room Number</strong></p>
+                    <p class="text-muted mb-2" id="selectedBed">Bed -</p>
+                    <p class="text-muted mb-0" id="selectedType">Type: -</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Help & Tips -->
+        <div class="card">
+            <div class="card-header">
+                <h6 class="mb-0">
+                    <i class="fas fa-lightbulb me-2"></i>Tips
+                </h6>
+            </div>
+            <div class="card-body">
+                <div class="mb-3">
+                    <h6 class="text-primary">Bed Selection</h6>
+                    <p class="small text-muted mb-0">
+                        Choose an available bed that matches the guest's preferences and room type requirements.
+                    </p>
+                </div>
+                
+                <div class="mb-3">
+                    <h6 class="text-primary">Check-out Date</h6>
+                    <p class="small text-muted mb-0">
+                        Set the expected check-out date. This helps with room planning and guest communication.
+                    </p>
+                </div>
+                
+                <div class="alert alert-info">
+                    <i class="fas fa-info-circle me-2"></i>
+                    <strong>Note:</strong> After check-in, the guest will be marked as active and the bed will be occupied.
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const bedSelect = document.getElementById('bed_id');
+    const bedPreview = document.getElementById('bedPreview');
+    const selectedRoom = document.getElementById('selectedRoom');
+    const selectedBed = document.getElementById('selectedBed');
+    const selectedType = document.getElementById('selectedType');
+    
+    // Show/hide bed preview based on selection
+    bedSelect.addEventListener('change', function() {
+        if (this.value) {
+            const selectedOption = this.options[this.selectedIndex];
+            const roomNumber = selectedOption.dataset.room;
+            const bedNumber = selectedOption.dataset.bed;
+            const roomType = selectedOption.dataset.type;
+            
+            selectedRoom.textContent = roomNumber;
+            selectedBed.textContent = `Bed ${bedNumber}`;
+            selectedType.textContent = `Type: ${roomType}`;
+            
+            bedPreview.style.display = 'block';
+        } else {
+            bedPreview.style.display = 'none';
+        }
+    });
+    
+    // Set minimum dates
+    const today = new Date().toISOString().split('T')[0];
+    document.getElementById('check_in_date').min = today;
+    
+    // Auto-calculate expected check-out based on guest duration
+    const checkInDate = document.getElementById('check_in_date');
+    const expectedCheckOut = document.getElementById('expected_check_out');
+    
+    checkInDate.addEventListener('change', function() {
+        if (this.value && {{ tenant.number_of_days }}) {
+            const startDate = new Date(this.value);
+            const endDate = new Date(startDate);
+            endDate.setDate(startDate.getDate() + {{ tenant.number_of_days }});
+            
+            expectedCheckOut.value = endDate.toISOString().split('T')[0];
+        }
+    });
+    
+    // Form validation
+    document.getElementById('checkinForm').addEventListener('submit', function(e) {
+        const bedId = document.getElementById('bed_id').value;
+        const checkInDate = document.getElementById('check_in_date').value;
+        const expectedCheckOut = document.getElementById('expected_check_out').value;
+        
+        if (!bedId || !checkInDate || !expectedCheckOut) {
+            e.preventDefault();
+            alert('Please fill in all required fields.');
+            return false;
+        }
+        
+        // Validate dates
+        const startDate = new Date(checkInDate);
+        const endDate = new Date(expectedCheckOut);
+        
+        if (endDate <= startDate) {
+            e.preventDefault();
+            alert('Expected check-out date must be after check-in date.');
+            return false;
+        }
+        
+        return true;
+    });
+});
+</script>
+{% endblock %}

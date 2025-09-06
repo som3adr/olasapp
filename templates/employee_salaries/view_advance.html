@@ -1,0 +1,177 @@
+{% extends "base.html" %}
+
+{% block title %}View Salary Advance - HostelFlow{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Header Section -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h1 class="h3 mb-0">
+                <i class="fas fa-eye text-info me-2"></i>
+                Salary Advance Details
+            </h1>
+            <p class="text-muted">View advance information and repayment progress</p>
+        </div>
+        <div>
+            <a href="{{ url_for('employee_salaries.edit_advance', advance_id=advance.id) }}" class="btn btn-primary me-2">
+                <i class="fas fa-edit"></i> Edit
+            </a>
+            <a href="{{ url_for('employee_salaries.advances') }}" class="btn btn-secondary">
+                <i class="fas fa-arrow-left"></i> Back to Advances
+            </a>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-lg-8">
+            <!-- Advance Information -->
+            <div class="card shadow mb-4">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">Advance Information</h6>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h5 class="mb-3">Employee Details</h5>
+                            <p><strong>Name:</strong> {{ advance.employee.full_name }}</p>
+                            <p><strong>Employee Code:</strong> {{ advance.employee.employee_code }}</p>
+                            <p><strong>Department:</strong> {{ advance.employee.department }}</p>
+                            <p><strong>Position:</strong> {{ advance.employee.position }}</p>
+                        </div>
+                        <div class="col-md-6">
+                            <h5 class="mb-3">Advance Details</h5>
+                            <p><strong>Advance Amount:</strong> {{ "%.2f"|format(advance.advance_amount) }} MAD</p>
+                            <p><strong>Advance Date:</strong> {{ advance.advance_date.strftime('%Y-%m-%d') }}</p>
+                            <p><strong>Reason:</strong> {{ advance.reason }}</p>
+                            <p><strong>Status:</strong> 
+                                {% if advance.status == 'active' %}
+                                    <span class="badge bg-warning">Active</span>
+                                {% elif advance.status == 'completed' %}
+                                    <span class="badge bg-success">Completed</span>
+                                {% elif advance.status == 'cancelled' %}
+                                    <span class="badge bg-danger">Cancelled</span>
+                                {% endif %}
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Repayment Information -->
+            <div class="card shadow mb-4">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-info">Repayment Information</h6>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h5 class="mb-3">Repayment Schedule</h5>
+                            <p><strong>Total Repayment:</strong> {{ "%.2f"|format(advance.repayment_amount) }} MAD</p>
+                            <p><strong>Repayment Period:</strong> {{ advance.repayment_months }} months</p>
+                            <p><strong>Monthly Deduction:</strong> {{ "%.2f"|format(advance.monthly_deduction) }} MAD</p>
+                        </div>
+                        <div class="col-md-6">
+                            <h5 class="mb-3">Progress</h5>
+                            <div class="progress mb-2" style="height: 25px;">
+                                <div class="progress-bar" role="progressbar" 
+                                     style="width: {{ advance.progress_percentage }}%"
+                                     aria-valuenow="{{ advance.progress_percentage }}" 
+                                     aria-valuemin="0" aria-valuemax="100">
+                                    {{ "%.1f"|format(advance.progress_percentage) }}%
+                                </div>
+                            </div>
+                            <p><strong>Amount Repaid:</strong> {{ "%.2f"|format(advance.total_repaid) }} MAD</p>
+                            <p><strong>Remaining Balance:</strong> {{ "%.2f"|format(advance.remaining_balance) }} MAD</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Payment Information -->
+            <div class="card shadow mb-4">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-success">Payment Information</h6>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <p><strong>Payment Method:</strong> {{ advance.payment_method or 'Not specified' }}</p>
+                            <p><strong>Payment Reference:</strong> {{ advance.payment_reference or 'Not specified' }}</p>
+                        </div>
+                        <div class="col-md-6">
+                            <p><strong>Created:</strong> {{ advance.created_at.strftime('%Y-%m-%d %H:%M') }}</p>
+                            <p><strong>Last Updated:</strong> {{ advance.updated_at.strftime('%Y-%m-%d %H:%M') }}</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Notes -->
+            {% if advance.notes %}
+            <div class="card shadow mb-4">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-secondary">Notes</h6>
+                </div>
+                <div class="card-body">
+                    <p>{{ advance.notes }}</p>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+
+        <div class="col-lg-4">
+            <!-- Quick Stats -->
+            <div class="card shadow mb-4">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">Quick Stats</h6>
+                </div>
+                <div class="card-body">
+                    <div class="text-center mb-3">
+                        <h3 class="text-primary">{{ "%.2f"|format(advance.advance_amount) }} MAD</h3>
+                        <p class="text-muted">Total Advance</p>
+                    </div>
+                    <hr>
+                    <div class="text-center mb-3">
+                        <h4 class="text-success">{{ "%.2f"|format(advance.total_repaid) }} MAD</h4>
+                        <p class="text-muted">Amount Repaid</p>
+                    </div>
+                    <hr>
+                    <div class="text-center mb-3">
+                        <h4 class="text-warning">{{ "%.2f"|format(advance.remaining_balance) }} MAD</h4>
+                        <p class="text-muted">Remaining Balance</p>
+                    </div>
+                    <hr>
+                    <div class="text-center">
+                        <h4 class="text-info">{{ "%.1f"|format(advance.progress_percentage) }}%</h4>
+                        <p class="text-muted">Completion</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Actions -->
+            <div class="card shadow">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-warning">Actions</h6>
+                </div>
+                <div class="card-body">
+                    <div class="d-grid gap-2">
+                        <a href="{{ url_for('employee_salaries.edit_advance', advance_id=advance.id) }}" 
+                           class="btn btn-primary">
+                            <i class="fas fa-edit"></i> Edit Advance
+                        </a>
+                        <a href="{{ url_for('employee_salaries.view_employee', employee_id=advance.employee.id) }}" 
+                           class="btn btn-info">
+                            <i class="fas fa-user"></i> View Employee
+                        </a>
+                        <a href="{{ url_for('employee_salaries.advances') }}" 
+                           class="btn btn-secondary">
+                            <i class="fas fa-list"></i> All Advances
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

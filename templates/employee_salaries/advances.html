@@ -1,0 +1,195 @@
+{% extends "base.html" %}
+
+{% block title %}Salary Advances - HostelFlow{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Header Section -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h1 class="h3 mb-0">
+                <i class="fas fa-money-bill-wave text-warning me-2"></i>
+                Salary Advances
+            </h1>
+            <p class="text-muted">Manage employee salary advances and repayments</p>
+        </div>
+        <div>
+            <a href="{{ url_for('employee_salaries.add_advance') }}" class="btn btn-primary me-2">
+                <i class="fas fa-plus"></i> Add Advance
+            </a>
+            <a href="{{ url_for('employee_salaries.index') }}" class="btn btn-secondary">
+                <i class="fas fa-arrow-left"></i> Back to Salaries
+            </a>
+        </div>
+    </div>
+
+    <!-- Statistics Cards -->
+    <div class="row mb-4">
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-left-primary shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">
+                                Total Advances
+                            </div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ total_advances }}</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-money-bill-wave fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-left-warning shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">
+                                Active Advances
+                            </div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ active_advances }}</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-clock fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-left-success shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-success text-uppercase mb-1">
+                                Completed
+                            </div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ completed_advances }}</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-check-circle fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-left-info shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-info text-uppercase mb-1">
+                                Total Outstanding
+                            </div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ "%.2f"|format(total_advance_amount) }} MAD</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-chart-line fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Advances Table -->
+    <div class="card shadow mb-4">
+        <div class="card-header py-3">
+            <h6 class="m-0 font-weight-bold text-primary">Salary Advances</h6>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-bordered" id="advancesTable" width="100%" cellspacing="0">
+                    <thead>
+                        <tr>
+                            <th>Employee</th>
+                            <th>Advance Amount</th>
+                            <th>Advance Date</th>
+                            <th>Reason</th>
+                            <th>Repayment</th>
+                            <th>Progress</th>
+                            <th>Status</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for advance in advances %}
+                        <tr>
+                            <td>
+                                <div>
+                                    <strong>{{ advance.employee.full_name }}</strong><br>
+                                    <small class="text-muted">{{ advance.employee.employee_code }} - {{ advance.employee.department }}</small>
+                                </div>
+                            </td>
+                            <td>
+                                <strong>{{ "%.2f"|format(advance.advance_amount) }} MAD</strong>
+                            </td>
+                            <td>{{ advance.advance_date.strftime('%Y-%m-%d') }}</td>
+                            <td>{{ advance.reason }}</td>
+                            <td>
+                                <div>
+                                    <strong>{{ "%.2f"|format(advance.monthly_deduction) }} MAD/month</strong><br>
+                                    <small class="text-muted">{{ advance.repayment_months }} months</small>
+                                </div>
+                            </td>
+                            <td>
+                                <div class="progress mb-1" style="height: 20px;">
+                                    <div class="progress-bar" role="progressbar" 
+                                         style="width: {{ advance.progress_percentage }}%"
+                                         aria-valuenow="{{ advance.progress_percentage }}" 
+                                         aria-valuemin="0" aria-valuemax="100">
+                                        {{ "%.1f"|format(advance.progress_percentage) }}%
+                                    </div>
+                                </div>
+                                <small class="text-muted">
+                                    {{ "%.2f"|format(advance.total_repaid) }} / {{ "%.2f"|format(advance.advance_amount) }} MAD
+                                </small>
+                            </td>
+                            <td>
+                                {% if advance.status == 'active' %}
+                                    <span class="badge bg-warning">Active</span>
+                                {% elif advance.status == 'completed' %}
+                                    <span class="badge bg-success">Completed</span>
+                                {% elif advance.status == 'cancelled' %}
+                                    <span class="badge bg-danger">Cancelled</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <div class="btn-group" role="group">
+                                    <a href="{{ url_for('employee_salaries.view_advance', advance_id=advance.id) }}" 
+                                       class="btn btn-sm btn-outline-info" title="View Details">
+                                        <i class="fas fa-eye"></i>
+                                    </a>
+                                    <a href="{{ url_for('employee_salaries.edit_advance', advance_id=advance.id) }}" 
+                                       class="btn btn-sm btn-outline-primary" title="Edit">
+                                        <i class="fas fa-edit"></i>
+                                    </a>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+$(document).ready(function() {
+    $('#advancesTable').DataTable({
+        "pageLength": 25,
+        "order": [[ 2, "desc" ]], // Sort by advance date descending
+        "columnDefs": [
+            { "orderable": false, "targets": 7 } // Disable sorting on Actions column
+        ]
+    });
+});
+</script>
+{% endblock %}

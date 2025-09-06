@@ -1,0 +1,467 @@
+{% extends "base.html" %}
+
+{% block page_title %}Add Transaction - {{ item.name }}{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-8">
+        <!-- Item Info Card -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="fas fa-box me-2"></i>{{ item.name }}
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-3">
+                        <strong>Category:</strong><br>
+                        <span class="badge bg-primary">{{ item.category.replace('_', ' ').title() }}</span>
+                    </div>
+                    <div class="col-md-3">
+                        <strong>Current Stock:</strong><br>
+                        <span class="h5 text-{% if item.current_stock <= 0 %}danger{% elif item.current_stock <= item.minimum_stock %}warning{% else %}success{% endif %}">
+                            {{ item.current_stock }} {{ item.unit }}
+                        </span>
+                    </div>
+                    <div class="col-md-3">
+                        <strong>Minimum Stock:</strong><br>
+                        {{ item.minimum_stock }} {{ item.unit }}
+                    </div>
+                    <div class="col-md-3">
+                        <strong>Current Value:</strong><br>
+                        <span class="h5 text-success">{{ "%.2f"|format(item.current_stock * item.cost_per_unit) }} MAD</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Transaction Form -->
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="fas fa-plus me-2"></i>Record New Transaction
+                </h5>
+            </div>
+            <div class="card-body">
+                <form method="POST">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="transaction_type" class="form-label">Transaction Type *</label>
+                                <select class="form-select" id="transaction_type" name="transaction_type" required>
+                                    <option value="">Select Transaction Type</option>
+                                    <option value="purchase">Purchase (Add Stock)</option>
+                                    <option value="consumption">Consumption (Use Stock)</option>
+                                    <option value="adjustment">Stock Adjustment</option>
+                                </select>
+                                <small class="form-text text-muted">Choose the type of transaction</small>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="date" class="form-label">Transaction Date *</label>
+                                <input type="date" class="form-control" id="date" name="date" required>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="quantity" class="form-label">Quantity *</label>
+                                <div class="input-group">
+                                    <input type="text" class="form-control" id="quantity" name="quantity" 
+                                           required style="min-width: 120px; font-size: 16px;" 
+                                           inputmode="numeric" placeholder="Enter quantity">
+                                    <span class="input-group-text" style="min-width: 60px; font-size: 16px;">{{ item.unit }}</span>
+                                </div>
+                                <small class="form-text text-muted">
+                                    Enter whole numbers only (for adjustments, use negative numbers to decrease)<br>
+                                    <span class="text-info">Current stock: {{ item.current_stock|int }} {{ item.unit }} (max for consumption)</span>
+                                </small>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="cost_per_unit" class="form-label">Cost per Unit</label>
+                                <div class="input-group">
+                                    <span class="input-group-text" style="min-width: 50px; font-size: 16px;">MAD</span>
+                                    <input type="number" class="form-control" id="cost_per_unit" name="cost_per_unit" 
+                                           step="0.01" min="0" value="{{ item.cost_per_unit }}" style="min-width: 120px; font-size: 16px;">
+                                </div>
+                                <small class="form-text text-muted">Required for purchases, optional for consumption/adjustments</small>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="notes" class="form-label">Notes</label>
+                        <textarea class="form-control" id="notes" name="notes" rows="3" 
+                                  placeholder="Additional notes about this transaction (optional)"></textarea>
+                    </div>
+                    
+                    <!-- Transaction Summary -->
+                    <div class="alert alert-info">
+                        <h6><i class="fas fa-info-circle me-2"></i>Transaction Summary</h6>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <strong>Item:</strong> {{ item.name }}<br>
+                                <strong>Current Stock:</strong> {{ item.current_stock|int }} {{ item.unit }}
+                            </div>
+                            <div class="col-md-6">
+                                <strong>Transaction:</strong> <span id="summary-type">-</span><br>
+                                <strong>New Stock:</strong> <span id="summary-new-stock">{{ item.current_stock|int }} {{ item.unit }}</span><br>
+                                <strong>Total Cost:</strong> <span id="summary-total-cost">$0.00</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Stock Level Warning -->
+                    <div id="stock-warning" class="alert alert-warning" style="display: none;">
+                        <i class="fas fa-exclamation-triangle me-2"></i>
+                        <strong>Warning:</strong> <span id="warning-message"></span>
+                    </div>
+                    
+                    <div class="d-flex justify-content-between">
+                        <a href="{{ url_for('inventory.transactions', item_id=item.id) }}" class="btn btn-secondary">
+                            <i class="fas fa-times me-2"></i>Cancel
+                        </a>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-save me-2"></i>Record Transaction
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+        
+        <!-- Quick Transaction Buttons -->
+        <div class="card mt-4">
+            <div class="card-header">
+                <h5 class="card-title mb-0">Quick Transaction Options</h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-4">
+                        <div class="d-grid">
+                            <button type="button" class="btn btn-outline-success" onclick="setQuickTransaction('purchase', 10)">
+                                <i class="fas fa-cart-plus me-2"></i>Purchase 10 {{ item.unit }}
+                            </button>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="d-grid">
+                            <button type="button" class="btn btn-outline-danger" onclick="setQuickTransaction('consumption', Math.min(1, {{ item.current_stock|int }}))">
+                                <i class="fas fa-minus me-2"></i>Use 1 {{ item.unit }}
+                            </button>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="d-grid">
+                            <button type="button" class="btn btn-outline-secondary" onclick="clearForm()">
+                                <i class="fas fa-eraser me-2"></i>Clear Form
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block styles %}
+<style>
+/* Improve input field visibility and sizing */
+.form-control {
+    font-size: 16px !important;
+    padding: 0.75rem 1rem !important;
+    min-height: 48px !important;
+}
+
+.input-group .form-control {
+    min-width: 120px !important;
+}
+
+.input-group-text {
+    font-size: 16px !important;
+    padding: 0.75rem 1rem !important;
+    min-height: 48px !important;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* Ensure number inputs are properly sized */
+input[type="number"] {
+    -moz-appearance: textfield;
+}
+
+input[type="number"]::-webkit-outer-spin-button,
+input[type="number"]::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+}
+
+/* Make sure the input group has proper spacing */
+.input-group {
+    width: 100%;
+}
+
+/* Make text input look like number input */
+#quantity {
+    font-family: monospace;
+    text-align: right;
+}
+
+/* Improve mobile responsiveness */
+@media (max-width: 768px) {
+    .form-control {
+        font-size: 18px !important; /* Prevent zoom on iOS */
+    }
+    
+    .input-group-text {
+        font-size: 18px !important;
+    }
+}
+</style>
+{% endblock %}
+
+{% block scripts %}
+<script>
+// Set default transaction date to today
+document.getElementById('date').valueAsDate = new Date();
+
+// Ensure quantity field only accepts integers
+document.getElementById('quantity').addEventListener('input', function(e) {
+    let value = e.target.value;
+    
+    // Remove any non-integer characters (allow digits and minus sign at the beginning)
+    value = value.replace(/[^0-9-]/g, '');
+    
+    // Handle negative numbers for adjustments - only allow minus at the beginning
+    if (value.includes('-')) {
+        const parts = value.split('-');
+        if (parts.length > 2) {
+            // Multiple minus signs, keep only the first one
+            value = '-' + parts.slice(1).join('');
+        }
+        // Ensure minus is only at the beginning
+        if (value.indexOf('-') > 0) {
+            value = value.replace(/-/g, '');
+        }
+    }
+    
+    // Remove leading zeros (except for single zero or negative zero)
+    if (value.length > 1 && value[0] === '0' && value[1] !== '.') {
+        value = value.replace(/^0+/, '') || '0';
+    }
+    if (value.length > 2 && value[0] === '-' && value[1] === '0') {
+        value = '-' + value.slice(2).replace(/^0+/, '') || '-0';
+    }
+    
+    e.target.value = value;
+});
+
+// Handle keypress to prevent non-numeric characters
+document.getElementById('quantity').addEventListener('keypress', function(e) {
+    const char = String.fromCharCode(e.which);
+    const currentValue = e.target.value;
+    
+    // Allow: backspace, delete, tab, escape, enter, minus (only at beginning)
+    if ([8, 9, 27, 13, 46].indexOf(e.keyCode) !== -1 ||
+        // Allow: Ctrl+A, Ctrl+C, Ctrl+V, Ctrl+X
+        (e.keyCode === 65 && e.ctrlKey === true) ||
+        (e.keyCode === 67 && e.ctrlKey === true) ||
+        (e.keyCode === 86 && e.ctrlKey === true) ||
+        (e.keyCode === 88 && e.ctrlKey === true)) {
+        return;
+    }
+    
+    // Allow minus only at the beginning
+    if (char === '-' && currentValue.length === 0) {
+        return;
+    }
+    
+    // Allow only digits
+    if (!/[0-9]/.test(char)) {
+        e.preventDefault();
+    }
+});
+
+// Also handle the change event to ensure proper integer conversion
+document.getElementById('quantity').addEventListener('change', function(e) {
+    let value = e.target.value.trim();
+    if (value !== '' && value !== '-') {
+        const intValue = parseInt(value, 10);
+        if (!isNaN(intValue)) {
+            e.target.value = intValue.toString();
+        } else {
+            e.target.value = '';
+        }
+    }
+});
+
+const currentStock = {{ item.current_stock|int }};
+const minimumStock = {{ item.minimum_stock|int }};
+const unit = "{{ item.unit }}";
+
+// Update summary when form values change
+function updateSummary() {
+    const type = document.getElementById('transaction_type').value;
+    const quantity = parseInt(document.getElementById('quantity').value) || 0;
+    const costPerUnit = parseFloat(document.getElementById('cost_per_unit').value) || 0;
+    
+    // Update summary
+    document.getElementById('summary-type').textContent = type ? type.replace('_', ' ').toUpperCase() : '-';
+    
+    // Calculate new stock
+    let newStock = currentStock;
+    if (type === 'purchase') {
+        newStock = currentStock + quantity;
+    } else if (type === 'consumption') {
+        newStock = currentStock - quantity;
+    } else if (type === 'adjustment') {
+        newStock = currentStock + quantity; // For adjustments, quantity can be negative
+    }
+    
+    document.getElementById('summary-new-stock').textContent = newStock.toFixed(1) + ' ' + unit;
+    
+    // Calculate total cost
+    const totalCost = quantity * costPerUnit;
+    document.getElementById('summary-total-cost').textContent = '$' + totalCost.toFixed(2);
+    
+    // Show warnings
+    const warningDiv = document.getElementById('stock-warning');
+    const warningMessage = document.getElementById('warning-message');
+    
+    if (newStock < 0) {
+        warningDiv.style.display = 'block';
+        warningMessage.textContent = 'This transaction will result in negative stock!';
+    } else if (type === 'consumption' && quantity > currentStock) {
+        warningDiv.style.display = 'block';
+        warningMessage.textContent = 'Cannot consume more than current stock (' + currentStock + ' ' + unit + ')!';
+    } else if (newStock <= minimumStock && type === 'consumption') {
+        warningDiv.style.display = 'block';
+        warningMessage.textContent = 'This transaction will bring stock below minimum level (' + minimumStock + ' ' + unit + ')';
+    } else {
+        warningDiv.style.display = 'none';
+    }
+}
+
+// Quick transaction buttons
+function setQuickTransaction(type, quantity) {
+    document.getElementById('transaction_type').value = type;
+    
+    // Check if consumption quantity exceeds current stock
+    if (type === 'consumption' && quantity > currentStock) {
+        alert('Cannot consume more than current stock (' + currentStock + ' ' + unit + ').');
+        return;
+    }
+    
+    document.getElementById('quantity').value = quantity;
+    updateSummary();
+}
+
+function clearForm() {
+    document.getElementById('transaction_type').value = '';
+    document.getElementById('quantity').value = '';
+    document.getElementById('cost_per_unit').value = '{{ item.cost_per_unit }}';
+    document.getElementById('notes').value = '';
+    updateSummary();
+}
+
+// Handle transaction type change
+document.getElementById('transaction_type').addEventListener('change', function() {
+    const type = this.value;
+    const costPerUnitField = document.getElementById('cost_per_unit');
+    const quantityField = document.getElementById('quantity');
+    
+    if (type === 'purchase') {
+        costPerUnitField.required = true;
+        costPerUnitField.parentElement.parentElement.querySelector('label').innerHTML = 'Cost per Unit *';
+        quantityField.setAttribute('min', '0.01');
+    } else {
+        costPerUnitField.required = false;
+        costPerUnitField.parentElement.parentElement.querySelector('label').innerHTML = 'Cost per Unit';
+        if (type === 'adjustment') {
+            quantityField.removeAttribute('min');
+        } else {
+            quantityField.setAttribute('min', '0.01');
+        }
+    }
+    
+    updateSummary();
+});
+
+// Event listeners
+document.getElementById('quantity').addEventListener('input', updateSummary);
+document.getElementById('cost_per_unit').addEventListener('input', updateSummary);
+
+// Initialize summary
+updateSummary();
+
+// Validate form before submission
+document.querySelector('form').addEventListener('submit', function(e) {
+    const type = document.getElementById('transaction_type').value;
+    const quantityField = document.getElementById('quantity');
+    const quantity = parseInt(quantityField.value);
+    const costPerUnit = parseFloat(document.getElementById('cost_per_unit').value);
+    
+    // Ensure quantity is a valid integer
+    if (isNaN(quantity) || quantityField.value.trim() === '' || quantityField.value !== quantity.toString()) {
+        e.preventDefault();
+        alert('Please enter a valid whole number for quantity.');
+        quantityField.focus();
+        return false;
+    }
+    
+    if (type === 'purchase' && (!costPerUnit || costPerUnit <= 0)) {
+        e.preventDefault();
+        alert('Cost per unit is required for purchase transactions.');
+        return false;
+    }
+    
+    if (quantity <= 0 && type !== 'adjustment') {
+        e.preventDefault();
+        alert('Quantity must be greater than zero.');
+        return false;
+    }
+    
+    // Check if consumption quantity exceeds current stock
+    if (type === 'consumption' && quantity > currentStock) {
+        e.preventDefault();
+        alert('Cannot consume more than current stock (' + currentStock + ' ' + unit + ').');
+        quantityField.focus();
+        return false;
+    }
+    
+    // Calculate new stock for validation
+    let newStock = currentStock;
+    if (type === 'purchase') {
+        newStock = currentStock + quantity;
+    } else if (type === 'consumption') {
+        newStock = currentStock - quantity;
+    } else if (type === 'adjustment') {
+        newStock = currentStock + quantity;
+    }
+    
+    if (newStock < 0) {
+        if (!confirm('This transaction will result in negative stock. Are you sure you want to continue?')) {
+            e.preventDefault();
+            return false;
+        }
+    }
+    
+    return true;
+});
+
+// Pre-fill transaction type if provided in URL
+const urlParams = new URLSearchParams(window.location.search);
+const typeParam = urlParams.get('type');
+if (typeParam) {
+    document.getElementById('transaction_type').value = typeParam;
+    updateSummary();
+}
+</script>
+{% endblock %}

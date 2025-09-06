@@ -1,0 +1,155 @@
+{% extends "base.html" %}
+
+{% block page_title %}Audit Log Detail{% endblock %}
+
+{% block page_actions %}
+<a href="{{ url_for('audit.index') }}" class="btn btn-secondary">
+    <i class="fas fa-arrow-left me-2"></i>Back to Audit Log
+</a>
+{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="fas fa-info-circle me-2"></i>Action Details
+                </h5>
+            </div>
+            <div class="card-body">
+                <table class="table table-borderless">
+                    <tr>
+                        <th width="30%">Date/Time:</th>
+                        <td>{{ log_entry.created_at.strftime('%Y-%m-%d %H:%M:%S') }}</td>
+                    </tr>
+                    <tr>
+                        <th>User ID:</th>
+                        <td>
+                            {% if log_entry.user_id %}
+                                {{ log_entry.user_id }}
+                            {% else %}
+                                <span class="text-muted">System</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    <tr>
+                        <th>Action:</th>
+                        <td>
+                            <span class="badge 
+                                {% if 'added' in log_entry.action %}bg-success
+                                {% elif 'deleted' in log_entry.action or 'vacated' in log_entry.action %}bg-danger
+                                {% elif 'updated' in log_entry.action or 'changed' in log_entry.action or 'assigned' in log_entry.action %}bg-warning
+                                {% else %}bg-info
+                                {% endif %}">
+                                {{ log_entry.action.replace('_', ' ').title() }}
+                            </span>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th>Table:</th>
+                        <td>
+                            {% if log_entry.table_name %}
+                                <code>{{ log_entry.table_name }}</code>
+                            {% else %}
+                                <span class="text-muted">-</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    <tr>
+                        <th>Record ID:</th>
+                        <td>
+                            {% if log_entry.record_id %}
+                                {{ log_entry.record_id }}
+                            {% else %}
+                                <span class="text-muted">-</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    <tr>
+                        <th>IP Address:</th>
+                        <td>
+                            {% if log_entry.ip_address %}
+                                {{ log_entry.ip_address }}
+                            {% else %}
+                                <span class="text-muted">-</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-6">
+        {% if old_values or new_values %}
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="fas fa-exchange-alt me-2"></i>Value Changes
+                </h5>
+            </div>
+            <div class="card-body">
+                {% if old_values and new_values %}
+                <div class="row">
+                    <div class="col-6">
+                        <h6 class="text-danger">Old Values</h6>
+                        <div class="bg-light p-2 rounded">
+                            {% for key, value in old_values.items() %}
+                            <div class="mb-1">
+                                <strong>{{ key }}:</strong> 
+                                <span class="text-muted">{{ value if value is not none else 'null' }}</span>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    <div class="col-6">
+                        <h6 class="text-success">New Values</h6>
+                        <div class="bg-light p-2 rounded">
+                            {% for key, value in new_values.items() %}
+                            <div class="mb-1">
+                                <strong>{{ key }}:</strong> 
+                                <span class="text-dark">{{ value if value is not none else 'null' }}</span>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                </div>
+                {% elif new_values %}
+                <h6 class="text-success">Values</h6>
+                <div class="bg-light p-2 rounded">
+                    {% for key, value in new_values.items() %}
+                    <div class="mb-1">
+                        <strong>{{ key }}:</strong> 
+                        <span class="text-dark">{{ value if value is not none else 'null' }}</span>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% elif old_values %}
+                <h6 class="text-danger">Previous Values</h6>
+                <div class="bg-light p-2 rounded">
+                    {% for key, value in old_values.items() %}
+                    <div class="mb-1">
+                        <strong>{{ key }}:</strong> 
+                        <span class="text-muted">{{ value if value is not none else 'null' }}</span>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% endif %}
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+{% if not old_values and not new_values %}
+<div class="card mt-3">
+    <div class="card-body text-center text-muted">
+        <i class="fas fa-info-circle fa-2x mb-2"></i>
+        <p>No detailed values were recorded for this action.</p>
+    </div>
+</div>
+{% endif %}
+{% endblock %}
+
+

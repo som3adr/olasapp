@@ -1,0 +1,585 @@
+<!-- Shared UI Kit Components for HostelFlow Consolidation -->
+
+<!-- DataTable Component -->
+<div id="dataTableComponent" class="data-table-container" style="display: none;">
+    <div class="data-table-header d-flex justify-content-between align-items-center mb-3">
+        <div class="data-table-title">
+            <h5 class="mb-0" id="dataTableTitle">Data Table</h5>
+            <small class="text-muted" id="dataTableSubtitle">Total: <span id="dataTableCount">0</span> items</small>
+        </div>
+        <div class="data-table-actions">
+            <div class="btn-group" role="group">
+                <button type="button" class="btn btn-sm btn-outline-secondary" id="refreshTableBtn">
+                    <i class="fas fa-sync-alt"></i> Refresh
+                </button>
+                <button type="button" class="btn btn-sm btn-outline-secondary" id="exportTableBtn">
+                    <i class="fas fa-download"></i> Export
+                </button>
+                <button type="button" class="btn btn-sm btn-outline-secondary" id="settingsTableBtn">
+                    <i class="fas fa-cog"></i> Settings
+                </button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Search and Filters -->
+    <div class="data-table-filters mb-3">
+        <div class="row">
+            <div class="col-md-4">
+                <div class="input-group">
+                    <span class="input-group-text"><i class="fas fa-search"></i></span>
+                    <input type="text" class="form-control" id="tableSearchInput" placeholder="Search...">
+                </div>
+            </div>
+            <div class="col-md-3">
+                <select class="form-select" id="tableFilterSelect">
+                    <option value="">All Status</option>
+                </select>
+            </div>
+            <div class="col-md-3">
+                <select class="form-select" id="tableSortSelect">
+                    <option value="name">Sort by Name</option>
+                </select>
+            </div>
+            <div class="col-md-2">
+                <button type="button" class="btn btn-outline-secondary w-100" id="clearFiltersBtn">
+                    Clear
+                </button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Table -->
+    <div class="table-responsive">
+        <table class="table table-hover" id="sharedDataTable">
+            <thead>
+                <tr>
+                    <th width="50">
+                        <input type="checkbox" class="form-check-input" id="selectAllCheckbox">
+                    </th>
+                    <!-- Dynamic columns will be inserted here -->
+                </tr>
+            </thead>
+            <tbody>
+                <!-- Dynamic rows will be inserted here -->
+            </tbody>
+        </table>
+    </div>
+    
+    <!-- Pagination -->
+    <nav aria-label="Table pagination" class="mt-3">
+        <ul class="pagination justify-content-center" id="tablePagination">
+            <!-- Dynamic pagination will be inserted here -->
+        </ul>
+    </nav>
+</div>
+
+<!-- BulkToolbar Component -->
+<div id="bulkToolbarComponent" class="bulk-toolbar-container" style="display: none;">
+    <div class="alert alert-info d-flex align-items-center">
+        <i class="fas fa-info-circle me-2"></i>
+        <span id="bulkToolbarMessage">0 items selected</span>
+        <div class="ms-auto">
+            <div class="btn-group btn-group-sm" role="group">
+                <button type="button" class="btn btn-outline-primary" id="bulkActionBtn">
+                    <i class="fas fa-tasks"></i> Actions
+                </button>
+                <button type="button" class="btn btn-outline-secondary" id="clearSelectionBtn">
+                    <i class="fas fa-times"></i> Clear
+                </button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Bulk Actions Dropdown -->
+    <div class="dropdown-menu" id="bulkActionsDropdown" style="display: none;">
+        <!-- Dynamic actions will be inserted here -->
+    </div>
+</div>
+
+<!-- NotificationDrawer Component -->
+<div class="notification-drawer" id="notificationDrawer">
+    <div class="notification-drawer-header">
+        <h6 class="mb-0">Notifications</h6>
+        <div class="notification-actions">
+            <button type="button" class="btn btn-sm btn-link" id="markAllReadBtn">Mark All Read</button>
+            <button type="button" class="btn btn-sm btn-link" id="notificationSettingsBtn">Settings</button>
+        </div>
+    </div>
+    
+    <div class="notification-tabs">
+        <ul class="nav nav-tabs nav-fill" id="notificationTabs">
+            <li class="nav-item">
+                <button class="nav-link active" data-tab="all">All</button>
+            </li>
+            <li class="nav-item">
+                <button class="nav-link" data-tab="unread">Unread</button>
+            </li>
+            <li class="nav-item">
+                <button class="nav-link" data-tab="read">Read</button>
+            </li>
+        </ul>
+    </div>
+    
+    <div class="notification-content">
+        <div class="notification-list" id="notificationList">
+            <!-- Dynamic notifications will be inserted here -->
+        </div>
+    </div>
+</div>
+
+<!-- ReportWidget Component -->
+<div class="report-widget" id="reportWidgetTemplate" style="display: none;">
+    <div class="report-widget-header">
+        <h6 class="report-widget-title"></h6>
+        <div class="report-widget-actions">
+            <button type="button" class="btn btn-sm btn-outline-secondary" data-action="refresh">
+                <i class="fas fa-sync-alt"></i>
+            </button>
+            <button type="button" class="btn btn-sm btn-outline-secondary" data-action="export">
+                <i class="fas fa-download"></i>
+            </button>
+            <button type="button" class="btn btn-sm btn-outline-secondary" data-action="settings">
+                <i class="fas fa-cog"></i>
+            </button>
+        </div>
+    </div>
+    <div class="report-widget-content">
+        <!-- Dynamic content will be inserted here -->
+    </div>
+    <div class="report-widget-footer">
+        <small class="text-muted report-widget-updated"></small>
+    </div>
+</div>
+
+<!-- RoleGuard Component (for conditional rendering) -->
+<script>
+// RoleGuard utility for conditional rendering based on user permissions
+window.RoleGuard = {
+    hasPermission: function(permission) {
+        // This would check against actual user permissions
+        return window.currentUser && window.currentUser.permissions && 
+               window.currentUser.permissions.includes(permission);
+    },
+    
+    hasRole: function(role) {
+        // This would check against actual user roles
+        return window.currentUser && window.currentUser.roles && 
+               window.currentUser.roles.includes(role);
+    },
+    
+    renderIf: function(permission, element) {
+        if (this.hasPermission(permission)) {
+            element.style.display = '';
+        } else {
+            element.style.display = 'none';
+        }
+    },
+    
+    renderIfRole: function(role, element) {
+        if (this.hasRole(role)) {
+            element.style.display = '';
+        } else {
+            element.style.display = 'none';
+        }
+    }
+};
+</script>
+
+<!-- Shared UI Kit JavaScript -->
+<script>
+// DataTable Component
+class DataTableComponent {
+    constructor(config) {
+        this.config = config;
+        this.data = [];
+        this.filteredData = [];
+        this.selectedItems = new Set();
+        this.currentPage = 1;
+        this.itemsPerPage = config.itemsPerPage || 10;
+        this.init();
+    }
+    
+    init() {
+        this.bindEvents();
+        this.loadData();
+    }
+    
+    bindEvents() {
+        // Search functionality
+        document.getElementById('tableSearchInput').addEventListener('input', (e) => {
+            this.filterData(e.target.value);
+        });
+        
+        // Select all checkbox
+        document.getElementById('selectAllCheckbox').addEventListener('change', (e) => {
+            this.toggleSelectAll(e.target.checked);
+        });
+        
+        // Refresh button
+        document.getElementById('refreshTableBtn').addEventListener('click', () => {
+            this.loadData();
+        });
+        
+        // Export button
+        document.getElementById('exportTableBtn').addEventListener('click', () => {
+            this.exportData();
+        });
+    }
+    
+    loadData() {
+        // This would make an API call to load data
+        // For now, using mock data
+        this.data = this.config.data || [];
+        this.filteredData = [...this.data];
+        this.render();
+    }
+    
+    filterData(searchTerm) {
+        if (!searchTerm) {
+            this.filteredData = [...this.data];
+        } else {
+            this.filteredData = this.data.filter(item => 
+                Object.values(item).some(value => 
+                    String(value).toLowerCase().includes(searchTerm.toLowerCase())
+                )
+            );
+        }
+        this.currentPage = 1;
+        this.render();
+    }
+    
+    render() {
+        this.renderTable();
+        this.renderPagination();
+        this.updateCount();
+    }
+    
+    renderTable() {
+        const tbody = document.querySelector('#sharedDataTable tbody');
+        const startIndex = (this.currentPage - 1) * this.itemsPerPage;
+        const endIndex = startIndex + this.itemsPerPage;
+        const pageData = this.filteredData.slice(startIndex, endIndex);
+        
+        tbody.innerHTML = pageData.map(item => this.renderRow(item)).join('');
+    }
+    
+    renderRow(item) {
+        const columns = this.config.columns || [];
+        const rowId = item.id || item[Object.keys(item)[0]];
+        
+        return `
+            <tr>
+                <td>
+                    <input type="checkbox" class="form-check-input row-select" 
+                           value="${rowId}" ${this.selectedItems.has(rowId) ? 'checked' : ''}>
+                </td>
+                ${columns.map(col => `
+                    <td>${this.formatCellValue(item[col.key], col.type)}</td>
+                `).join('')}
+            </tr>
+        `;
+    }
+    
+    formatCellValue(value, type) {
+        switch (type) {
+            case 'date':
+                return new Date(value).toLocaleDateString();
+            case 'currency':
+                return `MAD ${parseFloat(value).toFixed(2)}`;
+            case 'status':
+                return `<span class="badge bg-${this.getStatusColor(value)}">${value}</span>`;
+            default:
+                return value;
+        }
+    }
+    
+    getStatusColor(status) {
+        const colors = {
+            'active': 'success',
+            'inactive': 'secondary',
+            'pending': 'warning',
+            'completed': 'success',
+            'failed': 'danger'
+        };
+        return colors[status] || 'secondary';
+    }
+    
+    renderPagination() {
+        const totalPages = Math.ceil(this.filteredData.length / this.itemsPerPage);
+        const pagination = document.getElementById('tablePagination');
+        
+        if (totalPages <= 1) {
+            pagination.innerHTML = '';
+            return;
+        }
+        
+        let paginationHTML = '';
+        
+        // Previous button
+        paginationHTML += `
+            <li class="page-item ${this.currentPage === 1 ? 'disabled' : ''}">
+                <a class="page-link" href="#" data-page="${this.currentPage - 1}">Previous</a>
+            </li>
+        `;
+        
+        // Page numbers
+        for (let i = 1; i <= totalPages; i++) {
+            if (i === 1 || i === totalPages || (i >= this.currentPage - 2 && i <= this.currentPage + 2)) {
+                paginationHTML += `
+                    <li class="page-item ${i === this.currentPage ? 'active' : ''}">
+                        <a class="page-link" href="#" data-page="${i}">${i}</a>
+                    </li>
+                `;
+            } else if (i === this.currentPage - 3 || i === this.currentPage + 3) {
+                paginationHTML += '<li class="page-item disabled"><span class="page-link">...</span></li>';
+            }
+        }
+        
+        // Next button
+        paginationHTML += `
+            <li class="page-item ${this.currentPage === totalPages ? 'disabled' : ''}">
+                <a class="page-link" href="#" data-page="${this.currentPage + 1}">Next</a>
+            </li>
+        `;
+        
+        pagination.innerHTML = paginationHTML;
+        
+        // Bind pagination events
+        pagination.querySelectorAll('a[data-page]').forEach(link => {
+            link.addEventListener('click', (e) => {
+                e.preventDefault();
+                const page = parseInt(e.target.dataset.page);
+                if (page >= 1 && page <= totalPages) {
+                    this.currentPage = page;
+                    this.render();
+                }
+            });
+        });
+    }
+    
+    updateCount() {
+        document.getElementById('dataTableCount').textContent = this.filteredData.length;
+    }
+    
+    toggleSelectAll(checked) {
+        const checkboxes = document.querySelectorAll('.row-select');
+        checkboxes.forEach(checkbox => {
+            checkbox.checked = checked;
+            if (checked) {
+                this.selectedItems.add(checkbox.value);
+            } else {
+                this.selectedItems.delete(checkbox.value);
+            }
+        });
+        this.updateBulkToolbar();
+    }
+    
+    updateBulkToolbar() {
+        const toolbar = document.getElementById('bulkToolbarComponent');
+        const message = document.getElementById('bulkToolbarMessage');
+        
+        if (this.selectedItems.size > 0) {
+            toolbar.style.display = 'block';
+            message.textContent = `${this.selectedItems.size} items selected`;
+        } else {
+            toolbar.style.display = 'none';
+        }
+    }
+    
+    exportData() {
+        // This would implement actual export functionality
+        console.log('Exporting data...', this.filteredData);
+    }
+}
+
+// BulkToolbar Component
+class BulkToolbarComponent {
+    constructor(config) {
+        this.config = config;
+        this.actions = config.actions || [];
+        this.init();
+    }
+    
+    init() {
+        this.bindEvents();
+        this.renderActions();
+    }
+    
+    bindEvents() {
+        document.getElementById('bulkActionBtn').addEventListener('click', (e) => {
+            e.stopPropagation();
+            this.toggleDropdown();
+        });
+        
+        document.getElementById('clearSelectionBtn').addEventListener('click', () => {
+            this.clearSelection();
+        });
+        
+        // Close dropdown when clicking outside
+        document.addEventListener('click', () => {
+            this.hideDropdown();
+        });
+    }
+    
+    renderActions() {
+        const dropdown = document.getElementById('bulkActionsDropdown');
+        dropdown.innerHTML = this.actions.map(action => `
+            <a class="dropdown-item" href="#" data-action="${action.id}">
+                <i class="${action.icon} me-2"></i>${action.label}
+            </a>
+        `).join('');
+        
+        // Bind action events
+        dropdown.querySelectorAll('a[data-action]').forEach(link => {
+            link.addEventListener('click', (e) => {
+                e.preventDefault();
+                const actionId = e.target.dataset.action;
+                this.executeAction(actionId);
+            });
+        });
+    }
+    
+    toggleDropdown() {
+        const dropdown = document.getElementById('bulkActionsDropdown');
+        dropdown.style.display = dropdown.style.display === 'none' ? 'block' : 'none';
+    }
+    
+    hideDropdown() {
+        document.getElementById('bulkActionsDropdown').style.display = 'none';
+    }
+    
+    executeAction(actionId) {
+        const action = this.actions.find(a => a.id === actionId);
+        if (action && action.handler) {
+            action.handler();
+        }
+        this.hideDropdown();
+    }
+    
+    clearSelection() {
+        // This would clear the selection in the data table
+        document.querySelectorAll('.row-select').forEach(checkbox => {
+            checkbox.checked = false;
+        });
+        document.getElementById('selectAllCheckbox').checked = false;
+        document.getElementById('bulkToolbarComponent').style.display = 'none';
+    }
+}
+
+// Initialize shared components when DOM is loaded
+document.addEventListener('DOMContentLoaded', function() {
+    // Initialize components based on page configuration
+    if (window.dataTableConfig) {
+        window.dataTable = new DataTableComponent(window.dataTableConfig);
+    }
+    
+    if (window.bulkToolbarConfig) {
+        window.bulkToolbar = new BulkToolbarComponent(window.bulkToolbarConfig);
+    }
+});
+</script>
+
+<!-- Shared UI Kit CSS -->
+<style>
+.data-table-container {
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    padding: 1.5rem;
+}
+
+.data-table-header {
+    border-bottom: 1px solid #dee2e6;
+    padding-bottom: 1rem;
+    margin-bottom: 1rem;
+}
+
+.data-table-filters {
+    background: #f8f9fa;
+    padding: 1rem;
+    border-radius: 6px;
+}
+
+.bulk-toolbar-container {
+    position: sticky;
+    top: 0;
+    z-index: 1000;
+    margin-bottom: 1rem;
+}
+
+.notification-drawer {
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    max-height: 400px;
+    overflow-y: auto;
+}
+
+.notification-drawer-header {
+    padding: 1rem;
+    border-bottom: 1px solid #dee2e6;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.notification-tabs {
+    border-bottom: 1px solid #dee2e6;
+}
+
+.notification-content {
+    padding: 1rem;
+}
+
+.report-widget {
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    margin-bottom: 1rem;
+}
+
+.report-widget-header {
+    padding: 1rem;
+    border-bottom: 1px solid #dee2e6;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.report-widget-content {
+    padding: 1rem;
+    min-height: 200px;
+}
+
+.report-widget-footer {
+    padding: 0.5rem 1rem;
+    border-top: 1px solid #dee2e6;
+    background: #f8f9fa;
+}
+
+/* Mobile responsiveness */
+@media (max-width: 768px) {
+    .data-table-filters .row > div {
+        margin-bottom: 0.5rem;
+    }
+    
+    .data-table-header {
+        flex-direction: column;
+        align-items: flex-start !important;
+    }
+    
+    .data-table-actions {
+        margin-top: 1rem;
+        width: 100%;
+    }
+    
+    .btn-group {
+        width: 100%;
+    }
+    
+    .btn-group .btn {
+        flex: 1;
+    }
+}
+</style>

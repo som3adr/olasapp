@@ -1,0 +1,295 @@
+{% extends "base.html" %}
+
+{% block title %}{{ service.name }} - Food & Extras{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Page Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h1 class="h3 mb-0">{{ service.name }}</h1>
+            <p class="text-muted mb-0">Service Details & Information</p>
+        </div>
+        <div class="d-flex gap-2">
+            <a href="{{ url_for('food_extras.services') }}" class="btn btn-modern btn-outline-secondary">
+                <i class="fas fa-arrow-left me-2"></i>Back to Services
+            </a>
+            <a href="{{ url_for('food_extras.edit_service', service_id=service.id) }}" class="btn btn-modern btn-warning">
+                <i class="fas fa-edit me-2"></i>Edit Service
+            </a>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- Service Details -->
+        <div class="col-lg-8">
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-info-circle me-2"></i>Service Information
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label fw-bold">Service Name</label>
+                                <p class="mb-0">{{ service.name }}</p>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label fw-bold">Service Type</label>
+                                <span class="badge bg-primary">{{ service.service_type|title }}</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    {% if service.meal_category %}
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label fw-bold">Meal Category</label>
+                                <span class="badge bg-info">{{ service.meal_category|title }}</span>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label fw-bold">Preparation Time</label>
+                                <p class="mb-0">{{ service.preparation_time }} minutes</p>
+                            </div>
+                        </div>
+                    </div>
+                    {% endif %}
+
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label fw-bold">Price</label>
+                                <p class="mb-0 text-success fw-bold">{{ "%.0f"|format(service.price) }} MAD</p>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label fw-bold">Status</label>
+                                {% if service.is_active %}
+                                    <span class="badge bg-success">Active</span>
+                                {% else %}
+                                    <span class="badge bg-danger">Inactive</span>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+
+                    {% if service.description %}
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Description</label>
+                        <p class="mb-0">{{ service.description }}</p>
+                    </div>
+                    {% endif %}
+
+                    {% if service.ingredients %}
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Ingredients</label>
+                        <p class="mb-0">{{ service.ingredients }}</p>
+                    </div>
+                    {% endif %}
+
+                    {% if service.allergens %}
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Allergens</label>
+                        <p class="mb-0 text-warning">{{ service.allergens }}</p>
+                    </div>
+                    {% endif %}
+
+                    {% if service.dietary_restrictions %}
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Dietary Restrictions</label>
+                        <p class="mb-0">{{ service.dietary_restrictions }}</p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Recent Orders -->
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-list me-2"></i>Recent Orders
+                    </h5>
+                </div>
+                <div class="card-body">
+                    {% if recent_orders %}
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Guest</th>
+                                    <th>Quantity</th>
+                                    <th>Start Date</th>
+                                    <th>End Date</th>
+                                    <th>Total</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for order in recent_orders %}
+                                <tr>
+                                    <td>
+                                        <div>
+                                            <strong>{{ order.tenant.full_name }}</strong>
+                                            <br><small class="text-muted">Room {{ order.tenant.current_bed.room.name if order.tenant.current_bed else 'N/A' }}</small>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <span class="badge bg-primary">{{ order.quantity }}</span>
+                                    </td>
+                                    <td>
+                                        <small class="text-muted">
+                                            {{ order.start_date.strftime('%b %d, %Y') }}
+                                        </small>
+                                    </td>
+                                    <td>
+                                        <small class="text-muted">
+                                            {{ order.end_date.strftime('%b %d, %Y') }}
+                                        </small>
+                                    </td>
+                                    <td>
+                                        <span class="fw-bold">
+                                            {{ "%.0f"|format(order.quantity * order.unit_price) }} MAD
+                                        </span>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <div class="text-center py-4">
+                        <i class="fas fa-list fa-3x text-muted mb-3"></i>
+                        <h6 class="text-muted">No orders yet</h6>
+                        <p class="text-muted mb-0">This service hasn't been ordered by any guests yet.</p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Quick Actions & Info -->
+        <div class="col-lg-4">
+            <!-- Quick Actions -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h6 class="card-title mb-0">
+                        <i class="fas fa-bolt me-2"></i>Quick Actions
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <div class="d-grid gap-2">
+                        <a href="{{ url_for('food_extras.edit_service', service_id=service.id) }}" class="btn btn-outline-warning btn-sm">
+                            <i class="fas fa-edit me-2"></i>Edit Service
+                        </a>
+                        {% if service.is_active %}
+                        <form method="POST" action="{{ url_for('food_extras.deactivate_service', service_id=service.id) }}" class="d-grid">
+                            <button type="submit" class="btn btn-outline-danger btn-sm" onclick="return confirm('Are you sure you want to deactivate this service?')">
+                                <i class="fas fa-times me-2"></i>Deactivate
+                            </button>
+                        </form>
+                        {% else %}
+                        <span class="badge bg-danger">Service Inactive</span>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+
+            <!-- Service Statistics -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h6 class="card-title mb-0">
+                        <i class="fas fa-chart-pie me-2"></i>Service Statistics
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <div class="d-flex justify-content-between">
+                            <span class="text-muted">Total Orders:</span>
+                            <span class="fw-bold">{{ recent_orders|length }}</span>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <div class="d-flex justify-content-between">
+                            <span class="text-muted">Service Type:</span>
+                            <span class="fw-bold">{{ service.service_type|title }}</span>
+                        </div>
+                    </div>
+                    {% if service.meal_category %}
+                    <div class="mb-3">
+                        <div class="d-flex justify-content-between">
+                            <span class="text-muted">Meal Category:</span>
+                            <span class="fw-bold">{{ service.meal_category|title }}</span>
+                        </div>
+                    </div>
+                    {% endif %}
+                    <div class="mb-0">
+                        <div class="d-flex justify-content-between">
+                            <span class="text-muted">Price:</span>
+                            <span class="fw-bold text-success">{{ "%.0f"|format(service.price) }} MAD</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Service Availability -->
+            <div class="card">
+                <div class="card-header">
+                    <h6 class="card-title mb-0">
+                        <i class="fas fa-calendar-check me-2"></i>Availability
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <div class="d-flex justify-content-between">
+                            <span class="text-muted">Status:</span>
+                            {% if service.is_active %}
+                                <span class="badge bg-success">Available</span>
+                            {% else %}
+                                <span class="badge bg-danger">Unavailable</span>
+                            {% endif %}
+                        </div>
+                    </div>
+                    {% if service.is_available_today %}
+                    <div class="mb-3">
+                        <div class="d-flex justify-content-between">
+                            <span class="text-muted">Today:</span>
+                            <span class="badge bg-success">Available</span>
+                        </div>
+                    </div>
+                    {% endif %}
+                    {% if service.preparation_time %}
+                    <div class="mb-0">
+                        <div class="d-flex justify-content-between">
+                            <span class="text-muted">Prep Time:</span>
+                            <span class="fw-bold">{{ service.preparation_time }} min</span>
+                        </div>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Custom CSS -->
+<style>
+.btn-modern {
+    border-radius: 10px;
+    font-weight: 500;
+    padding: 0.5rem 1rem;
+}
+
+.card {
+    border: none;
+    border-radius: 15px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+}
+</style>
+{% endblock %}

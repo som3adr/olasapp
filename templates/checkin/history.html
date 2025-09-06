@@ -1,0 +1,323 @@
+{% extends "base.html" %}
+
+{% block page_title %}Check-In/Check-Out History{% endblock %}
+
+{% block page_actions %}
+<a href="{{ url_for('checkin.index') }}" class="btn btn-outline-primary">
+    <i class="fas fa-arrow-left me-2"></i>Back to Dashboard
+</a>
+<a href="{{ url_for('checkin.new_checkin') }}" class="btn btn-primary">
+    <i class="fas fa-plus me-2"></i>New Check-In
+</a>
+{% endblock %}
+
+{% block content %}
+<!-- Filters -->
+<div class="card mb-4">
+    <div class="card-header">
+        <h5 class="card-title mb-0">
+            <i class="fas fa-filter me-2"></i>Filters
+        </h5>
+    </div>
+    <div class="card-body">
+        <form method="GET" class="row g-3">
+            <div class="col-md-4">
+                <label for="status" class="form-label">Status</label>
+                <select name="status" id="status" class="form-select">
+                    <option value="">All Statuses</option>
+                    <option value="checked_in" {% if status_filter == 'checked_in' %}selected{% endif %}>Checked In</option>
+                    <option value="checked_out" {% if status_filter == 'checked_out' %}selected{% endif %}>Checked Out</option>
+                    <option value="extended" {% if status_filter == 'extended' %}selected{% endif %}>Extended</option>
+                    <option value="no_show" {% if status_filter == 'no_show' %}selected{% endif %}>No Show</option>
+                </select>
+            </div>
+            <div class="col-md-4">
+                <label for="tenant_id" class="form-label">Guest</label>
+                <select name="tenant_id" id="tenant_id" class="form-select">
+                    <option value="">All Guests</option>
+                    {% for tenant in tenants %}
+                    <option value="{{ tenant.id }}" {% if tenant_filter == tenant.id|string %}selected{% endif %}>
+                        {{ tenant.name }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-4 d-flex align-items-end">
+                <button type="submit" class="btn btn-primary me-2">
+                    <i class="fas fa-search me-2"></i>Filter
+                </button>
+                <a href="{{ url_for('checkin.history') }}" class="btn btn-outline-secondary">
+                    <i class="fas fa-times me-2"></i>Clear
+                </a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- History Table -->
+<div class="card">
+    <div class="card-header">
+        <h5 class="card-title mb-0">
+            <i class="fas fa-history me-2"></i>Check-In/Check-Out History
+            <span class="badge bg-secondary ms-2">{{ checkins.total }} records</span>
+        </h5>
+    </div>
+    <div class="card-body">
+        {% if checkins.items %}
+        <div class="table-responsive">
+            <table class="table table-hover">
+                <thead>
+                    <tr>
+                        <th>Guest</th>
+                        <th>Room/Bed</th>
+                        <th>Check-In</th>
+                        <th>Expected Check-Out</th>
+                        <th>Actual Check-Out</th>
+                        <th>Status</th>
+                        <th>Deposit</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for checkin in checkins.items %}
+                    <tr>
+                        <td>
+                            <strong>{{ checkin.tenant.name }}</strong>
+                            {% if checkin.tenant.email %}
+                            <br><small class="text-muted">{{ checkin.tenant.email }}</small>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if checkin.bed %}
+                                Room {{ checkin.bed.room.room_number }} - Bed {{ checkin.bed.bed_number }}
+                            {% else %}
+                                <span class="text-muted">No bed assigned</span>
+                            {% endif %}
+                        </td>
+                        <td>{{ checkin.check_in_date.strftime('%m/%d/%Y %H:%M') }}</td>
+                        <td>{{ checkin.expected_check_out_date.strftime('%m/%d/%Y %H:%M') }}</td>
+                        <td>
+                            {% if checkin.actual_check_out_date %}
+                                {{ checkin.actual_check_out_date.strftime('%m/%d/%Y %H:%M') }}
+                            {% else %}
+                                <span class="text-muted">-</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <span class="badge 
+                                {% if checkin.status == 'checked_in' %}bg-success
+                                {% elif checkin.status == 'checked_out' %}bg-secondary
+                                {% elif checkin.status == 'extended' %}bg-info
+                                {% elif checkin.status == 'no_show' %}bg-warning
+                                {% else %}bg-secondary
+                                {% endif %}">
+                                {{ checkin.status.replace('_', ' ').title() }}
+                            </span>
+                        </td>
+                        <td>
+                            {% if checkin.deposit_paid > 0 %}
+                                <span class="text-success">{{ "%.2f"|format(checkin.deposit_paid) }} MAD</span>
+                                {% if checkin.deposit_returned > 0 %}
+                                    <br><small class="text-muted">Returned: {{ "%.2f"|format(checkin.deposit_returned) }} MAD</small>
+                                {% endif %}
+                            {% else %}
+                                <span class="text-muted">-</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <div class="btn-group btn-group-sm">
+                                {% if checkin.status == 'checked_in' %}
+                                <a href="{{ url_for('checkin.checkout', checkin_id=checkin.id) }}" class="btn btn-outline-primary">
+                                    <i class="fas fa-sign-out-alt me-1"></i>Check Out
+                                </a>
+                                <button class="btn btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#extendModal{{ checkin.id }}">
+                                    <i class="fas fa-clock me-1"></i>Extend
+                                </button>
+                                {% endif %}
+                                <button class="btn btn-outline-info" data-bs-toggle="modal" data-bs-target="#detailsModal{{ checkin.id }}">
+                                    <i class="fas fa-eye me-1"></i>Details
+                                </button>
+                            </div>
+                            
+                            <!-- Extend Stay Modal -->
+                            {% if checkin.status == 'checked_in' %}
+                            <div class="modal fade" id="extendModal{{ checkin.id }}" tabindex="-1">
+                                <div class="modal-dialog">
+                                    <div class="modal-content">
+                                        <div class="modal-header">
+                                            <h5 class="modal-title">Extend Stay - {{ checkin.tenant.name }}</h5>
+                                            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                                        </div>
+                                        <form method="POST" action="{{ url_for('checkin.extend_stay', checkin_id=checkin.id) }}">
+                                            <div class="modal-body">
+                                                <div class="mb-3">
+                                                    <label class="form-label">New Check-out Date & Time</label>
+                                                    <input type="datetime-local" name="new_checkout_date" class="form-control" 
+                                                           value="{{ checkin.expected_check_out_date.strftime('%Y-%m-%dT%H:%M') }}" required>
+                                                </div>
+                                                <div class="mb-3">
+                                                    <label class="form-label">Extension Notes</label>
+                                                    <textarea name="extension_notes" class="form-control" rows="2" 
+                                                              placeholder="Reason for extension..."></textarea>
+                                                </div>
+                                            </div>
+                                            <div class="modal-footer">
+                                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                                                <button type="submit" class="btn btn-primary">Extend Stay</button>
+                                            </div>
+                                        </form>
+                                    </div>
+                                </div>
+                            </div>
+                            {% endif %}
+                            
+                            <!-- Details Modal -->
+                            <div class="modal fade" id="detailsModal{{ checkin.id }}" tabindex="-1">
+                                <div class="modal-dialog modal-lg">
+                                    <div class="modal-content">
+                                        <div class="modal-header">
+                                            <h5 class="modal-title">Check-In Details - {{ checkin.tenant.name }}</h5>
+                                            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                                        </div>
+                                        <div class="modal-body">
+                                            <div class="row">
+                                                <div class="col-md-6">
+                                                    <h6>Guest Information</h6>
+                                                    <p><strong>Name:</strong> {{ checkin.tenant.name }}</p>
+                                                    {% if checkin.tenant.email %}
+                                                    <p><strong>Email:</strong> {{ checkin.tenant.email }}</p>
+                                                    {% endif %}
+                                                    {% if checkin.tenant.phone %}
+                                                    <p><strong>Phone:</strong> {{ checkin.tenant.phone }}</p>
+                                                    {% endif %}
+                                                    <p><strong>Room:</strong> {{ checkin.tenant.room_number }}</p>
+                                                </div>
+                                                <div class="col-md-6">
+                                                    <h6>Stay Information</h6>
+                                                    <p><strong>Check-In:</strong> {{ checkin.check_in_date.strftime('%B %d, %Y at %I:%M %p') }}</p>
+                                                    <p><strong>Expected Check-Out:</strong> {{ checkin.expected_check_out_date.strftime('%B %d, %Y at %I:%M %p') }}</p>
+                                                    {% if checkin.actual_check_out_date %}
+                                                    <p><strong>Actual Check-Out:</strong> {{ checkin.actual_check_out_date.strftime('%B %d, %Y at %I:%M %p') }}</p>
+                                                    {% endif %}
+                                                    <p><strong>Status:</strong> 
+                                                        <span class="badge 
+                                                            {% if checkin.status == 'checked_in' %}bg-success
+                                                            {% elif checkin.status == 'checked_out' %}bg-secondary
+                                                            {% elif checkin.status == 'extended' %}bg-info
+                                                            {% elif checkin.status == 'no_show' %}bg-warning
+                                                            {% else %}bg-secondary
+                                                            {% endif %}">
+                                                            {{ checkin.status.replace('_', ' ').title() }}
+                                                        </span>
+                                                    </p>
+                                                </div>
+                                            </div>
+                                            {% if checkin.bed %}
+                                            <div class="row mt-3">
+                                                <div class="col-md-6">
+                                                    <h6>Bed Assignment</h6>
+                                                    <p><strong>Room:</strong> {{ checkin.bed.room.room_number }}</p>
+                                                    <p><strong>Bed:</strong> {{ checkin.bed.bed_number }}</p>
+                                                    <p><strong>Places:</strong> {{ checkin.bed.places }}</p>
+                                                </div>
+                                            </div>
+                                            {% endif %}
+                                            {% if checkin.deposit_paid > 0 %}
+                                            <div class="row mt-3">
+                                                <div class="col-md-6">
+                                                    <h6>Financial Information</h6>
+                                                    <p><strong>Deposit Paid:</strong> {{ "%.2f"|format(checkin.deposit_paid) }} MAD</p>
+                                                    {% if checkin.deposit_returned > 0 %}
+                                                    <p><strong>Deposit Returned:</strong> {{ "%.2f"|format(checkin.deposit_returned) }} MAD</p>
+                                                    {% endif %}
+                                                </div>
+                                            </div>
+                                            {% endif %}
+                                            {% if checkin.notes %}
+                                            <div class="row mt-3">
+                                                <div class="col-12">
+                                                    <h6>Notes</h6>
+                                                    <p>{{ checkin.notes }}</p>
+                                                </div>
+                                            </div>
+                                            {% endif %}
+                                        </div>
+                                        <div class="modal-footer">
+                                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        
+        <!-- Pagination -->
+        {% if checkins.pages > 1 %}
+        <nav aria-label="History pagination" class="mt-4">
+            <ul class="pagination justify-content-center">
+                {% if checkins.has_prev %}
+                <li class="page-item">
+                    <a class="page-link" href="{{ url_for('checkin.history', page=checkins.prev_num, status=status_filter, tenant_id=tenant_filter) }}">
+                        <i class="fas fa-chevron-left"></i> Previous
+                    </a>
+                </li>
+                {% endif %}
+                
+                {% for page_num in checkins.iter_pages() %}
+                    {% if page_num %}
+                        {% if page_num != checkins.page %}
+                        <li class="page-item">
+                            <a class="page-link" href="{{ url_for('checkin.history', page=page_num, status=status_filter, tenant_id=tenant_filter) }}">
+                                {{ page_num }}
+                            </a>
+                        </li>
+                        {% else %}
+                        <li class="page-item active">
+                            <span class="page-link">{{ page_num }}</span>
+                        </li>
+                        {% endif %}
+                    {% else %}
+                        <li class="page-item disabled">
+                            <span class="page-link">...</span>
+                        </li>
+                    {% endif %}
+                {% endfor %}
+                
+                {% if checkins.has_next %}
+                <li class="page-item">
+                    <a class="page-link" href="{{ url_for('checkin.history', page=checkins.next_num, status=status_filter, tenant_id=tenant_filter) }}">
+                        Next <i class="fas fa-chevron-right"></i>
+                    </a>
+                </li>
+                {% endif %}
+            </ul>
+        </nav>
+        {% endif %}
+        
+        {% else %}
+        <div class="text-center text-muted py-4">
+            <i class="fas fa-history fa-3x mb-3"></i>
+            <h5>No history found</h5>
+            <p>No check-ins or check-outs match your current filters.</p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+// Auto-submit form when filters change
+document.getElementById('status').addEventListener('change', function() {
+    this.form.submit();
+});
+
+document.getElementById('tenant_id').addEventListener('change', function() {
+    this.form.submit();
+});
+</script>
+{% endblock %}

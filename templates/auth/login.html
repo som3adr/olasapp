@@ -1,0 +1,194 @@
+{% extends "base.html" %}
+
+{% block login_content %}
+<div class="container-fluid h-100">
+    <div class="row h-100 justify-content-center align-items-center">
+        <div class="col-md-6 col-lg-4">
+            <div class="card glass-card border-0 shadow-lg">
+                <div class="card-body p-5">
+                    <div class="text-center mb-4">
+                        <div class="mb-3">
+                            <img src="{{ url_for('static', filename='images/olas-logo.svg') }}" 
+                                 alt="Your Hostel Logo" 
+                                 class="img-fluid" 
+                                 style="max-height: 80px; max-width: 200px;">
+                        </div>
+                        <h2 class="fw-bold text-gray-900 mb-2">Welcome to Olas Surf Camp</h2>
+                        <p class="text-muted mb-0">Professional Hostel Management System</p>
+                    </div>
+                    
+                    {% with messages = get_flashed_messages(with_categories=true) %}
+                        {% if messages %}
+                            {% for category, message in messages %}
+                                <div class="alert alert-{{ 'danger' if category == 'error' else category }} alert-dismissible fade show" role="alert">
+                                    <i class="fas fa-{{ 'exclamation-triangle' if category == 'error' else 'info-circle' }} me-2"></i>
+                                    {{ message }}
+                                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                                </div>
+                            {% endfor %}
+                        {% endif %}
+                    {% endwith %}
+                    
+                    <!-- Simple form without complex validation -->
+                    <form method="POST" action="{{ url_for('auth.login') }}">
+                        <div class="mb-3">
+                            <label for="username" class="form-label fw-semibold">
+                                <i class="fas fa-user me-2 text-primary"></i>Username
+                            </label>
+                            <input type="text" class="form-control form-control-lg" id="username" name="username" required>
+                        </div>
+                        
+                        <div class="mb-4">
+                            <label for="password" class="form-label fw-semibold">
+                                <i class="fas fa-lock me-2 text-primary"></i>Password
+                            </label>
+                            <div class="input-group input-group-lg w-100">
+                                <input type="password" class="form-control form-control-lg" id="password" name="password" required style="flex: 1;">
+                                <button class="btn btn-outline-secondary" type="button" id="togglePassword" style="flex-shrink: 0;">
+                                    <i class="fas fa-eye"></i>
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <div class="mb-4">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="remember_me" name="remember_me">
+                                <label class="form-check-label" for="remember_me">
+                                    <i class="fas fa-clock me-1"></i>Keep me signed in for 30 days
+                                </label>
+                            </div>
+                        </div>
+                        
+                        <div class="d-grid">
+                            <button type="submit" class="btn btn-modern btn-primary btn-lg fw-semibold">
+                                <i class="fas fa-sign-in-alt me-2"></i>Sign In
+                            </button>
+                        </div>
+                    </form>
+                    
+                    <div class="text-center mt-4">
+                        <small class="text-muted">
+                            <i class="fas fa-shield-alt me-1"></i>
+                            Secure login powered by Olas Surf Camp
+                        </small>
+                    </div>
+                    
+
+                </div>
+            </div>
+            
+            <!-- Feature highlights -->
+            <div class="row mt-4 g-3">
+                <div class="col-6">
+                    <div class="card border-0 shadow-sm h-100">
+                        <div class="card-body text-center p-3">
+                            <div class="bg-success bg-opacity-10 rounded-circle d-inline-flex p-2 mb-2">
+                                <i class="fas fa-users text-success"></i>
+                            </div>
+                            <h6 class="fw-semibold mb-1">Guest Management</h6>
+                            <small class="text-muted">Efficient check-ins</small>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="col-6">
+                    <div class="card border-0 shadow-sm h-100">
+                        <div class="card-body text-center p-3">
+                            <div class="bg-info bg-opacity-10 rounded-circle d-inline-flex p-2 mb-2">
+                                <i class="fas fa-chart-line text-info"></i>
+                            </div>
+                            <h6 class="fw-semibold mb-1">Analytics</h6>
+                            <small class="text-muted">Real-time insights</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.glass-card {
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(20px);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.form-control-lg {
+    padding: 1rem 1.25rem;
+    font-size: 1.1rem;
+}
+
+.btn-lg {
+    padding: 1rem 2rem;
+    font-size: 1.1rem;
+}
+
+.input-group-lg .form-control {
+    padding: 1rem 1.25rem;
+    font-size: 1.1rem;
+}
+
+.input-group-lg .btn {
+    padding: 1rem 1.25rem;
+    font-size: 1.1rem;
+}
+
+/* Make password field match username field width */
+.input-group-lg {
+    width: 100% !important;
+}
+
+.input-group-lg .form-control {
+    flex: 1 1 auto;
+    min-width: 0;
+    width: auto;
+}
+
+.input-group-lg .btn {
+    flex-shrink: 0;
+}
+
+@media (max-width: 767px) {
+    .card-body {
+        padding: 2rem !important;
+    }
+    
+    .form-control-lg, .btn-lg, .input-group-lg .form-control, .input-group-lg .btn {
+        padding: 0.875rem 1rem;
+        font-size: 1rem;
+    }
+}
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('Login page loaded - simplified version');
+    
+    // Simple password toggle
+    const togglePassword = document.getElementById('togglePassword');
+    const password = document.getElementById('password');
+    
+    if (togglePassword && password) {
+        togglePassword.addEventListener('click', function() {
+            const type = password.getAttribute('type') === 'password' ? 'text' : 'password';
+            password.setAttribute('type', type);
+            
+            const icon = this.querySelector('i');
+            icon.classList.toggle('fa-eye');
+            icon.classList.toggle('fa-eye-slash');
+        });
+    }
+    
+    // Log form submission
+    const form = document.querySelector('form');
+    if (form) {
+        form.addEventListener('submit', function(e) {
+            console.log('Form submitting to:', this.action);
+            console.log('Username:', document.getElementById('username').value);
+            console.log('Password provided:', document.getElementById('password').value ? 'Yes' : 'No');
+        });
+    }
+});
+</script>
+{% endblock %}

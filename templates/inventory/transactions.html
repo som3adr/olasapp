@@ -1,0 +1,310 @@
+{% extends "base.html" %}
+
+{% block page_title %}{{ item.name }} - Transactions{% endblock %}
+
+{% block page_actions %}
+<a href="{{ url_for('inventory.add_transaction', item_id=item.id) }}" class="btn btn-primary">
+    <i class="fas fa-plus me-2"></i>Add Transaction
+</a>
+<a href="{{ url_for('inventory.index') }}" class="btn btn-secondary">
+    <i class="fas fa-arrow-left me-2"></i>Back to Inventory
+</a>
+{% endblock %}
+
+{% block content %}
+<!-- Item Info Card -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="fas fa-box me-2"></i>{{ item.name }}
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-2">
+                        <strong>Category:</strong><br>
+                        <span class="badge bg-primary">{{ item.category.replace('_', ' ').title() }}</span>
+                    </div>
+                    <div class="col-md-2">
+                        <strong>Current Stock:</strong><br>
+                        <span class="h5 text-{% if item.current_stock <= 0 %}danger{% elif item.current_stock <= item.minimum_stock %}warning{% else %}success{% endif %}">
+                            {{ item.current_stock|int }} {{ item.unit }}
+                        </span>
+                    </div>
+                    <div class="col-md-2">
+                        <strong>Minimum Stock:</strong><br>
+                        {{ item.minimum_stock|int }} {{ item.unit }}
+                    </div>
+                    <div class="col-md-2">
+                        <strong>Cost per Unit:</strong><br>
+                        ${{ "%.2f"|format(item.cost_per_unit) }}
+                    </div>
+                    <div class="col-md-2">
+                        <strong>Total Value:</strong><br>
+                        <span class="h5 text-success">${{ "%.2f"|format(item.current_stock * item.cost_per_unit) }}</span>
+                    </div>
+                    <div class="col-md-2">
+                        <strong>Supplier:</strong><br>
+                        {{ item.supplier or 'Not specified' }}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Transaction Summary -->
+<div class="row mb-4">
+    <div class="col-md-3">
+        <div class="card bg-success text-white">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h4>{{ transactions|selectattr('transaction_type', 'equalto', 'purchase')|sum(attribute='quantity') }}</h4>
+                        <p class="mb-0">Total Purchased</p>
+                    </div>
+                    <div class="align-self-center">
+                        <i class="fas fa-plus fa-2x"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card bg-danger text-white">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h4>{{ transactions|selectattr('transaction_type', 'equalto', 'consumption')|sum(attribute='quantity') }}</h4>
+                        <p class="mb-0">Total Consumed</p>
+                    </div>
+                    <div class="align-self-center">
+                        <i class="fas fa-minus fa-2x"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card bg-info text-white">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h4>{{ transactions|length }}</h4>
+                        <p class="mb-0">Total Transactions</p>
+                    </div>
+                    <div class="align-self-center">
+                        <i class="fas fa-exchange-alt fa-2x"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card bg-warning text-dark">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h4>${{ "%.2f"|format(transactions|selectattr('transaction_type', 'equalto', 'purchase')|selectattr('total_cost', 'ne', None)|sum(attribute='total_cost')) }}</h4>
+                        <p class="mb-0">Total Cost</p>
+                    </div>
+                    <div class="align-self-center">
+                        <i class="fas fa-dollar-sign fa-2x"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Transactions Table -->
+<div class="card">
+    <div class="card-header">
+        <h5 class="card-title mb-0">Transaction History</h5>
+    </div>
+    <div class="card-body">
+        {% if transactions %}
+        <div class="table-responsive">
+            <table class="table table-striped table-hover">
+                <thead>
+                    <tr>
+                        <th>Date</th>
+                        <th>Type</th>
+                        <th>Quantity</th>
+                        <th>Cost/Unit</th>
+                        <th>Total Cost</th>
+                        <th>Running Stock <small class="text-muted">(should match current stock at bottom)</small></th>
+                        <th>Notes</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for transaction in transactions %}
+                    <tr class="{% if transaction.transaction_type == 'purchase' %}table-success{% elif transaction.transaction_type == 'consumption' %}table-danger{% else %}table-warning{% endif %}">
+                        <td>{{ transaction.date.strftime('%Y-%m-%d') }}</td>
+                        <td>
+                            <span class="badge 
+                                {% if transaction.transaction_type == 'purchase' %}bg-success
+                                {% elif transaction.transaction_type == 'consumption' %}bg-danger
+                                {% else %}bg-warning text-dark{% endif %}">
+                                <i class="fas 
+                                    {% if transaction.transaction_type == 'purchase' %}fa-plus
+                                    {% elif transaction.transaction_type == 'consumption' %}fa-minus
+                                    {% else %}fa-adjust{% endif %} me-1"></i>
+                                {{ transaction.transaction_type.title() }}
+                            </span>
+                        </td>
+                        <td>
+                            <strong>
+                                {% if transaction.transaction_type == 'consumption' %}-{% endif %}{{ transaction.quantity|int }} {{ item.unit }}
+                            </strong>
+                        </td>
+                        <td>
+                            {% if transaction.cost_per_unit %}
+                                ${{ "%.2f"|format(transaction.cost_per_unit) }}
+                            {% else %}
+                                -
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if transaction.total_cost %}
+                                <strong>${{ "%.2f"|format(transaction.total_cost) }}</strong>
+                            {% else %}
+                                -
+                            {% endif %}
+                        </td>
+                        <td>
+                            <span class="badge {% if transaction.running_stock <= 0 %}bg-danger{% elif transaction.running_stock <= item.minimum_stock %}bg-warning text-dark{% else %}bg-success{% endif %}">
+                                {{ transaction.running_stock|int }} {{ item.unit }}
+                            </span>
+                        </td>
+                        <td>{{ transaction.notes or '-' }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        
+        <!-- Transaction Statistics -->
+        <div class="row mt-4">
+            <div class="col-md-6">
+                <div class="card border-primary">
+                    <div class="card-header bg-primary text-white">
+                        <h6 class="mb-0">Purchase Statistics</h6>
+                    </div>
+                    <div class="card-body">
+                        <div class="row text-center">
+                            <div class="col-6">
+                                <div class="mb-2">
+                                    <strong class="text-success">{{ transactions|selectattr('transaction_type', 'equalto', 'purchase')|list|length }}</strong>
+                                </div>
+                                <small class="text-muted">Purchase Orders</small>
+                            </div>
+                            <div class="col-6">
+                                <div class="mb-2">
+                                    <strong class="text-success">${{ "%.2f"|format(transactions|selectattr('transaction_type', 'equalto', 'purchase')|selectattr('total_cost', 'ne', None)|sum(attribute='total_cost')) }}</strong>
+                                </div>
+                                <small class="text-muted">Total Spent</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="card border-danger">
+                    <div class="card-header bg-danger text-white">
+                        <h6 class="mb-0">Consumption Statistics</h6>
+                    </div>
+                    <div class="card-body">
+                        <div class="row text-center">
+                            <div class="col-6">
+                                <div class="mb-2">
+                                    <strong class="text-danger">{{ transactions|selectattr('transaction_type', 'equalto', 'consumption')|list|length }}</strong>
+                                </div>
+                                <small class="text-muted">Usage Records</small>
+                            </div>
+                            <div class="col-6">
+                                <div class="mb-2">
+                                    <strong class="text-danger">{{ (transactions|selectattr('transaction_type', 'equalto', 'consumption')|sum(attribute='quantity'))|int }} {{ item.unit }}</strong>
+                                </div>
+                                <small class="text-muted">Total Used</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        {% else %}
+        <div class="text-center py-4">
+            <i class="fas fa-history fa-3x text-muted mb-3"></i>
+            <h5 class="text-muted">No Transaction History</h5>
+            <p class="text-muted">No transactions have been recorded for this item yet.</p>
+            <a href="{{ url_for('inventory.add_transaction', item_id=item.id) }}" class="btn btn-primary">
+                <i class="fas fa-plus me-2"></i>Record First Transaction
+            </a>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Quick Actions -->
+{% if transactions %}
+<div class="row mt-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">Quick Actions</h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-3">
+                        <div class="d-grid">
+                            <a href="{{ url_for('inventory.add_transaction', item_id=item.id) }}" class="btn btn-primary">
+                                <i class="fas fa-plus me-2"></i>Add Transaction
+                            </a>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="d-grid">
+                            <a href="{{ url_for('inventory.edit', item_id=item.id) }}" class="btn btn-outline-primary">
+                                <i class="fas fa-edit me-2"></i>Edit Item
+                            </a>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="d-grid">
+                            <button type="button" class="btn btn-outline-success" onclick="addPurchaseQuick()">
+                                <i class="fas fa-cart-plus me-2"></i>Quick Purchase
+                            </button>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="d-grid">
+                            <a href="{{ url_for('inventory.index') }}" class="btn btn-outline-secondary">
+                                <i class="fas fa-arrow-left me-2"></i>Back to Inventory
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block scripts %}
+<script>
+function addPurchaseQuick() {
+    // Quick link to add purchase transaction
+    window.location.href = "{{ url_for('inventory.add_transaction', item_id=item.id) }}?type=purchase";
+}
+
+// Simple transaction type color coding
+document.addEventListener('DOMContentLoaded', function() {
+    // Add any specific JavaScript for transaction management here
+});
+</script>
+{% endblock %}

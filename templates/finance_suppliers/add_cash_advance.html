@@ -1,0 +1,130 @@
+{% extends "base.html" %}
+
+{% block title %}Add Cash Advance - HostelFlow{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Page Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h1 class="h3 mb-0">Add Cash Advance</h1>
+            <p class="text-muted mb-0">Record cash given to staff for purchasing supplies</p>
+        </div>
+        <div class="d-flex gap-2">
+            <a href="{{ url_for('finance_suppliers.cash_advances') }}" class="btn btn-modern btn-outline-secondary">
+                <i class="fas fa-arrow-left me-2"></i>Back to Cash Advances
+            </a>
+        </div>
+    </div>
+
+    <!-- Add Cash Advance Form -->
+    <div class="row">
+        <div class="col-lg-8">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-hand-holding-usd me-2"></i>Cash Advance Details
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <form method="POST">
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="user_id" class="form-label">Staff Member *</label>
+                                <select class="form-select" id="user_id" name="user_id" required>
+                                    <option value="">Select a staff member...</option>
+                                    {% for user in users %}
+                                    <option value="{{ user.id }}">{{ user.full_name or user.username }}</option>
+                                    {% endfor %}
+                                </select>
+                                <div class="form-text">Select the staff member receiving the cash</div>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="amount" class="form-label">Amount (MAD) *</label>
+                                <input type="number" class="form-control" id="amount" name="amount" step="0.01" min="0" required>
+                                <div class="form-text">Amount of cash given to staff</div>
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="purpose" class="form-label">Purpose</label>
+                            <input type="text" class="form-control" id="purpose" name="purpose" placeholder="What the staff member will purchase with this cash">
+                            <div class="form-text">Optional: What the staff member will purchase with this cash</div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="date_given" class="form-label">Date Given *</label>
+                                <input type="date" class="form-control" id="date_given" name="date_given" required>
+                                <div class="form-text">Date when cash was given to staff</div>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="expected_return_date" class="form-label">Expected Return Date</label>
+                                <input type="date" class="form-control" id="expected_return_date" name="expected_return_date">
+                                <div class="form-text">When you expect the staff to return with receipts</div>
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="notes" class="form-label">Notes</label>
+                            <textarea class="form-control" id="notes" name="notes" rows="3" placeholder="Additional notes about this cash advance..."></textarea>
+                        </div>
+
+                        <div class="d-flex gap-2">
+                            <button type="submit" class="btn btn-warning">
+                                <i class="fas fa-save me-2"></i>Add Cash Advance
+                            </button>
+                            <a href="{{ url_for('finance_suppliers.cash_advances') }}" class="btn btn-outline-secondary">
+                                <i class="fas fa-times me-2"></i>Cancel
+                            </a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-4">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-info-circle me-2"></i>Guidelines
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="alert alert-info">
+                        <h6><i class="fas fa-lightbulb me-2"></i>Best Practices</h6>
+                        <ul class="mb-0">
+                            <li>Select staff member from user-management</li>
+                            <li>Purpose is optional but recommended</li>
+                            <li>Set realistic return dates</li>
+                            <li>Keep detailed notes for tracking</li>
+                            <li>Follow up on pending advances</li>
+                        </ul>
+                    </div>
+                    
+                    <div class="alert alert-warning">
+                        <h6><i class="fas fa-exclamation-triangle me-2"></i>Important</h6>
+                        <p class="mb-0">Cash advances are tracked as expenses in your financial reports. Make sure to collect receipts from staff members.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.btn-modern {
+    border-radius: 10px;
+    font-weight: 500;
+    padding: 0.5rem 1rem;
+}
+</style>
+
+<script>
+// Set today's date as default for date_given
+document.addEventListener('DOMContentLoaded', function() {
+    const today = new Date().toISOString().split('T')[0];
+    document.getElementById('date_given').value = today;
+});
+</script>
+{% endblock %}

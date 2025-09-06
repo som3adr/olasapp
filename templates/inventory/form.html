@@ -1,0 +1,289 @@
+{% extends "base.html" %}
+
+{% block page_title %}{% if item %}Edit Inventory Item{% else %}Add Inventory Item{% endif %}{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    {% if item %}
+                        <i class="fas fa-edit me-2"></i>Edit Inventory Item
+                    {% else %}
+                        <i class="fas fa-plus me-2"></i>Add New Inventory Item
+                    {% endif %}
+                </h5>
+            </div>
+            <div class="card-body">
+                <form method="POST">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="name" class="form-label">Item Name *</label>
+                                <input type="text" class="form-control" id="name" name="name" 
+                                       value="{{ item.name if item else '' }}" required>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="category" class="form-label">Category *</label>
+                                <select class="form-select" id="category" name="category" required>
+                                    <option value="">Select Category</option>
+                                    {% for cat in categories %}
+                                    <option value="{{ cat }}" {% if item and item.category == cat %}selected{% endif %}>
+                                        {{ cat.replace('_', ' ').title() }}
+                                    </option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-4">
+                            <div class="mb-3">
+                                <label for="unit" class="form-label">Unit of Measurement *</label>
+                                <select class="form-select" id="unit" name="unit" required>
+                                    <option value="">Select Unit</option>
+                                    <option value="KG" {% if item and item.unit == 'KG' %}selected{% endif %}>KG</option>
+                                    <option value="Pieces" {% if item and item.unit == 'Pieces' %}selected{% endif %}>Pieces</option>
+                                    <option value="Liters" {% if item and item.unit == 'Liters' %}selected{% endif %}>Liters</option>
+                                    <option value="Boxes" {% if item and item.unit == 'Boxes' %}selected{% endif %}>Boxes</option>
+                                    <option value="Bottles" {% if item and item.unit == 'Bottles' %}selected{% endif %}>Bottles</option>
+                                    <option value="Cans" {% if item and item.unit == 'Cans' %}selected{% endif %}>Cans</option>
+                                    <option value="Bags" {% if item and item.unit == 'Bags' %}selected{% endif %}>Bags</option>
+                                    <option value="Rolls" {% if item and item.unit == 'Rolls' %}selected{% endif %}>Rolls</option>
+                                    <option value="Sheets" {% if item and item.unit == 'Sheets' %}selected{% endif %}>Sheets</option>
+                                    <option value="Units" {% if item and item.unit == 'Units' %}selected{% endif %}>Units</option>
+                                    <option value="Meters" {% if item and item.unit == 'Meters' %}selected{% endif %}>Meters</option>
+                                    <option value="Grams" {% if item and item.unit == 'Grams' %}selected{% endif %}>Grams</option>
+                                    <option value="Other" {% if item and item.unit and item.unit not in ['KG', 'Pieces', 'Liters', 'Boxes', 'Bottles', 'Cans', 'Bags', 'Rolls', 'Sheets', 'Units', 'Meters', 'Grams'] %}selected{% endif %}>Other</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="mb-3">
+                                <label for="current_stock" class="form-label">Current Stock {% if not item %}*{% endif %}</label>
+                                <input type="number" class="form-control" id="current_stock" name="current_stock" 
+                                       step="1" min="0" value="{{ item.current_stock if item else '0' }}" 
+                                       {% if not item %}required{% else %}readonly{% endif %}>
+                                {% if item %}
+                                <small class="form-text text-muted">Use transactions to update stock levels</small>
+                                {% endif %}
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="mb-3">
+                                <label for="minimum_stock" class="form-label">Minimum Stock Level</label>
+                                <input type="number" class="form-control" id="minimum_stock" name="minimum_stock" 
+                                       step="1" min="0" value="{{ item.minimum_stock if item else '0' }}">
+                                <small class="form-text text-muted">Alert threshold for low stock</small>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="cost_per_unit" class="form-label">Cost per Unit</label>
+                                <div class="d-flex align-items-center gap-2">
+                                    <input type="number" class="form-control" id="cost_per_unit" name="cost_per_unit" 
+                                           step="0.01" min="0" value="{{ item.cost_per_unit if item else '0' }}" 
+                                           style="min-width: 120px; font-size: 16px;">
+                                    <span class="input-group-text" style="min-width: 7px; max-width: 60px; font-size: 16px;">MAD</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="supplier" class="form-label">Supplier/Vendor</label>
+                                <input type="text" class="form-control" id="supplier" name="supplier" 
+                                       value="{{ item.supplier if item else '' }}" 
+                                       placeholder="Where you purchase this item">
+                            </div>
+                        </div>
+                    </div>
+                    
+                    {% if item %}
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">Current Stock Value</label>
+                                <div class="form-control-plaintext">
+                                    <strong id="stock-value">{{ "%.2f"|format((item.current_stock|int) * item.cost_per_unit) }} MAD</strong>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">Last Purchased</label>
+                                <div class="form-control-plaintext">
+                                    {{ item.last_purchased.strftime('%Y-%m-%d') if item.last_purchased else 'Never' }}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    {% endif %}
+                    
+                    <div class="d-flex justify-content-between">
+                        <a href="{{ url_for('inventory.index') }}" class="btn btn-secondary">
+                            <i class="fas fa-times me-2"></i>Cancel
+                        </a>
+                        <button type="submit" class="btn btn-primary">
+                            {% if item %}
+                                <i class="fas fa-save me-2"></i>Update Item
+                            {% else %}
+                                <i class="fas fa-plus me-2"></i>Add Item
+                            {% endif %}
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+        
+        {% if item %}
+        <!-- Item Actions -->
+        <div class="card mt-4">
+            <div class="card-header">
+                <h5 class="card-title mb-0">Item Actions</h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-4">
+                        <div class="d-grid">
+                            <a href="{{ url_for('inventory.transactions', item_id=item.id) }}" class="btn btn-outline-info">
+                                <i class="fas fa-history me-2"></i>View Transactions
+                            </a>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="d-grid">
+                            <a href="{{ url_for('inventory.add_transaction', item_id=item.id) }}" class="btn btn-outline-success">
+                                <i class="fas fa-plus me-2"></i>Add Transaction
+                            </a>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="d-grid">
+                            <form method="POST" action="{{ url_for('inventory.delete', item_id=item.id) }}" 
+                                  onsubmit="return confirm('Are you sure you want to delete this item? This will also delete all transaction history.')">
+                                <button type="submit" class="btn btn-outline-danger w-100">
+                                    <i class="fas fa-trash me-2"></i>Delete Item
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
+
+{% block styles %}
+<style>
+/* Improve input field visibility and sizing */
+.form-control {
+    font-size: 16px !important;
+    padding: 0.75rem 1rem !important;
+    min-height: 48px !important;
+}
+
+.input-group .form-control {
+    min-width: 120px !important;
+}
+
+.input-group-text {
+    font-size: 16px !important;
+    padding: 0.75rem 1rem !important;
+    min-height: 48px !important;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* Make sure the input group has proper spacing */
+.input-group {
+    width: 100%;
+}
+
+/* Improve mobile responsiveness */
+@media (max-width: 768px) {
+    .form-control {
+        font-size: 18px !important; /* Prevent zoom on iOS */
+    }
+    
+    .input-group-text {
+        font-size: 18px !important;
+    }
+}
+</style>
+{% endblock %}
+
+{% block scripts %}
+<script>
+// Handle "Other" unit option
+document.addEventListener('DOMContentLoaded', function() {
+    const unitSelect = document.getElementById('unit');
+    const unitContainer = unitSelect.parentElement;
+    
+    // Create custom unit input (initially hidden)
+    const customUnitInput = document.createElement('input');
+    customUnitInput.type = 'text';
+    customUnitInput.className = 'form-control mt-2';
+    customUnitInput.name = 'custom_unit';
+    customUnitInput.placeholder = 'Enter custom unit (e.g., gallons, feet, etc.)';
+    customUnitInput.style.display = 'none';
+    
+    // Add the custom input after the select
+    unitContainer.appendChild(customUnitInput);
+    
+    // Handle unit selection change
+    unitSelect.addEventListener('change', function() {
+        if (this.value === 'Other') {
+            customUnitInput.style.display = 'block';
+            customUnitInput.required = true;
+            customUnitInput.focus();
+        } else {
+            customUnitInput.style.display = 'none';
+            customUnitInput.required = false;
+            customUnitInput.value = '';
+        }
+    });
+    
+    // If editing and unit is "Other", show the custom input
+    {% if item and item.unit and item.unit not in ['KG', 'Pieces', 'Liters', 'Boxes', 'Bottles', 'Cans', 'Bags', 'Rolls', 'Sheets', 'Units', 'Meters', 'Grams'] %}
+    if (unitSelect.value === 'Other') {
+        customUnitInput.style.display = 'block';
+        customUnitInput.value = '{{ item.unit }}';
+    }
+    {% endif %}
+    
+    // Update the unit value when custom input changes
+    customUnitInput.addEventListener('input', function() {
+        if (this.value.trim()) {
+            unitSelect.value = 'Other';
+        }
+    });
+    
+    // Form submission - update unit value if custom input is used
+    document.querySelector('form').addEventListener('submit', function() {
+        if (customUnitInput.style.display !== 'none' && customUnitInput.value.trim()) {
+            unitSelect.value = customUnitInput.value.trim();
+        }
+    });
+});
+
+{% if item %}
+// Update stock value when cost per unit changes
+document.getElementById('cost_per_unit').addEventListener('input', function() {
+    const costPerUnit = parseFloat(this.value) || 0;
+    const currentStock = {{ item.current_stock|int }};
+    const stockValue = (currentStock * costPerUnit).toFixed(2);
+    document.getElementById('stock-value').textContent = stockValue + ' MAD';
+});
+{% endif %}
+</script>
+{% endblock %}

@@ -1,0 +1,391 @@
+{% extends "base.html" %}
+
+{% block title %}Assign Service to Guest - HostelFlow{% endblock %}
+
+{% block page_title %}Assign Extra Service to Guest{% endblock %}
+
+{% block page_subtitle %}
+<p class="text-muted mb-0">Quickly assign coffee, drinks, or other extra services to guests</p>
+{% endblock %}
+
+{% block page_actions %}
+<div class="d-flex gap-2">
+    <a href="{{ url_for('food_extras.index') }}" class="btn btn-modern btn-outline-secondary">
+        <i class="fas fa-arrow-left me-2"></i>Back to Dashboard
+    </a>
+    <a href="{{ url_for('food_extras.services') }}" class="btn btn-modern btn-outline-primary">
+        <i class="fas fa-utensils me-2"></i>Manage Services
+    </a>
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-lg-8">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="fas fa-plus-circle me-2"></i>Assign Service to Guest
+                </h5>
+            </div>
+            <div class="card-body">
+                <form method="POST" id="assignServiceForm">
+                    <!-- Guest Selection -->
+                    <div class="mb-4">
+                        <label for="tenant_id" class="form-label">
+                            <strong>Select Guest *</strong>
+                        </label>
+                        <select class="form-select form-select-lg" id="tenant_id" name="tenant_id" required>
+                            <option value="">Choose a guest...</option>
+                            {% for guest in guests %}
+                            <option value="{{ guest.id }}" 
+                                    data-room="{{ guest.room_number or 'No Room' }}"
+                                    data-daily-rent="{{ guest.daily_rent }}">
+                                {{ guest.name }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                        <div class="form-text">Select the guest who will receive this service</div>
+                    </div>
+
+                    <!-- Service Selection -->
+                    <div class="mb-4">
+                        <label for="service_id" class="form-label">
+                            <strong>Select Service *</strong>
+                        </label>
+                        <select class="form-select form-select-lg" id="service_id" name="service_id" required>
+                            <option value="">Choose a service...</option>
+                            {% for service in services %}
+                            <option value="{{ service.id }}" 
+                                    data-price="{{ service.price }}"
+                                    data-description="{{ service.description or '' }}">
+                                {{ service.name }} - {{ "%.0f"|format(service.price) }} MAD
+                                {% if service.description %}
+                                    ({{ service.description }})
+                                {% endif %}
+                            </option>
+                            {% endfor %}
+                        </select>
+                        <div class="form-text">Choose the extra service to assign</div>
+                    </div>
+
+                    <!-- Quantity and Price Row -->
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-4">
+                                <label for="quantity" class="form-label">
+                                    <strong>Quantity</strong>
+                                </label>
+                                <input type="number" class="form-control form-control-lg" 
+                                       id="quantity" name="quantity" value="1" min="1" max="99">
+                                <div class="form-text">How many of this service?</div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-4">
+                                <label for="custom_price" class="form-label">
+                                    <strong>Price per Unit (MAD)</strong>
+                                </label>
+                                <input type="number" class="form-control form-control-lg" 
+                                       id="custom_price" name="custom_price" 
+                                       step="0.01" min="0.01">
+                                <div class="form-text">Leave empty to use default service price</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Notes -->
+                    <div class="mb-4">
+                        <label for="notes" class="form-label">
+                            <strong>Notes (Optional)</strong>
+                        </label>
+                        <textarea class="form-control" id="notes" name="notes" rows="3" 
+                                  placeholder="e.g., 'Guest requested extra hot coffee', 'Special dietary requirements', etc."></textarea>
+                        <div class="form-text">Any special instructions or notes about this service</div>
+                    </div>
+
+                    <!-- Summary Card -->
+                    <div class="card bg-light mb-4" id="summaryCard" style="display: none;">
+                        <div class="card-body">
+                            <h6 class="card-title">
+                                <i class="fas fa-calculator me-2"></i>Service Summary
+                            </h6>
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <p class="mb-1"><strong>Guest:</strong> <span id="summaryGuest">-</span></p>
+                                    <p class="mb-1"><strong>Service:</strong> <span id="summaryService">-</span></p>
+                                    <p class="mb-1"><strong>Quantity:</strong> <span id="summaryQuantity">-</span></p>
+                                </div>
+                                <div class="col-md-6">
+                                    <p class="mb-1"><strong>Price per Unit:</strong> <span id="summaryPrice">-</span></p>
+                                    <p class="mb-1"><strong>Total Amount:</strong> <span id="summaryTotal" class="text-success fw-bold">-</span></p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Submit Button -->
+                    <div class="d-grid">
+                        <button type="submit" class="btn btn-modern btn-primary btn-lg" id="submitBtn">
+                            <i class="fas fa-check me-2"></i>Assign Service to Guest
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-4">
+        <!-- Quick Stats -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h6 class="mb-0">
+                    <i class="fas fa-chart-bar me-2"></i>Quick Stats
+                </h6>
+            </div>
+            <div class="card-body">
+                <div class="row text-center">
+                    <div class="col-6">
+                        <h4 class="text-primary mb-1">{{ guests|length }}</h4>
+                        <small class="text-muted">Active Guests</small>
+                    </div>
+                    <div class="col-6">
+                        <h4 class="text-success mb-1">{{ services|length }}</h4>
+                        <small class="text-muted">Available Services</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Recent Assignments -->
+        <div class="card">
+            <div class="card-header">
+                <h6 class="mb-0">
+                    <i class="fas fa-clock me-2"></i>Recent Assignments
+                </h6>
+            </div>
+            <div class="card-body">
+                <div class="list-group list-group-flush">
+                    {% for service in services[:5] %}
+                    <div class="list-group-item px-0">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <h6 class="mb-1">{{ service.name }}</h6>
+                                <small class="text-muted">{{ "%.0f"|format(service.price) }} MAD</small>
+                            </div>
+                            <span class="badge bg-primary">{{ service.service_type|title }}</span>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Confirmation Modal -->
+<div class="modal fade" id="confirmModal" tabindex="-1" aria-labelledby="confirmModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title" id="confirmModalLabel">
+                    <i class="fas fa-question-circle me-2"></i>Confirm Service Assignment
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="alert alert-info">
+                    <i class="fas fa-info-circle me-2"></i>
+                    Please review the details below before confirming the assignment.
+                </div>
+                
+                <div class="card">
+                    <div class="card-body">
+                        <h6 class="card-title text-primary mb-3">
+                            <i class="fas fa-list-alt me-2"></i>Assignment Details
+                        </h6>
+                        <div class="row">
+                            <div class="col-sm-4">
+                                <strong>Guest:</strong>
+                            </div>
+                            <div class="col-sm-8" id="modalGuest">
+                                -
+                            </div>
+                        </div>
+                        <hr class="my-2">
+                        <div class="row">
+                            <div class="col-sm-4">
+                                <strong>Service:</strong>
+                            </div>
+                            <div class="col-sm-8" id="modalService">
+                                -
+                            </div>
+                        </div>
+                        <hr class="my-2">
+                        <div class="row">
+                            <div class="col-sm-4">
+                                <strong>Quantity:</strong>
+                            </div>
+                            <div class="col-sm-8" id="modalQuantity">
+                                -
+                            </div>
+                        </div>
+                        <hr class="my-2">
+                        <div class="row">
+                            <div class="col-sm-4">
+                                <strong>Price per Unit:</strong>
+                            </div>
+                            <div class="col-sm-8" id="modalPrice">
+                                -
+                            </div>
+                        </div>
+                        <hr class="my-2">
+                        <div class="row">
+                            <div class="col-sm-4">
+                                <strong>Total Amount:</strong>
+                            </div>
+                            <div class="col-sm-8">
+                                <span class="text-success fw-bold fs-5" id="modalTotal">-</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="mt-3">
+                    <label for="modalNotes" class="form-label">
+                        <strong>Notes:</strong>
+                    </label>
+                    <textarea class="form-control" id="modalNotes" rows="2" readonly></textarea>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                    <i class="fas fa-times me-2"></i>Cancel
+                </button>
+                <button type="button" class="btn btn-primary" id="confirmAssignment">
+                    <i class="fas fa-check me-2"></i>Confirm Assignment
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const tenantSelect = document.getElementById('tenant_id');
+    const serviceSelect = document.getElementById('service_id');
+    const quantityInput = document.getElementById('quantity');
+    const customPriceInput = document.getElementById('custom_price');
+    const summaryCard = document.getElementById('summaryCard');
+    const submitBtn = document.getElementById('submitBtn');
+
+    // Update summary when selections change
+    function updateSummary() {
+        const selectedGuest = tenantSelect.options[tenantSelect.selectedIndex];
+        const selectedService = serviceSelect.options[serviceSelect.selectedIndex];
+        const quantity = parseInt(quantityInput.value) || 0;
+        const customPrice = parseFloat(customPriceInput.value);
+        const servicePrice = selectedService ? parseFloat(selectedService.dataset.price) : 0;
+        
+        const finalPrice = customPrice || servicePrice;
+        const total = quantity * finalPrice;
+
+        if (selectedGuest && selectedService && quantity > 0) {
+            // Update summary display
+            document.getElementById('summaryGuest').textContent = selectedGuest.text;
+            document.getElementById('summaryService').textContent = selectedService.text;
+            document.getElementById('summaryQuantity').textContent = quantity;
+            document.getElementById('summaryPrice').textContent = finalPrice.toFixed(2) + ' MAD';
+            document.getElementById('summaryTotal').textContent = total.toFixed(2) + ' MAD';
+            
+            // Show summary and enable submit
+            summaryCard.style.display = 'block';
+            submitBtn.disabled = false;
+        } else {
+            summaryCard.style.display = 'none';
+            submitBtn.disabled = true;
+        }
+    }
+
+    // Auto-fill custom price with service price when service is selected
+    serviceSelect.addEventListener('change', function() {
+        const selectedOption = this.options[this.selectedIndex];
+        if (selectedOption && selectedOption.dataset.price) {
+            customPriceInput.placeholder = `Default: ${selectedOption.dataset.price} MAD`;
+            if (!customPriceInput.value) {
+                customPriceInput.value = selectedOption.dataset.price;
+            }
+        }
+        updateSummary();
+    });
+
+    // Update summary on any change
+    [tenantSelect, serviceSelect, quantityInput, customPriceInput].forEach(element => {
+        element.addEventListener('change', updateSummary);
+        element.addEventListener('input', updateSummary);
+    });
+
+    // Form validation and modal confirmation
+    document.getElementById('assignServiceForm').addEventListener('submit', function(e) {
+        e.preventDefault(); // Always prevent default submission
+        
+        const tenantId = tenantSelect.value;
+        const serviceId = serviceSelect.value;
+        const quantity = parseInt(quantityInput.value);
+        const customPrice = parseFloat(customPriceInput.value);
+        const servicePrice = serviceSelect.options[serviceSelect.selectedIndex]?.dataset.price;
+
+        // Validation
+        if (!tenantId) {
+            alert('Please select a guest.');
+            return false;
+        }
+
+        if (!serviceId) {
+            alert('Please select a service.');
+            return false;
+        }
+
+        if (!quantity || quantity <= 0) {
+            alert('Please enter a valid quantity (greater than 0).');
+            return false;
+        }
+
+        if (customPrice && customPrice <= 0) {
+            alert('Custom price must be greater than 0.');
+            return false;
+        }
+
+        // Prepare modal data
+        const guestName = tenantSelect.options[tenantSelect.selectedIndex].text;
+        const serviceName = serviceSelect.options[serviceSelect.selectedIndex].text;
+        const finalPrice = customPrice || parseFloat(servicePrice);
+        const total = quantity * finalPrice;
+        const notes = document.getElementById('notes').value;
+
+        // Populate modal
+        document.getElementById('modalGuest').textContent = guestName;
+        document.getElementById('modalService').textContent = serviceName;
+        document.getElementById('modalQuantity').textContent = quantity;
+        document.getElementById('modalPrice').textContent = finalPrice.toFixed(2) + ' MAD';
+        document.getElementById('modalTotal').textContent = total.toFixed(2) + ' MAD';
+        document.getElementById('modalNotes').value = notes || 'No notes';
+
+        // Show modal
+        const confirmModal = new bootstrap.Modal(document.getElementById('confirmModal'));
+        confirmModal.show();
+    });
+
+    // Handle confirmation button click
+    document.getElementById('confirmAssignment').addEventListener('click', function() {
+        // Submit the form
+        document.getElementById('assignServiceForm').submit();
+    });
+
+    // Initialize
+    updateSummary();
+});
+</script>
+{% endblock %}

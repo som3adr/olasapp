@@ -1,0 +1,243 @@
+{% extends "base.html" %}
+
+{% block title %}Daily Summary - HostelFlow{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Page Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h1 class="h3 mb-0">
+                <i class="fas fa-chart-bar me-2"></i>Daily Summary
+            </h1>
+            <p class="text-muted mb-0">Food and extra services summary for {{ selected_date.strftime('%B %d, %Y') }}</p>
+        </div>
+        <div class="d-flex gap-2">
+            <a href="{{ url_for('food_extras.index') }}" class="btn btn-outline-secondary">
+                <i class="fas fa-arrow-left me-2"></i>Back to Services
+            </a>
+            <button type="button" class="btn btn-outline-primary" onclick="navigateDate(-1)">
+                <i class="fas fa-chevron-left me-2"></i>Previous Day
+            </button>
+            <button type="button" class="btn btn-outline-primary" onclick="navigateDate(1)">
+                Next Day<i class="fas fa-chevron-right ms-2"></i>
+            </button>
+        </div>
+    </div>
+
+    <!-- Date Selector -->
+    <div class="row mb-4">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-body">
+                    <form method="GET" class="d-flex gap-2">
+                        <div class="flex-grow-1">
+                            <label for="date" class="form-label">Select Date</label>
+                            <input type="date" class="form-control" id="date" name="date" 
+                                   value="{{ selected_date.isoformat() }}" onchange="this.form.submit()">
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    {% if service_summary %}
+    <!-- Summary Cards -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card stat-card">
+                <div class="card-body">
+                    <div class="d-flex align-items-center">
+                        <div class="stat-icon bg-primary">
+                            <i class="fas fa-utensils"></i>
+                        </div>
+                        <div class="ms-3">
+                            <h3 class="mb-1 fw-bold">{{ service_summary|length }}</h3>
+                            <p class="mb-0 small opacity-90">Services Active</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-3">
+            <div class="card stat-card">
+                <div class="card-body">
+                    <div class="d-flex align-items-center">
+                        <div class="stat-icon bg-success">
+                            <i class="fas fa-shopping-cart"></i>
+                        </div>
+                        <div class="ms-3">
+                            <h3 class="mb-1 fw-bold">
+                                {{ service_summary.values() | sum(attribute='total_quantity') }}
+                            </h3>
+                            <p class="mb-0 small opacity-90">Total Orders</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-3">
+            <div class="card stat-card">
+                <div class="card-body">
+                    <div class="d-flex align-items-center">
+                        <div class="stat-icon bg-warning">
+                            <i class="fas fa-money-bill-wave"></i>
+                        </div>
+                        <div class="ms-3">
+                            <h3 class="mb-1 fw-bold">
+                                {{ "%.0f"|format(service_summary.values() | sum(attribute='total_revenue')) }} MAD
+                            </h3>
+                            <p class="mb-0 small opacity-90">Total Revenue</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-3">
+            <div class="card stat-card">
+                <div class="card-body">
+                    <div class="d-flex align-items-center">
+                        <div class="stat-icon bg-info">
+                            <i class="fas fa-users"></i>
+                        </div>
+                        <div class="ms-3">
+                            <h3 class="mb-1 fw-bold">
+                                {{ service_summary.values() | map(attribute='orders') | map('length') | sum }}
+                            </h3>
+                            <p class="mb-0 small opacity-90">Guest Orders</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Service Details -->
+    <div class="row">
+        {% for service_name, data in service_summary.items() %}
+        <div class="col-lg-6 mb-4">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-utensils me-2"></i>{{ service_name }}
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row mb-3">
+                        <div class="col-6">
+                            <div class="text-center">
+                                <h4 class="text-primary mb-1">{{ data.total_quantity }}</h4>
+                                <small class="text-muted">Total Quantity</small>
+                            </div>
+                        </div>
+                        <div class="col-6">
+                            <div class="text-center">
+                                <h4 class="text-success mb-1">{{ "%.0f"|format(data.total_revenue) }} MAD</h4>
+                                <small class="text-muted">Revenue</small>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Guest Orders -->
+                    <h6 class="mb-3">Guest Orders ({{ data.orders|length }})</h6>
+                    {% if data.orders %}
+                    <div class="table-responsive">
+                        <table class="table table-sm">
+                            <thead>
+                                <tr>
+                                    <th>Guest</th>
+                                    <th>Quantity</th>
+                                    <th>Unit Price</th>
+                                    <th>Total</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for order in data.orders %}
+                                <tr>
+                                    <td>
+                                        <a href="{{ url_for('guests.view', tenant_id=order.tenant.id) }}" 
+                                           class="text-decoration-none">
+                                            {{ order.tenant.name }}
+                                        </a>
+                                    </td>
+                                    <td>{{ order.quantity }}</td>
+                                    <td>{{ "%.0f"|format(order.unit_price) }} MAD</td>
+                                    <td class="fw-bold">{{ "%.0f"|format(order.quantity * order.unit_price) }} MAD</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <div class="text-center py-3">
+                        <small class="text-muted">No orders for this service</small>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+
+    {% else %}
+    <!-- No Data -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-body text-center py-5">
+                    <i class="fas fa-chart-bar fa-3x text-muted mb-3"></i>
+                    <h4 class="text-muted">No Services Active</h4>
+                    <p class="text-muted">No food or extra services were active on {{ selected_date.strftime('%B %d, %Y') }}</p>
+                    <a href="{{ url_for('food_extras.index') }}" class="btn btn-primary">
+                        <i class="fas fa-plus me-2"></i>Add Services
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+<!-- Custom CSS -->
+<style>
+.stat-card {
+    border: none;
+    box-shadow: 0 0.15rem 1.75rem 0 rgba(58, 59, 69, 0.15);
+    transition: all 0.3s ease-in-out;
+}
+
+.stat-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 0.25rem 2rem 0 rgba(58, 59, 69, 0.2);
+}
+
+.stat-icon {
+    width: 3rem;
+    height: 3rem;
+    border-radius: 0.5rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 1.25rem;
+}
+
+.bg-primary { background-color: #4e73df !important; }
+.bg-success { background-color: #1cc88a !important; }
+.bg-warning { background-color: #f6c23e !important; }
+.bg-info { background-color: #36b9cc !important; }
+</style>
+
+<script>
+function navigateDate(days) {
+    const currentDate = new Date('{{ selected_date.isoformat() }}');
+    currentDate.setDate(currentDate.getDate() + days);
+    const newDate = currentDate.toISOString().split('T')[0];
+    window.location.href = "{{ url_for('food_extras.daily_summary') }}?date=" + newDate;
+}
+</script>
+{% endblock %}

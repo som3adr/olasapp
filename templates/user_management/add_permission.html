@@ -1,0 +1,73 @@
+{% extends "base.html" %}
+
+{% block page_title %}Add New Permission{% endblock %}
+
+{% block page_subtitle %}
+<p class="text-muted mb-0">Create a new system permission for access control</p>
+{% endblock %}
+
+{% block page_actions %}
+<div class="d-flex gap-2 align-items-center">
+    <a href="{{ url_for('user_management.index') }}" class="btn btn-modern btn-outline-secondary">
+        <i class="fas fa-arrow-left me-2"></i>Back to Dashboard
+    </a>
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row justify-content-center">
+        <div class="col-md-8 col-lg-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="fas fa-key me-2"></i>Add New Permission
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <form method="POST">
+                        <div class="mb-3">
+                            <label for="name" class="form-label">Permission Name *</label>
+                            <input type="text" class="form-control" id="name" name="name" required>
+                            <div class="form-text">Unique name for this permission (e.g., "manage_inventory", "view_reports")</div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="description" class="form-label">Description</label>
+                            <textarea class="form-control" id="description" name="description" rows="3"></textarea>
+                            <div class="form-text">Brief description of what this permission allows users to do</div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="module" class="form-label">Module</label>
+                            <select class="form-select" id="module" name="module">
+                                <option value="">Select Module</option>
+                                <option value="users">Users Management</option>
+                                <option value="tenants">Guest Management</option>
+                                <option value="inventory">Inventory</option>
+                                <option value="reports">Reports</option>
+                                <option value="dashboard">Dashboard</option>
+                                <option value="rooms">Room Management</option>
+                                <option value="maintenance">Maintenance</option>
+                                <option value="meals">Meal Management</option>
+                                <option value="payments">Payment Management</option>
+                                <option value="general">General</option>
+                            </select>
+                            <div class="form-text">Which system module this permission belongs to</div>
+                        </div>
+                        
+                        <div class="d-grid gap-2">
+                            <button type="submit" class="btn btn-modern btn-success">
+                                <i class="fas fa-key me-2"></i>Create Permission
+                            </button>
+                            <a href="{{ url_for('user_management.permissions_list') }}" class="btn btn-modern btn-outline-secondary">
+                                <i class="fas fa-times me-2"></i>Cancel
+                            </a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

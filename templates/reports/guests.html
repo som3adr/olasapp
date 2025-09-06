@@ -1,0 +1,140 @@
+{% extends "base.html" %}
+
+{% block page_title %}Guests Overview{% endblock %}
+
+{% block page_actions %}
+<form class="row g-2 align-items-end" method="GET" action="{{ url_for('reports.guests_overview') }}">
+  <div class="col-auto">
+    <label class="form-label">From</label>
+    <input type="date" name="date_from" class="form-control" value="{{ date_from }}">
+  </div>
+  <div class="col-auto">
+    <label class="form-label">To</label>
+    <input type="date" name="date_to" class="form-control" value="{{ date_to }}">
+  </div>
+  <div class="col-auto">
+    <label class="form-label">Name</label>
+    <input type="text" name="q" class="form-control" placeholder="Search name" value="{{ q or '' }}"
+           style="font-size: 1rem; padding: 0.75rem; width: 100%;">
+  </div>
+  <div class="col-auto">
+    <label class="form-label">Room</label>
+    <input type="text" name="room" class="form-control" placeholder="Room #" value="{{ room or '' }}">
+  </div>
+  <div class="col-auto">
+    <label class="form-label">Stay Type</label>
+    <select name="stay_type" class="form-select">
+      <option value="">Any</option>
+      <option value="daily" {% if stay_type=='daily' %}selected{% endif %}>Daily</option>
+      <option value="weekly" {% if stay_type=='weekly' %}selected{% endif %}>Weekly</option>
+      <option value="monthly" {% if stay_type=='monthly' %}selected{% endif %}>Monthly</option>
+    </select>
+  </div>
+  <div class="col-auto">
+    <label class="form-label">Min Total</label>
+    <input type="number" step="0.01" min="0" name="min_total" class="form-control" value="{{ min_total or '' }}">
+  </div>
+  <div class="col-auto">
+    <label class="form-label">Max Total</label>
+    <input type="number" step="0.01" min="0" name="max_total" class="form-control" value="{{ max_total or '' }}">
+  </div>
+  <div class="col-auto">
+    <button class="btn btn-primary" type="submit"><i class="fas fa-filter me-2"></i>Apply</button>
+    <a class="btn btn-outline-secondary ms-2" href="{{ url_for('reports.guests_overview') }}">Reset</a>
+  </div>
+</form>
+{% endblock %}
+
+{% block content %}
+<div class="row mb-3">
+  <div class="col-md-4">
+    <div class="card bg-primary text-white"><div class="card-body"><h5>{{ '%.2f'|format(totals.rent_total) }} MAD</h5><small>Rent Total</small></div></div>
+  </div>
+  <div class="col-md-4">
+    <div class="card bg-info text-white"><div class="card-body"><h5>{{ '%.2f'|format(totals.services_total) }} MAD</h5><small>Services Total</small></div></div>
+  </div>
+  <div class="col-md-4">
+    <div class="card bg-success text-white"><div class="card-body"><h5>{{ '%.2f'|format(totals.grand_total) }} MAD</h5><small>Grand Total</small></div></div>
+  </div>
+  </div>
+
+<div class="card">
+  <div class="card-header">
+    <h5 class="card-title mb-0">Guests Details ({{ date_from }} to {{ date_to }})</h5>
+  </div>
+  <div class="card-body">
+    {% if guests %}
+    <div class="table-responsive">
+      <table class="table table-striped table-hover">
+        <thead>
+          <tr>
+            <th>Guest</th>
+            <th>Room</th>
+            <th>Period</th>
+            <th class="text-end">Daily Rate</th>
+            <th class="text-end">Days</th>
+            <th class="text-end">Rent Total</th>
+            <th>Services</th>
+            <th class="text-end">Services Total</th>
+            <th class="text-end">Grand Total</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for row in guests %}
+          {% if (not stay_type) or (row.guest and (row.guest.stay_type if row.guest.stay_type else '') == stay_type) %}{% endif %}
+          <tr>
+            <td>
+              {{ row.guest.name }}
+              {% if row.guest.is_prepaid %}
+                <span class="badge bg-success ms-2">
+                  <i class="fas fa-check-circle me-1"></i>Prepaid
+                </span>
+              {% endif %}
+            </td>
+            <td>{{ row.guest.room_number }}</td>
+            <td>{{ row.effective_start.strftime('%Y-%m-%d') }} → {{ row.effective_end.strftime('%Y-%m-%d') }}</td>
+            <td class="text-end">
+              {% if row.guest.is_prepaid %}
+                <span class="text-muted">—</span>
+              {% else %}
+                {{ '%.2f'|format(row.daily_rate) }} MAD
+              {% endif %}
+            </td>
+            <td class="text-end">{{ row.total_days }}</td>
+            <td class="text-end">
+              {% if row.guest.is_prepaid %}
+                <span class="badge bg-success">0.00 MAD</span>
+              {% else %}
+                {{ '%.2f'|format(row.rent_total) }} MAD
+              {% endif %}
+            </td>
+            <td>
+              {% if row.services %}
+              <ul class="list-unstyled mb-0">
+                {% for s in row.services %}
+                <li>{{ s.name }} x{{ s.quantity }} @ {{ '%.2f'|format(s.unit_price) }} MAD = {{ '%.2f'|format(s.line_total) }} MAD</li>
+                {% endfor %}
+              </ul>
+              {% else %}
+              <span class="text-muted">—</span>
+              {% endif %}
+            </td>
+            <td class="text-end">
+              {{ '%.2f'|format(row.services_total) }} MAD
+            </td>
+            <td class="text-end">
+              <strong>{{ '%.2f'|format(row.grand_total) }} MAD</strong>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+    <div class="text-center text-muted">No active guests within the selected period.</div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}
+
+

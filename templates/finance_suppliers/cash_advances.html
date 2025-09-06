@@ -1,0 +1,169 @@
+{% extends "base.html" %}
+
+{% block title %}Cash Advances - HostelFlow{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Page Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h1 class="h3 mb-0">Staff Cash Advances</h1>
+            <p class="text-muted mb-0">Track cash given to staff for purchasing supplies</p>
+        </div>
+        <div class="d-flex gap-2">
+            <a href="{{ url_for('finance_suppliers.index') }}" class="btn btn-modern btn-outline-secondary">
+                <i class="fas fa-arrow-left me-2"></i>Back to Finance
+            </a>
+            <a href="{{ url_for('finance_suppliers.add_cash_advance') }}" class="btn btn-modern btn-warning">
+                <i class="fas fa-plus me-2"></i>Add Cash Advance
+            </a>
+        </div>
+    </div>
+
+    <!-- Cash Advances Table -->
+    <div class="card">
+        <div class="card-body">
+            {% if advances %}
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>Staff Name</th>
+                            <th>Purpose</th>
+                            <th>Amount</th>
+                            <th>Date Given</th>
+                            <th>Expected Return</th>
+                            <th>Status</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for advance in advances %}
+                        <tr>
+                            <td>
+                                <div>
+                                    <strong>{{ advance.staff_name }}</strong>
+                                    {% if advance.notes %}
+                                    <br><small class="text-muted">{{ advance.notes }}</small>
+                                    {% endif %}
+                                </div>
+                            </td>
+                            <td>
+                                <span class="badge bg-light text-dark">
+                                    {{ advance.purpose|title }}
+                                </span>
+                            </td>
+                            <td>
+                                <span class="text-warning fw-bold">
+                                    {{ "%.0f"|format(advance.amount) }} MAD
+                                </span>
+                                {% if advance.status == 'partially_used' %}
+                                <br><small class="text-muted">Remaining Balance</small>
+                                {% elif advance.status == 'completed' %}
+                                <br><small class="text-success">Fully Used</small>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <small class="text-muted">
+                                    {{ advance.date_given.strftime('%b %d, %Y') }}
+                                </small>
+                            </td>
+                            <td>
+                                {% if advance.expected_return_date %}
+                                <small class="text-muted">
+                                    {{ advance.expected_return_date.strftime('%b %d, %Y') }}
+                                </small>
+                                {% else %}
+                                <small class="text-muted">Not specified</small>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if advance.status == 'pending' %}
+                                    <span class="badge bg-warning">Pending</span>
+                                {% elif advance.status == 'partially_used' %}
+                                    <span class="badge bg-info">Partially Used</span>
+                                {% elif advance.status == 'completed' %}
+                                    <span class="badge bg-success">Completed</span>
+                                {% elif advance.status == 'overdue' %}
+                                    <span class="badge bg-danger">Overdue</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <div class="btn-group btn-group-sm" role="group">
+                                    <a href="{{ url_for('finance_suppliers.view_cash_advance', advance_id=advance.id) }}" 
+                                       class="btn btn-outline-primary" title="View Details">
+                                        <i class="fas fa-eye"></i>
+                                    </a>
+                                    <a href="{{ url_for('finance_suppliers.edit_cash_advance', advance_id=advance.id) }}" 
+                                       class="btn btn-outline-warning" title="Edit">
+                                        <i class="fas fa-edit"></i>
+                                    </a>
+                                    <a href="{{ url_for('finance_suppliers.add_cash_to_advance', advance_id=advance.id) }}" 
+                                       class="btn btn-outline-success" title="Add Cash">
+                                        <i class="fas fa-plus"></i>
+                                    </a>
+                                    <button type="button" class="btn btn-outline-danger" title="Delete" 
+                                            onclick="deleteAdvance({{ advance.id }}, '{{ advance.staff_name }}')">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div class="text-center py-5">
+                <i class="fas fa-hand-holding-usd fa-4x text-muted mb-4"></i>
+                <h4 class="text-muted">No Cash Advances Recorded</h4>
+                <p class="text-muted mb-4">Start tracking cash given to staff for purchasing supplies.</p>
+                <a href="{{ url_for('finance_suppliers.add_cash_advance') }}" class="btn btn-warning">
+                    <i class="fas fa-plus me-2"></i>Add First Cash Advance
+                </a>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<!-- Delete Confirmation Modal -->
+<div class="modal fade" id="deleteModal" tabindex="-1" aria-labelledby="deleteModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="deleteModalLabel">Confirm Delete</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p>Are you sure you want to delete the cash advance for "<span id="advanceStaffName"></span>"?</p>
+                <p class="text-danger"><strong>This action cannot be undone.</strong></p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <form id="deleteForm" method="POST" style="display: inline;">
+                    <button type="submit" class="btn btn-danger">Delete Cash Advance</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.btn-modern {
+    border-radius: 10px;
+    font-weight: 500;
+    padding: 0.5rem 1rem;
+}
+</style>
+
+<script>
+function deleteAdvance(advanceId, staffName) {
+    document.getElementById('advanceStaffName').textContent = staffName;
+    document.getElementById('deleteForm').action = "{{ url_for('finance_suppliers.delete_cash_advance', advance_id=0) }}".replace('0', advanceId);
+    
+    const deleteModal = new bootstrap.Modal(document.getElementById('deleteModal'));
+    deleteModal.show();
+}
+</script>
+{% endblock %}

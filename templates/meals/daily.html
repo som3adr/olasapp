@@ -1,0 +1,1076 @@
+{% extends "base.html" %}
+
+{% block page_title %}Daily Meal Management{% endblock %}
+
+{% block page_subtitle %}
+<p class="text-muted mb-0">Manage meals for {{ selected_date.strftime('%B %d, %Y') }} - Add, remove, or modify guest meals</p>
+{% endblock %}
+
+{% block page_actions %}
+<div class="d-flex gap-2 align-items-center">
+    <div class="input-group" style="width: 200px;">
+        <span class="input-group-text">
+            <i class="fas fa-calendar-alt"></i>
+        </span>
+        <input type="date" class="form-control" id="datePicker" value="{{ selected_date.isoformat() }}">
+    </div>
+    <button class="btn btn-modern btn-outline-primary" onclick="navigateToDate()">
+        <i class="fas fa-search me-2"></i>Go to Date
+    </button>
+    <button class="btn btn-modern btn-outline-success" onclick="exportDailyMeals()">
+        <i class="fas fa-download me-2"></i>Export
+    </button>
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Summary Cards -->
+    <div class="row mb-4">
+        <div class="col-md-6">
+            <div class="dashboard-card bg-warning">
+                <div class="card-body text-center">
+                    <div class="d-flex align-items-center justify-content-center mb-3">
+                        <div class="bg-white bg-opacity-20 rounded-circle p-3 me-3">
+                            <i class="fas fa-sun fa-2x text-white"></i>
+                        </div>
+                        <div>
+                            <h3 class="mb-0 text-white">{{ breakfast_count }}</h3>
+                            <p class="mb-0 text-white-50">Breakfasts Today</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="dashboard-card bg-info">
+                <div class="card-body text-center">
+                    <div class="d-flex align-items-center justify-content-center mb-3">
+                        <div class="bg-white bg-opacity-20 rounded-circle p-3 me-3">
+                            <i class="fas fa-moon fa-2x text-white"></i>
+                        </div>
+                        <div>
+                            <h3 class="mb-0 text-white">{{ dinner_count }}</h3>
+                            <p class="mb-0 text-white-50">Dinners Today</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Quick Actions -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h6 class="mb-0">
+                        <i class="fas fa-bolt me-2"></i>Quick Actions
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h6 class="text-warning">
+                                <i class="fas fa-sun me-2"></i>Quick Add Breakfast
+                            </h6>
+                            <div class="input-group mb-3">
+                                <select class="form-select" id="quickBreakfastGuest">
+                                    <option value="">Select Guest...</option>
+                                    {% for guest, stay in active_guests %}
+                                    <option value="{{ guest.id }}" data-room="{{ guest.room_number }}">
+                                        {{ guest.name }} (Room {{ guest.room_number }})
+                                    </option>
+                                    {% endfor %}
+                                </select>
+                                <input type="number" class="form-control" id="quickBreakfastQty" value="1" min="1" style="width: 80px;">
+                                <button class="btn btn-warning" onclick="quickAddMeal('breakfast')">
+                                    <i class="fas fa-plus me-2"></i>Add
+                                </button>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <h6 class="text-info">
+                                <i class="fas fa-moon me-2"></i>Quick Add Dinner
+                            </h6>
+                            <div class="input-group mb-3">
+                                <select class="form-select" id="quickDinnerGuest">
+                                    <option value="">Select Guest...</option>
+                                    {% for guest, stay in active_guests %}
+                                    <option value="{{ guest.id }}" data-room="{{ guest.room_number }}">
+                                        {{ guest.name }} (Room {{ guest.room_number }})
+                                    </option>
+                                    {% endfor %}
+                                </select>
+                                <input type="number" class="form-control" id="quickDinnerQty" value="1" min="1" style="width: 80px;">
+                                <button class="btn btn-info" onclick="quickAddMeal('dinner')">
+                                    <i class="fas fa-plus me-2"></i>Add
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Bulk Operations -->
+                    <hr class="my-3">
+                    <div class="row">
+                        <div class="col-12">
+                            <h6 class="text-success">
+                                <i class="fas fa-users me-2"></i>Bulk Operations
+                            </h6>
+                            <div class="row">
+                                <div class="col-md-2">
+                                    <label class="form-label">Meal Type</label>
+                                    <select class="form-select" id="bulkMealType" onchange="updateBulkMealPrice()">
+                                        <option value="breakfast">Breakfast</option>
+                                        <option value="dinner">Dinner</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-2">
+                                    <label class="form-label">Date</label>
+                                    <input type="date" class="form-control" id="bulkMealDate" value="{{ selected_date.isoformat() }}">
+                                </div>
+                                <div class="col-md-2">
+                                    <label class="form-label">Quantity</label>
+                                    <input type="number" class="form-control" id="bulkMealQty" value="1" min="1">
+                                </div>
+                                <div class="col-md-2">
+                                    <label class="form-label">Price (MAD)</label>
+                                    <input type="number" class="form-control" id="bulkMealPrice" step="0.01" min="0" onchange="updateBulkMealPrice()">
+                                </div>
+                                <div class="col-md-2">
+                                    <label class="form-label">Notes</label>
+                                    <input type="text" class="form-control" id="bulkMealNotes" placeholder="Optional">
+                                </div>
+                                <div class="col-md-2 d-flex align-items-end">
+                                    <button class="btn btn-success w-100" onclick="openBulkMealModal()">
+                                        <i class="fas fa-users me-2"></i>Select Guests
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Meal Management Tabs -->
+    <div class="card">
+        <div class="card-header">
+            <ul class="nav nav-tabs card-header-tabs" id="mealTabs" role="tablist">
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link active" id="breakfast-tab" data-bs-toggle="tab" data-bs-target="#breakfast" type="button" role="tab">
+                        <i class="fas fa-sun me-2"></i>Breakfast
+                        <span class="badge bg-warning ms-2">{{ breakfast_count }}</span>
+                    </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="dinner-tab" data-bs-toggle="tab" data-bs-target="#dinner" type="button" role="tab">
+                        <i class="fas fa-moon me-2"></i>Dinner
+                        <span class="badge bg-info ms-2">{{ dinner_count }}</span>
+                    </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="guests-tab" data-bs-toggle="tab" data-bs-target="#guests" type="button" role="tab">
+                        <i class="fas fa-users me-2"></i>All Guests
+                        <span class="badge bg-secondary ms-2">{{ active_guests|length }}</span>
+                    </button>
+                </li>
+            </ul>
+        </div>
+        
+        <div class="card-body">
+            <div class="tab-content" id="mealTabsContent">
+                <!-- Breakfast Tab -->
+                <div class="tab-pane fade show active" id="breakfast" role="tabpanel">
+                    {% if daily_breakfast %}
+                        <div class="table-responsive">
+                            <table class="table table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>Guest Name</th>
+                                        <th>Room</th>
+                                        <th>Quantity</th>
+                                        <th>Unit Price</th>
+                                        <th>Total</th>
+                                        <th>Notes</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for meal in daily_breakfast %}
+                                    <tr>
+                                        <td>
+                                            <div class="d-flex align-items-center">
+                                                <div class="bg-warning bg-opacity-10 rounded-circle p-2 me-3">
+                                                    <i class="fas fa-user text-warning"></i>
+                                                </div>
+                                                <div>
+                                                    <strong>{{ meal.tenant.name }}</strong>
+                                                </div>
+                                            </div>
+                                        </td>
+                                        <td>
+                                            <span class="badge bg-primary">{{ meal.tenant.room_number }}</span>
+                                        </td>
+                                        <td>
+                                            <span class="badge bg-warning">{{ meal.quantity }}</span>
+                                        </td>
+                                        <td>{{ "%.2f"|format(meal.unit_price or 0) }} MAD</td>
+                                        <td>
+                                            <strong>{{ "%.2f"|format(meal.quantity * (meal.unit_price or 0)) }} MAD</strong>
+                                        </td>
+                                        <td>
+                                            <small class="text-muted">{{ meal.notes or 'No notes' }}</small>
+                                        </td>
+                                        <td>
+                                            <button class="btn btn-sm btn-outline-danger" onclick="removeMeal({{ meal.tenant_id }}, 'breakfast', '{{ selected_date.isoformat() }}')">
+                                                <i class="fas fa-times"></i>
+                                            </button>
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    {% else %}
+                        <div class="text-center py-5">
+                            <div class="bg-warning bg-opacity-10 rounded-circle d-inline-flex p-4 mb-3">
+                                <i class="fas fa-sun fa-3x text-warning"></i>
+                            </div>
+                            <h5 class="text-muted">No Breakfast Meals Today</h5>
+                            <p class="text-muted">Use Quick Actions above to add breakfast meals for guests</p>
+                        </div>
+                    {% endif %}
+                </div>
+
+                <!-- Dinner Tab -->
+                <div class="tab-pane fade" id="dinner" role="tabpanel">
+                    {% if daily_dinner %}
+                        <div class="table-responsive">
+                            <table class="table table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>Guest Name</th>
+                                        <th>Room</th>
+                                        <th>Quantity</th>
+                                        <th>Unit Price</th>
+                                        <th>Total</th>
+                                        <th>Notes</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for meal in daily_dinner %}
+                                    <tr>
+                                        <td>
+                                            <div class="d-flex align-items-center">
+                                                <div class="bg-info bg-opacity-10 rounded-circle p-2 me-3">
+                                                    <i class="fas fa-user text-info"></i>
+                                                </div>
+                                                <div>
+                                                    <strong>{{ meal.tenant.name }}</strong>
+                                                </div>
+                                            </div>
+                                        </td>
+                                        <td>
+                                            <span class="badge bg-primary">{{ meal.tenant.room_number }}</span>
+                                        </td>
+                                        <td>
+                                            <span class="badge bg-info">{{ meal.quantity }}</span>
+                                        </td>
+                                        <td>{{ "%.2f"|format(meal.unit_price or 0) }} MAD</td>
+                                        <td>
+                                            <strong>{{ "%.2f"|format(meal.quantity * (meal.unit_price or 0)) }} MAD</strong>
+                                        </td>
+                                        <td>
+                                            <small class="text-muted">{{ meal.notes or 'No notes' }}</small>
+                                        </td>
+                                        <td>
+                                            <button class="btn btn-sm btn-outline-danger" onclick="removeMeal({{ meal.tenant_id }}, 'dinner', '{{ selected_date.isoformat() }}')">
+                                                <i class="fas fa-times"></i>
+                                            </button>
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    {% else %}
+                        <div class="text-center py-5">
+                            <div class="bg-info bg-opacity-10 rounded-circle d-inline-flex p-4 mb-3">
+                                <i class="fas fa-moon fa-3x text-info"></i>
+                            </div>
+                            <h5 class="text-muted">No Dinner Meals Today</h5>
+                            <p class="text-muted">Use Quick Actions above to add dinner meals for guests</p>
+                        </div>
+                    {% endif %}
+                </div>
+
+                <!-- All Guests Tab -->
+                <div class="tab-pane fade" id="guests" role="tabpanel">
+                    <!-- Bulk Actions Header -->
+                    <div class="row mb-3">
+                        <div class="col-12">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <h6 class="mb-0">
+                                    <i class="fas fa-users me-2"></i>All Active Guests ({{ active_guests|length }})
+                                </h6>
+                                <div class="btn-group">
+                                    <button class="btn btn-outline-success btn-sm" onclick="bulkAddBreakfastToAll()">
+                                        <i class="fas fa-sun me-1"></i>Add Breakfast to All
+                                    </button>
+                                    <button class="btn btn-outline-info btn-sm" onclick="bulkAddDinnerToAll()">
+                                        <i class="fas fa-moon me-1"></i>Add Dinner to All
+                                    </button>
+                                    <button class="btn btn-outline-warning btn-sm" onclick="bulkRemoveAllMeals()">
+                                        <i class="fas fa-times me-1"></i>Remove All Meals
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="checkbox" id="selectAllTableGuests" onchange="toggleAllTableGuests()">
+                                        </div>
+                                    </th>
+                                    <th>Guest Name</th>
+                                    <th>Room</th>
+                                    <th>Check In</th>
+                                    <th>Check Out</th>
+                                    <th>Today's Meals</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for guest, stay in active_guests %}
+                                <tr>
+                                    <td>
+                                        <div class="form-check">
+                                            <input class="form-check-input table-guest-checkbox" type="checkbox" value="{{ guest.id }}" id="table_guest_{{ guest.id }}">
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <div class="d-flex align-items-center">
+                                            <div class="bg-primary bg-opacity-10 rounded-circle p-2 me-3">
+                                                <i class="fas fa-user text-primary"></i>
+                                            </div>
+                                            <div>
+                                                <strong>{{ guest.name }}</strong>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <span class="badge bg-primary">{{ guest.room_number }}</span>
+                                    </td>
+                                    <td>{{ stay.start_date.strftime('%Y-%m-%d') if stay.start_date else 'N/A' }}</td>
+                                    <td>{{ stay.end_date.strftime('%Y-%m-%d') if stay.end_date else 'Ongoing' }}</td>
+                                    <td>
+                                        {% set has_breakfast = false %}
+                                        {% set has_dinner = false %}
+                                        {% for meal in daily_breakfast %}
+                                            {% if meal.tenant_id == guest.id %}
+                                                {% set has_breakfast = true %}
+                                            {% endif %}
+                                        {% endfor %}
+                                        {% for meal in daily_dinner %}
+                                            {% if meal.tenant_id == guest.id %}
+                                                {% set has_dinner = true %}
+                                            {% endif %}
+                                        {% endfor %}
+                                        
+                                        <span class="badge bg-warning me-1" style="display: {{ 'inline' if has_breakfast else 'none' }};">
+                                            <i class="fas fa-sun me-1"></i>B
+                                        </span>
+                                        <span class="badge bg-info" style="display: {{ 'inline' if has_dinner else 'none' }};">
+                                            <i class="fas fa-moon me-1"></i>D
+                                        </span>
+                                        {% if not has_breakfast and not has_dinner %}
+                                            <span class="text-muted">No meals</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <div class="btn-group btn-group-sm">
+                                            <button class="btn btn-outline-warning" onclick="addMeal({{ guest.id }}, 'breakfast', '{{ selected_date.isoformat() }}')">
+                                                <i class="fas fa-sun"></i>
+                                            </button>
+                                            <button class="btn btn-outline-info" onclick="addMeal({{ guest.id }}, 'dinner', '{{ selected_date.isoformat() }}')">
+                                                <i class="fas fa-moon"></i>
+                                            </button>
+                                            <button class="btn btn-outline-secondary" onclick="viewGuestMeals({{ guest.id }})">
+                                                <i class="fas fa-calendar"></i>
+                                            </button>
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Add Meal Modal -->
+<div class="modal fade" id="addMealModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Add Meal</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="addMealForm">
+                    <div class="mb-3">
+                        <label class="form-label">Guest</label>
+                        <select class="form-select" id="modalGuestSelect" required>
+                            <option value="">Select Guest...</option>
+                            {% for guest, stay in active_guests %}
+                            <option value="{{ guest.id }}">{{ guest.name }} (Room {{ guest.room_number }})</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Meal Type</label>
+                        <select class="form-select" id="modalMealType" required>
+                            <option value="breakfast">Breakfast</option>
+                            <option value="dinner">Dinner</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Date</label>
+                        <input type="date" class="form-control" id="modalMealDate" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Quantity</label>
+                        <input type="number" class="form-control" id="modalMealQty" value="1" min="1" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Unit Price (MAD)</label>
+                        <input type="number" class="form-control" id="modalMealPrice" step="0.01" min="0">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Notes</label>
+                        <textarea class="form-control" id="modalMealNotes" rows="2" placeholder="Optional notes..."></textarea>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" onclick="submitAddMeal()">Add Meal</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Guest Meals Modal -->
+<div class="modal fade" id="guestMealsModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Guest Meal Schedule</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div id="guestMealsContent">
+                    <div class="text-center">
+                        <div class="spinner-border" role="status">
+                            <span class="visually-hidden">Loading...</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Bulk Meal Selection Modal -->
+<div class="modal fade" id="bulkMealModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Bulk Add Meals</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <h6 class="text-success">
+                            <i class="fas fa-users me-2"></i>Select Guests
+                        </h6>
+                        <div class="mb-3">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="selectAllGuests" onchange="toggleAllGuests()">
+                                <label class="form-check-label" for="selectAllGuests">
+                                    <strong>Select All Active Guests</strong>
+                                </label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="selectNoneGuests" onchange="selectNoneGuests()">
+                                <label class="form-check-label" for="selectNoneGuests">
+                                    <strong>Deselect All</strong>
+                                </label>
+                            </div>
+                        </div>
+                        
+                        <!-- Guest Search -->
+                        <div class="mb-3">
+                            <input type="text" class="form-control" id="guestSearch" placeholder="Search guests by name or room..." onkeyup="filterGuests()"
+                                   style="font-size: 1rem; padding: 0.75rem; width: 100%;">
+                        </div>
+                        
+                        <hr>
+                        <div class="guest-selection-list" style="max-height: 300px; overflow-y: auto;">
+                            {% for guest, stay in active_guests %}
+                            <div class="guest-item" data-name="{{ guest.name.lower() }}" data-room="{{ guest.room_number }}">
+                                <div class="form-check">
+                                    <input class="form-check-input guest-checkbox" type="checkbox" value="{{ guest.id }}" id="guest_{{ guest.id }}">
+                                    <label class="form-check-label" for="guest_{{ guest.id }}">
+                                        <strong>{{ guest.name }}</strong> (Room {{ guest.room_number }})
+                                        <br>
+                                        <small class="text-muted">
+                                            Check-in: {{ stay.start_date.strftime('%Y-%m-%d') if stay.start_date else 'N/A' }} | 
+                                            Check-out: {{ stay.end_date.strftime('%Y-%m-%d') if stay.end_date else 'Ongoing' }}
+                                        </small>
+                                    </label>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <h6 class="text-info">
+                            <i class="fas fa-cog me-2"></i>Meal Configuration
+                        </h6>
+                        <div class="mb-3">
+                            <label class="form-label">Meal Type</label>
+                            <select class="form-select" id="modalBulkMealType">
+                                <option value="breakfast">Breakfast</option>
+                                <option value="dinner">Dinner</option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Date</label>
+                            <input type="date" class="form-control" id="modalBulkMealDate" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Quantity per Guest</label>
+                            <input type="number" class="form-control" id="modalBulkMealQty" value="1" min="1" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Unit Price (MAD)</label>
+                            <input type="number" class="form-control" id="modalBulkMealPrice" step="0.01" min="0">
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Notes</label>
+                            <textarea class="form-control" id="modalBulkMealNotes" rows="2" placeholder="Optional notes for all meals..."></textarea>
+                        </div>
+                        
+                        <div class="alert alert-info">
+                            <i class="fas fa-info-circle me-2"></i>
+                            <strong>Selected:</strong> <span id="selectedGuestCount">0</span> guests
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-success" onclick="submitBulkMeals()">
+                    <i class="fas fa-users me-2"></i>Add Meals to Selected Guests
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const datePicker = document.getElementById('datePicker');
+    
+    // Set default date for modal
+    document.getElementById('modalMealDate').value = '{{ selected_date.isoformat() }}';
+    
+    // Update meal data when date changes
+    datePicker.addEventListener('change', function() {
+        const selectedDate = this.value;
+        navigateToDate(selectedDate);
+    });
+});
+
+// Navigate to specific date
+function navigateToDate(dateStr = null) {
+    const date = dateStr || document.getElementById('datePicker').value;
+    if (date) {
+        window.location.href = `/meals/daily/${date}`;
+    }
+}
+
+// Quick add meal functions
+function quickAddMeal(serviceType) {
+    const guestSelect = document.getElementById(`quick${serviceType.charAt(0).toUpperCase() + serviceType.slice(1)}Guest`);
+    const qtyInput = document.getElementById(`quick${serviceType.charAt(0).toUpperCase() + serviceType.slice(1)}Qty`);
+    
+    if (!guestSelect.value) {
+        alert('Please select a guest');
+        return;
+    }
+    
+    addMeal(guestSelect.value, serviceType, '{{ selected_date.isoformat() }}', qtyInput.value);
+}
+
+// Add meal function
+function addMeal(tenantId, serviceType, mealDate, quantity = 1) {
+    // Set modal values
+    document.getElementById('modalGuestSelect').value = tenantId;
+    document.getElementById('modalMealType').value = serviceType;
+    document.getElementById('modalMealDate').value = mealDate;
+    document.getElementById('modalMealQty').value = quantity;
+    
+    // Set default prices
+    if (serviceType === 'breakfast') {
+        document.getElementById('modalMealPrice').value = '30.00';
+    } else if (serviceType === 'dinner') {
+        document.getElementById('modalMealPrice').value = '45.00';
+    }
+    
+    // Show modal
+    const modal = new bootstrap.Modal(document.getElementById('addMealModal'));
+    modal.show();
+}
+
+// Submit add meal form
+async function submitAddMeal() {
+    const formData = {
+        tenant_id: document.getElementById('modalGuestSelect').value,
+        service_type: document.getElementById('modalMealType').value,
+        meal_date: document.getElementById('modalMealDate').value,
+        quantity: parseInt(document.getElementById('modalMealQty').value),
+        unit_price: parseFloat(document.getElementById('modalMealPrice').value) || 0,
+        notes: document.getElementById('modalMealNotes').value
+    };
+    
+    try {
+        const response = await fetch('/meals/api/add-meal', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(formData)
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            // Close modal and reload page
+            bootstrap.Modal.getInstance(document.getElementById('addMealModal')).hide();
+            window.location.reload();
+        } else {
+            alert('Error: ' + result.error);
+        }
+    } catch (error) {
+        alert('Error adding meal: ' + error.message);
+    }
+}
+
+// Remove meal function
+async function removeMeal(tenantId, serviceType, mealDate) {
+    if (!confirm(`Are you sure you want to remove ${serviceType} for this guest on ${mealDate}?`)) {
+        return;
+    }
+    
+    try {
+        const response = await fetch('/meals/api/remove-meal', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                tenant_id: tenantId,
+                service_type: serviceType,
+                meal_date: mealDate
+            })
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            window.location.reload();
+        } else {
+            alert('Error: ' + result.error);
+        }
+    } catch (error) {
+        alert('Error removing meal: ' + error.message);
+    }
+}
+
+// View guest meals
+async function viewGuestMeals(tenantId) {
+    const modal = new bootstrap.Modal(document.getElementById('guestMealsModal'));
+    modal.show();
+    
+    try {
+        const response = await fetch(`/meals/api/guest-meals/${tenantId}`);
+        const result = await response.json();
+        
+        if (result.success) {
+            displayGuestMeals(result.meals);
+        } else {
+            document.getElementById('guestMealsContent').innerHTML = '<p class="text-danger">Error loading meal schedule</p>';
+        }
+    } catch (error) {
+        document.getElementById('guestMealsContent').innerHTML = '<p class="text-danger">Error loading meal schedule</p>';
+    }
+}
+
+// Display guest meals in modal
+function displayGuestMeals(meals) {
+    if (meals.length === 0) {
+        document.getElementById('guestMealsContent').innerHTML = '<p class="text-muted">No meals scheduled</p>';
+        return;
+    }
+    
+    let html = '<div class="table-responsive"><table class="table table-sm">';
+    html += '<thead><tr><th>Date</th><th>Meal</th><th>Quantity</th><th>Price</th><th>Notes</th></tr></thead><tbody>';
+    
+    meals.forEach(meal => {
+        const mealIcon = meal.service_type === 'breakfast' ? 'fas fa-sun text-warning' : 'fas fa-moon text-info';
+        const mealBadge = meal.service_type === 'breakfast' ? 'bg-warning' : 'bg-info';
+        
+        html += `<tr>
+            <td>${new Date(meal.date).toLocaleDateString()}</td>
+            <td><span class="badge ${mealBadge}"><i class="${mealIcon}"></i> ${meal.service_type.charAt(0).toUpperCase() + meal.service_type.slice(1)}</span></td>
+            <td>${meal.quantity}</td>
+            <td>${meal.unit_price || 0} MAD</td>
+            <td><small class="text-muted">${meal.notes || '-'}</small></td>
+        </tr>`;
+    });
+    
+    html += '</tbody></table></div>';
+    document.getElementById('guestMealsContent').innerHTML = html;
+}
+
+// Bulk meal functions
+function openBulkMealModal() {
+    // Set default values from bulk form
+    document.getElementById('modalBulkMealType').value = document.getElementById('bulkMealType').value;
+    document.getElementById('modalBulkMealDate').value = document.getElementById('bulkMealDate').value;
+    document.getElementById('modalBulkMealQty').value = document.getElementById('bulkMealQty').value;
+    document.getElementById('modalBulkMealPrice').value = document.getElementById('bulkMealPrice').value;
+    document.getElementById('modalBulkMealNotes').value = document.getElementById('bulkMealNotes').value;
+    
+    // Reset checkboxes and search
+    document.querySelectorAll('.guest-checkbox').forEach(cb => cb.checked = false);
+    document.getElementById('selectAllGuests').checked = false;
+    document.getElementById('selectNoneGuests').checked = false;
+    document.getElementById('guestSearch').value = '';
+    
+    // Show all guests initially
+    document.querySelectorAll('.guest-item').forEach(item => {
+        item.style.display = 'block';
+    });
+    
+    updateSelectedGuestCount();
+    
+    // Show modal
+    const modal = new bootstrap.Modal(document.getElementById('bulkMealModal'));
+    modal.show();
+}
+
+function toggleAllGuests() {
+    const selectAll = document.getElementById('selectAllGuests');
+    const selectNone = document.getElementById('selectNoneGuests');
+    const checkboxes = document.querySelectorAll('.guest-checkbox');
+    
+    checkboxes.forEach(cb => {
+        cb.checked = selectAll.checked;
+    });
+    
+    // Update the "Select None" checkbox
+    selectNone.checked = !selectAll.checked;
+    
+    updateSelectedGuestCount();
+}
+
+function selectNoneGuests() {
+    const selectAll = document.getElementById('selectAllGuests');
+    const selectNone = document.getElementById('selectNoneGuests');
+    const checkboxes = document.querySelectorAll('.guest-checkbox');
+    
+    checkboxes.forEach(cb => {
+        cb.checked = false;
+    });
+    
+    // Update the "Select All" checkbox
+    selectAll.checked = false;
+    selectNone.checked = true;
+    
+    updateSelectedGuestCount();
+}
+
+function filterGuests() {
+    const searchTerm = document.getElementById('guestSearch').value.toLowerCase();
+    const guestItems = document.querySelectorAll('.guest-item');
+    
+    guestItems.forEach(item => {
+        const guestName = item.getAttribute('data-name');
+        const roomNumber = item.getAttribute('data-room');
+        
+        if (guestName.includes(searchTerm) || roomNumber.includes(searchTerm)) {
+            item.style.display = 'block';
+        } else {
+            item.style.display = 'none';
+        }
+    });
+}
+
+function updateSelectedGuestCount() {
+    const selectedCount = document.querySelectorAll('.guest-checkbox:checked').length;
+    document.getElementById('selectedGuestCount').textContent = selectedCount;
+}
+
+// Add event listeners to guest checkboxes
+document.addEventListener('DOMContentLoaded', function() {
+    document.querySelectorAll('.guest-checkbox').forEach(cb => {
+        cb.addEventListener('change', updateSelectedGuestCount);
+    });
+    
+    // Add event listeners to table guest checkboxes
+    document.querySelectorAll('.table-guest-checkbox').forEach(cb => {
+        cb.addEventListener('change', updateTableGuestSelection);
+    });
+    
+    // Set initial price based on meal type
+    updateBulkMealPrice();
+});
+
+// Auto-update price when meal type changes
+function updateBulkMealPrice() {
+    const mealType = document.getElementById('bulkMealType').value;
+    const priceInput = document.getElementById('bulkMealPrice');
+    
+    if (mealType === 'breakfast') {
+        priceInput.value = '30.00';
+    } else if (mealType === 'dinner') {
+        priceInput.value = '45.00';
+    }
+}
+
+// Table guest selection functions
+function toggleAllTableGuests() {
+    const selectAll = document.getElementById('selectAllTableGuests');
+    const checkboxes = document.querySelectorAll('.table-guest-checkbox');
+    
+    checkboxes.forEach(cb => {
+        cb.checked = selectAll.checked;
+    });
+}
+
+function updateTableGuestSelection() {
+    const checkboxes = document.querySelectorAll('.table-guest-checkbox');
+    const selectAll = document.getElementById('selectAllTableGuests');
+    
+    const allChecked = Array.from(checkboxes).every(cb => cb.checked);
+    const someChecked = Array.from(checkboxes).some(cb => cb.checked);
+    
+    selectAll.checked = allChecked;
+    selectAll.indeterminate = someChecked && !allChecked;
+}
+
+// Bulk operations for table
+function bulkAddBreakfastToAll() {
+    if (confirm('Add breakfast to ALL active guests for today?')) {
+        const allGuestIds = Array.from(document.querySelectorAll('.table-guest-checkbox')).map(cb => parseInt(cb.value));
+        bulkAddMealsToGuests(allGuestIds, 'breakfast');
+    }
+}
+
+function bulkAddDinnerToAll() {
+    if (confirm('Add dinner to ALL active guests for today?')) {
+        const allGuestIds = Array.from(document.querySelectorAll('.table-guest-checkbox')).map(cb => parseInt(cb.value));
+        bulkAddMealsToGuests(allGuestIds, 'dinner');
+    }
+}
+
+function bulkRemoveAllMeals() {
+    if (confirm('Remove ALL meals for today? This will affect all guests.')) {
+        const allGuestIds = Array.from(document.querySelectorAll('.table-guest-checkbox')).map(cb => parseInt(cb.value));
+        bulkRemoveMealsFromGuests(allGuestIds);
+    }
+}
+
+async function bulkAddMealsToGuests(guestIds, serviceType) {
+    const formData = {
+        guest_ids: guestIds,
+        service_type: serviceType,
+        meal_date: '{{ selected_date.isoformat() }}',
+        quantity: 1,
+        unit_price: serviceType === 'breakfast' ? 30.0 : 45.0,
+        notes: `Bulk added ${serviceType} for all guests`
+    };
+    
+    try {
+        const response = await fetch('/meals/api/bulk-add-meals', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(formData)
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            alert(`Success! ${result.message}`);
+            window.location.reload();
+        } else {
+            alert('Error: ' + result.error);
+        }
+    } catch (error) {
+        alert('Error adding bulk meals: ' + error.message);
+    }
+}
+
+async function bulkRemoveMealsFromGuests(guestIds) {
+    // Remove both breakfast and dinner
+    const mealTypes = ['breakfast', 'dinner'];
+    let totalRemoved = 0;
+    
+    for (const mealType of mealTypes) {
+        try {
+            const response = await fetch('/meals/api/bulk-remove-meals', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    guest_ids: guestIds,
+                    service_type: mealType,
+                    meal_date: '{{ selected_date.isoformat() }}'
+                })
+            });
+            
+            const result = await response.json();
+            if (result.success) {
+                totalRemoved += result.removed;
+            }
+        } catch (error) {
+            console.error(`Error removing ${mealType}:`, error);
+        }
+    }
+    
+    alert(`Successfully removed ${totalRemoved} meals from all guests`);
+    window.location.reload();
+}
+
+async function submitBulkMeals() {
+    const selectedGuests = Array.from(document.querySelectorAll('.guest-checkbox:checked')).map(cb => parseInt(cb.value));
+    
+    if (selectedGuests.length === 0) {
+        alert('Please select at least one guest');
+        return;
+    }
+    
+    const formData = {
+        guest_ids: selectedGuests,
+        service_type: document.getElementById('modalBulkMealType').value,
+        meal_date: document.getElementById('modalBulkMealDate').value,
+        quantity: parseInt(document.getElementById('modalBulkMealQty').value),
+        unit_price: parseFloat(document.getElementById('modalBulkMealPrice').value) || 0,
+        notes: document.getElementById('modalBulkMealNotes').value
+    };
+    
+    try {
+        const response = await fetch('/meals/api/bulk-add-meals', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(formData)
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            alert(`Success! ${result.message}`);
+            // Close modal and reload page
+            bootstrap.Modal.getInstance(document.getElementById('bulkMealModal')).hide();
+            window.location.reload();
+        } else {
+            alert('Error: ' + result.error);
+        }
+    } catch (error) {
+        alert('Error adding bulk meals: ' + error.message);
+    }
+}
+
+// Export daily meals
+function exportDailyMeals() {
+    const selectedDate = document.getElementById('datePicker').value;
+    const breakfastTab = document.getElementById('breakfast');
+    const dinnerTab = document.getElementById('dinner');
+    
+    let csvContent = `Daily Meal Plan - ${selectedDate}\n\n`;
+    
+    // Breakfast data
+    csvContent += 'BREAKFAST\n';
+    csvContent += 'Guest Name,Room,Quantity,Unit Price,Total,Notes\n';
+    
+    const breakfastRows = breakfastTab.querySelectorAll('tbody tr');
+    breakfastRows.forEach(row => {
+        const cells = row.querySelectorAll('td');
+        const rowData = [];
+        cells.forEach((cell, index) => {
+            if (index < 6) { // Skip Actions column
+                let text = cell.textContent.trim();
+                if (cell.querySelector('.badge')) {
+                    text = cell.querySelector('.badge').textContent.trim();
+                }
+                rowData.push(`"${text}"`);
+            }
+        });
+        csvContent += rowData.join(',') + '\n';
+    });
+    
+    csvContent += '\nDINNER\n';
+    csvContent += 'Guest Name,Room,Quantity,Unit Price,Total,Notes\n';
+    
+    const dinnerRows = dinnerTab.querySelectorAll('tbody tr');
+    dinnerRows.forEach(row => {
+        const cells = row.querySelectorAll('td');
+        const rowData = [];
+        cells.forEach((cell, index) => {
+            if (index < 6) { // Skip Actions column
+                let text = cell.textContent.trim();
+                if (cell.querySelector('.badge')) {
+                    text = cell.querySelector('.badge').textContent.trim();
+                }
+                rowData.push(`"${text}"`);
+            }
+        });
+        rowData.push(`"${text}"`);
+        csvContent += rowData.join(',') + '\n';
+    });
+    
+    // Create and download CSV file
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    const url = URL.createObjectURL(blob);
+    link.setAttribute('href', url);
+    link.setAttribute('download', `daily-meals-${selectedDate}.csv`);
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+}
+</script>
+{% endblock %}

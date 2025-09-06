@@ -1,0 +1,267 @@
+{% extends "base.html" %}
+
+{% block title %}{{ tenant.name }} - Services - HostelFlow{% endblock %}
+
+{% block page_title %}Guest Services: {{ tenant.name }}{% endblock %}
+
+{% block page_subtitle %}
+<p class="text-muted mb-0">View and manage all services assigned to this guest</p>
+{% endblock %}
+
+{% block page_actions %}
+<div class="d-flex gap-2">
+    <a href="{{ url_for('food_extras.assign_service') }}" class="btn btn-modern btn-primary">
+        <i class="fas fa-plus me-2"></i>Assign New Service
+    </a>
+    <a href="{{ url_for('food_extras.index') }}" class="btn btn-modern btn-outline-secondary">
+        <i class="fas fa-arrow-left me-2"></i>Back to Dashboard
+    </a>
+    <a href="{{ url_for('guests.view', tenant_id=tenant.id) }}" class="btn btn-modern btn-outline-info">
+        <i class="fas fa-user me-2"></i>View Guest Details
+    </a>
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-lg-8">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="fas fa-list me-2"></i>Assigned Services
+                </h5>
+            </div>
+            <div class="card-body">
+                {% if tenant_services %}
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>Service</th>
+                                <th>Quantity</th>
+                                <th>Price/Unit</th>
+                                <th>Total</th>
+                                <th>Date Assigned</th>
+                                <th>Notes</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for tenant_service in tenant_services %}
+                            <tr>
+                                <td>
+                                    <div class="d-flex align-items-center">
+                                        <div class="service-icon me-2">
+                                            {% if tenant_service.service.service_type == 'drink' %}
+                                                <i class="fas fa-coffee text-primary"></i>
+                                            {% elif tenant_service.service.service_type == 'food' %}
+                                                <i class="fas fa-utensils text-success"></i>
+                                            {% elif tenant_service.service.service_type == 'service' %}
+                                                <i class="fas fa-concierge-bell text-warning"></i>
+                                            {% else %}
+                                                <i class="fas fa-star text-info"></i>
+                                            {% endif %}
+                                        </div>
+                                        <div>
+                                            <strong>{{ tenant_service.service.name }}</strong>
+                                            <br>
+                                            <small class="text-muted">{{ tenant_service.service.service_type|title }}</small>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td>
+                                    <span class="badge bg-secondary">{{ tenant_service.quantity }}</span>
+                                </td>
+                                <td>
+                                    <strong>{{ "%.2f"|format(tenant_service.unit_price) }} MAD</strong>
+                                </td>
+                                <td>
+                                    <span class="text-success fw-bold">
+                                        {{ "%.2f"|format(tenant_service.quantity * tenant_service.unit_price) }} MAD
+                                    </span>
+                                </td>
+                                <td>
+                                    <small>{{ tenant_service.created_at.strftime('%b %d, %Y') }}</small>
+                                    <br>
+                                    <small class="text-muted">{{ tenant_service.created_at.strftime('%H:%M') }}</small>
+                                </td>
+                                <td>
+                                    {% if tenant_service.notes %}
+                                        <span class="text-muted" title="{{ tenant_service.notes }}">
+                                            {{ tenant_service.notes[:30] }}{% if tenant_service.notes|length > 30 %}...{% endif %}
+                                        </span>
+                                    {% else %}
+                                        <span class="text-muted">-</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <div class="btn-group btn-group-sm">
+                                        <button type="button" class="btn btn-outline-danger" 
+                                                onclick="confirmRemoveService({{ tenant_service.id }}, '{{ tenant_service.service.name }}')"
+                                                title="Remove Service">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <div class="text-center py-5">
+                    <div class="mb-3">
+                        <i class="fas fa-coffee fa-3x text-muted"></i>
+                    </div>
+                    <h5 class="text-muted">No Services Assigned</h5>
+                    <p class="text-muted mb-3">This guest hasn't been assigned any extra services yet.</p>
+                    <a href="{{ url_for('food_extras.assign_service') }}" class="btn btn-primary">
+                        <i class="fas fa-plus me-2"></i>Assign First Service
+                    </a>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-4">
+        <!-- Guest Info Card -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h6 class="mb-0">
+                    <i class="fas fa-user me-2"></i>Guest Information
+                </h6>
+            </div>
+            <div class="card-body">
+                <div class="d-flex align-items-center mb-3">
+                    <div class="avatar-placeholder me-3">
+                        <i class="fas fa-user fa-2x text-primary"></i>
+                    </div>
+                    <div>
+                        <h6 class="mb-1">{{ tenant.name }}</h6>
+                        {% if tenant.room_number %}
+                            <span class="badge bg-primary">Room {{ tenant.room_number }}</span>
+                        {% endif %}
+                    </div>
+                </div>
+                
+                <div class="row mb-2">
+                    <div class="col-6"><strong>Daily Rent:</strong></div>
+                    <div class="col-6 text-end">{{ "%.0f"|format(tenant.daily_rent) }} MAD</div>
+                </div>
+                
+                {% if tenant.start_date %}
+                <div class="row mb-2">
+                    <div class="col-6"><strong>Check-in:</strong></div>
+                    <div class="col-6 text-end">{{ tenant.start_date.strftime('%b %d, %Y') }}</div>
+                </div>
+                {% endif %}
+                
+                {% if tenant.end_date %}
+                <div class="row mb-2">
+                    <div class="col-6"><strong>Check-out:</strong></div>
+                    <div class="col-6 text-end">{{ tenant.end_date.strftime('%b %d, %Y') }}</div>
+                </div>
+                {% endif %}
+                
+                <div class="row mb-2">
+                    <div class="col-6"><strong>Status:</strong></div>
+                    <div class="col-6 text-end">
+                        {% if tenant.is_active %}
+                            <span class="badge bg-success">Active</span>
+                        {% else %}
+                            <span class="badge bg-secondary">Inactive</span>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Services Summary Card -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h6 class="mb-0">
+                    <i class="fas fa-calculator me-2"></i>Services Summary
+                </h6>
+            </div>
+            <div class="card-body">
+                <div class="row mb-2">
+                    <div class="col-6">Total Services:</div>
+                    <div class="col-6 text-end">{{ total_services }}</div>
+                </div>
+                <div class="row mb-2">
+                    <div class="col-6">Total Amount:</div>
+                    <div class="col-6 text-end text-success fw-bold">{{ "%.2f"|format(total_amount) }} MAD</div>
+                </div>
+                <hr>
+                <div class="row">
+                    <div class="col-6"><strong>Grand Total:</strong></div>
+                    <div class="col-6 text-end">
+                        <span class="text-primary fw-bold fs-5">{{ "%.2f"|format(total_amount) }} MAD</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Quick Actions -->
+        <div class="card">
+            <div class="card-header">
+                <h6 class="mb-0">
+                    <i class="fas fa-bolt me-2"></i>Quick Actions
+                </h6>
+            </div>
+            <div class="card-body">
+                <div class="d-grid gap-2">
+                    <a href="{{ url_for('food_extras.assign_service') }}" class="btn btn-primary">
+                        <i class="fas fa-plus me-2"></i>Assign New Service
+                    </a>
+                    <a href="{{ url_for('guests.payments', tenant_id=tenant.id) }}" class="btn btn-outline-success">
+                        <i class="fas fa-credit-card me-2"></i>View Payments
+                    </a>
+                    <a href="{{ url_for('guests.view', tenant_id=tenant.id) }}" class="btn btn-outline-info">
+                        <i class="fas fa-eye me-2"></i>View Guest Details
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Remove Service Confirmation Modal -->
+<div class="modal fade" id="removeServiceModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Remove Service</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p>Are you sure you want to remove <strong id="serviceNameToRemove">this service</strong> from the guest?</p>
+                <p class="text-muted">This action cannot be undone.</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <form method="POST" id="removeServiceForm" style="display: inline;">
+                    <button type="submit" class="btn btn-danger">Remove Service</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function confirmRemoveService(tenantServiceId, serviceName) {
+    // Update modal content
+    document.getElementById('serviceNameToRemove').textContent = serviceName;
+    
+    // Update form action
+    document.getElementById('removeServiceForm').action = "{{ url_for('food_extras.remove_service', tenant_service_id=0) }}".replace('0', tenantServiceId);
+    
+    // Show modal
+    const modal = new bootstrap.Modal(document.getElementById('removeServiceModal'));
+    modal.show();
+}
+</script>
+{% endblock %}

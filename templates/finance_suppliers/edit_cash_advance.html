@@ -1,0 +1,154 @@
+{% extends "base.html" %}
+
+{% block title %}Edit Cash Advance - HostelFlow{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Page Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h1 class="h3 mb-0">Edit Cash Advance</h1>
+            <p class="text-muted mb-0">Update cash advance details for {{ advance.staff_name }}</p>
+        </div>
+        <div class="d-flex gap-2">
+            <a href="{{ url_for('finance_suppliers.view_cash_advance', advance_id=advance.id) }}" class="btn btn-modern btn-outline-secondary">
+                <i class="fas fa-arrow-left me-2"></i>Back to Details
+            </a>
+        </div>
+    </div>
+
+    <!-- Edit Cash Advance Form -->
+    <div class="row">
+        <div class="col-lg-8">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-edit me-2"></i>Update Cash Advance Details
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <form method="POST">
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="staff_name" class="form-label">Staff Name *</label>
+                                <input type="text" class="form-control" id="staff_name" name="staff_name" 
+                                       value="{{ advance.staff_name }}" required>
+                                <div class="form-text">Name of the staff member receiving the cash</div>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="amount" class="form-label">Amount (MAD) *</label>
+                                <input type="number" class="form-control" id="amount" name="amount" 
+                                       value="{{ advance.amount }}" step="0.01" min="0" required>
+                                <div class="form-text">Amount of cash given to staff</div>
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="purpose" class="form-label">Purpose *</label>
+                            <input type="text" class="form-control" id="purpose" name="purpose" 
+                                   value="{{ advance.purpose }}" required>
+                            <div class="form-text">What the staff member will purchase with this cash</div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="date_given" class="form-label">Date Given *</label>
+                                <input type="date" class="form-control" id="date_given" name="date_given" 
+                                       value="{{ advance.date_given.strftime('%Y-%m-%d') }}" required>
+                                <div class="form-text">Date when cash was given to staff</div>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="expected_return_date" class="form-label">Expected Return Date</label>
+                                <input type="date" class="form-control" id="expected_return_date" name="expected_return_date"
+                                       value="{% if advance.expected_return_date %}{{ advance.expected_return_date.strftime('%Y-%m-%d') }}{% endif %}">
+                                <div class="form-text">When you expect the staff to return with receipts</div>
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="status" class="form-label">Status *</label>
+                            <select class="form-select" id="status" name="status" required>
+                                <option value="pending" {% if advance.status == 'pending' %}selected{% endif %}>Pending</option>
+                                <option value="completed" {% if advance.status == 'completed' %}selected{% endif %}>Completed</option>
+                                <option value="overdue" {% if advance.status == 'overdue' %}selected{% endif %}>Overdue</option>
+                            </select>
+                            <div class="form-text">Current status of the cash advance</div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="notes" class="form-label">Notes</label>
+                            <textarea class="form-control" id="notes" name="notes" rows="3" 
+                                      placeholder="Additional notes about this cash advance...">{{ advance.notes or '' }}</textarea>
+                        </div>
+
+                        <div class="d-flex gap-2">
+                            <button type="submit" class="btn btn-warning">
+                                <i class="fas fa-save me-2"></i>Update Cash Advance
+                            </button>
+                            <a href="{{ url_for('finance_suppliers.view_cash_advance', advance_id=advance.id) }}" class="btn btn-outline-secondary">
+                                <i class="fas fa-times me-2"></i>Cancel
+                            </a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-4">
+            <!-- Current Status -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-info-circle me-2"></i>Current Status
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="text-center">
+                        {% if advance.status == 'pending' %}
+                            <i class="fas fa-clock fa-2x text-warning mb-2"></i>
+                            <h6 class="text-warning">Pending</h6>
+                        {% elif advance.status == 'completed' %}
+                            <i class="fas fa-check-circle fa-2x text-success mb-2"></i>
+                            <h6 class="text-success">Completed</h6>
+                        {% elif advance.status == 'overdue' %}
+                            <i class="fas fa-exclamation-triangle fa-2x text-danger mb-2"></i>
+                            <h6 class="text-danger">Overdue</h6>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+
+            <!-- Guidelines -->
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-lightbulb me-2"></i>Status Guidelines
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <h6 class="text-warning">Pending</h6>
+                        <small class="text-muted">Staff has received cash but hasn't returned with receipts yet.</small>
+                    </div>
+                    <div class="mb-3">
+                        <h6 class="text-success">Completed</h6>
+                        <small class="text-muted">Staff has returned with receipts and the advance is settled.</small>
+                    </div>
+                    <div class="mb-3">
+                        <h6 class="text-danger">Overdue</h6>
+                        <small class="text-muted">Expected return date has passed without completion.</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.btn-modern {
+    border-radius: 10px;
+    font-weight: 500;
+    padding: 0.5rem 1rem;
+}
+</style>
+{% endblock %}

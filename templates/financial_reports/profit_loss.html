@@ -1,0 +1,252 @@
+{% extends "base.html" %}
+
+{% block title %}Profit & Loss Statement - HostelFlow{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+        <h1 class="h2">
+            <i class="fas fa-chart-line me-2"></i>Profit & Loss Statement
+        </h1>
+        <div class="btn-toolbar mb-2 mb-md-0">
+            <a href="{{ url_for('financial_reports.index') }}" class="btn btn-outline-secondary">
+                <i class="fas fa-arrow-left me-1"></i>Back to Reports
+            </a>
+        </div>
+    </div>
+
+    <!-- Date Range Filter -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-body">
+                    <form method="GET" class="row g-3">
+                        <div class="col-md-4">
+                            <label for="start_date" class="form-label">Start Date</label>
+                            <input type="date" class="form-control" id="start_date" name="start_date" 
+                                   value="{{ start_date }}" required>
+                        </div>
+                        <div class="col-md-4">
+                            <label for="end_date" class="form-label">End Date</label>
+                            <input type="date" class="form-control" id="end_date" name="end_date" 
+                                   value="{{ end_date }}" required>
+                        </div>
+                        <div class="col-md-4 d-flex align-items-end">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-filter me-1"></i>Apply Filter
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Summary Cards -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card text-white bg-success">
+                <div class="card-body">
+                    <h5 class="card-title">Total Revenue</h5>
+                    <h3 class="mb-0">${{ "%.2f"|format(total_revenue) }}</h3>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-white bg-danger">
+                <div class="card-body">
+                    <h5 class="card-title">Total Expenses</h5>
+                    <h3 class="mb-0">${{ "%.2f"|format(total_expenses) }}</h3>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-white {% if net_profit >= 0 %}bg-primary{% else %}bg-warning{% endif %}">
+                <div class="card-body">
+                    <h5 class="card-title">Net Profit</h5>
+                    <h3 class="mb-0">${{ "%.2f"|format(net_profit) }}</h3>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-white bg-info">
+                <div class="card-body">
+                    <h5 class="card-title">Profit Margin</h5>
+                    <h3 class="mb-0">{{ "%.1f"|format(profit_margin) }}%</h3>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- Revenue Breakdown -->
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="fas fa-dollar-sign me-2"></i>Revenue Breakdown
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-sm">
+                            <tbody>
+                                <tr>
+                                    <td><strong>Rental Income</strong></td>
+                                    <td class="text-end">${{ "%.2f"|format(rental_income) }}</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Service Income</strong></td>
+                                    <td class="text-end">${{ "%.2f"|format(service_income) }}</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Other Payments</strong></td>
+                                    <td class="text-end">${{ "%.2f"|format(other_income) }}</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Additional Income</strong></td>
+                                    <td class="text-end">${{ "%.2f"|format(additional_income) }}</td>
+                                </tr>
+                                <tr class="table-success">
+                                    <td><strong>Total Revenue</strong></td>
+                                    <td class="text-end"><strong>${{ "%.2f"|format(total_revenue) }}</strong></td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Expense Breakdown -->
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="fas fa-credit-card me-2"></i>Expense Breakdown
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-sm">
+                            <tbody>
+                                {% for expense in expense_breakdown %}
+                                <tr>
+                                    <td><strong>{{ expense.category }}</strong></td>
+                                    <td class="text-end">${{ "%.2f"|format(expense.total) }}</td>
+                                </tr>
+                                {% endfor %}
+                                {% if not expense_breakdown %}
+                                <tr>
+                                    <td colspan="2" class="text-center text-muted">No expenses recorded</td>
+                                </tr>
+                                {% endif %}
+                                <tr class="table-danger">
+                                    <td><strong>Total Expenses</strong></td>
+                                    <td class="text-end"><strong>${{ "%.2f"|format(total_expenses) }}</strong></td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Operational Metrics -->
+    <div class="row mt-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="fas fa-chart-bar me-2"></i>Operational Metrics
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-4">
+                            <div class="text-center p-3">
+                                <i class="fas fa-bed fa-2x text-primary mb-2"></i>
+                                <h4>{{ total_nights }}</h4>
+                                <p class="text-muted mb-0">Total Nights Booked</p>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="text-center p-3">
+                                <i class="fas fa-dollar-sign fa-2x text-success mb-2"></i>
+                                <h4>${{ "%.2f"|format(adr) }}</h4>
+                                <p class="text-muted mb-0">Average Daily Rate (ADR)</p>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="text-center p-3">
+                                <i class="fas fa-percentage fa-2x text-info mb-2"></i>
+                                <h4>{{ "%.1f"|format(profit_margin) }}%</h4>
+                                <p class="text-muted mb-0">Profit Margin</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Summary Statement -->
+    <div class="row mt-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="fas fa-file-alt me-2"></i>Profit & Loss Summary
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table">
+                            <thead>
+                                <tr>
+                                    <th>Description</th>
+                                    <th class="text-end">Amount</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr class="table-success">
+                                    <td><strong>Total Revenue</strong></td>
+                                    <td class="text-end"><strong>${{ "%.2f"|format(total_revenue) }}</strong></td>
+                                </tr>
+                                <tr class="table-danger">
+                                    <td><strong>Total Expenses</strong></td>
+                                    <td class="text-end"><strong>-${{ "%.2f"|format(total_expenses) }}</strong></td>
+                                </tr>
+                                <tr class="table-{% if net_profit >= 0 %}primary{% else %}warning{% endif %}">
+                                    <td><strong>Net {% if net_profit >= 0 %}Profit{% else %}Loss{% endif %}</strong></td>
+                                    <td class="text-end"><strong>${{ "%.2f"|format(net_profit) }}</strong></td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.card {
+    box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+    border: 1px solid rgba(0, 0, 0, 0.125);
+}
+
+.card-header {
+    background-color: #f8f9fa;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.125);
+}
+
+.table th {
+    border-top: none;
+    font-weight: 600;
+}
+</style>
+{% endblock %}
+
+

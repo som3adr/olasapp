@@ -1,0 +1,1735 @@
+<!-- Enhanced Notification Dropdown -->
+<div class="dropdown notification-dropdown">
+    <button class="btn btn-link notification-btn position-relative" type="button" id="notificationDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+        <i class="fas fa-bell"></i>
+        <span class="notification-badge" id="notificationBadge" style="display: none;">0</span>
+    </button>
+    
+    <div class="dropdown-menu notification-menu" aria-labelledby="notificationDropdown">
+        <!-- Notification Header -->
+        <div class="notification-header">
+            <div class="d-flex justify-content-between align-items-center">
+                <h6 class="mb-0">Notifications</h6>
+                <div class="notification-actions">
+                    <button class="btn btn-sm btn-outline-primary" id="markAllReadBtn" title="Mark all as read">
+                        <i class="fas fa-check-double"></i>
+                    </button>
+                    <button class="btn btn-sm btn-outline-secondary" id="notificationSettingsBtn" title="Settings">
+                        <i class="fas fa-cog"></i>
+                    </button>
+                </div>
+            </div>
+            
+            <!-- Filter Tabs -->
+            <div class="notification-tabs">
+                <button class="tab-btn active" data-filter="all">All</button>
+                <button class="tab-btn" data-filter="unread">Unread</button>
+                <button class="tab-btn" data-filter="read">Read</button>
+            </div>
+        </div>
+        
+        <!-- Notification Content -->
+        <div class="notification-content" id="notificationContent">
+            <div class="notification-loading">
+                <div class="spinner-border spinner-border-sm" role="status">
+                    <span class="visually-hidden">Loading...</span>
+                </div>
+                <span class="ms-2">Loading notifications...</span>
+            </div>
+        </div>
+        
+        <!-- Load More Button -->
+        <div class="notification-footer" id="notificationFooter" style="display: none;">
+            <button class="btn btn-sm btn-outline-primary w-100" id="loadMoreBtn">
+                <i class="fas fa-chevron-down"></i>
+                Load More
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- Enhanced Notification Settings Modal -->
+<div class="modal fade" id="notificationSettingsModal" tabindex="-1" aria-labelledby="notificationSettingsModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="notificationSettingsModalLabel">
+                    <i class="fas fa-cog me-2"></i>Notification Settings
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="row">
+                    <!-- Left Column - Notification Types -->
+                    <div class="col-md-6">
+                        <div class="settings-section">
+                            <h6 class="settings-title">
+                                <i class="fas fa-bell me-2"></i>Notification Types
+                            </h6>
+                            <div class="notification-types">
+                                <div class="form-check notification-type-item">
+                                    <input class="form-check-input" type="checkbox" id="guestCheckinNotifications" checked>
+                                    <label class="form-check-label" for="guestCheckinNotifications">
+                                        <i class="fas fa-user-check text-success me-2"></i>
+                                        Guest Check-ins
+                                    </label>
+                                </div>
+                                <div class="form-check notification-type-item">
+                                    <input class="form-check-input" type="checkbox" id="guestCheckoutNotifications" checked>
+                                    <label class="form-check-label" for="guestCheckoutNotifications">
+                                        <i class="fas fa-user-times text-danger me-2"></i>
+                                        Guest Check-outs
+                                    </label>
+                                </div>
+                                <div class="form-check notification-type-item">
+                                    <input class="form-check-input" type="checkbox" id="guestAddedNotifications" checked>
+                                    <label class="form-check-label" for="guestAddedNotifications">
+                                        <i class="fas fa-user-plus text-primary me-2"></i>
+                                        New Guest Registrations
+                                    </label>
+                                </div>
+                                <div class="form-check notification-type-item">
+                                    <input class="form-check-input" type="checkbox" id="orderNotifications" checked>
+                                    <label class="form-check-label" for="orderNotifications">
+                                        <i class="fas fa-utensils text-warning me-2"></i>
+                                        Restaurant Orders
+                                    </label>
+                                </div>
+                                <div class="form-check notification-type-item">
+                                    <input class="form-check-input" type="checkbox" id="paymentNotifications" checked>
+                                    <label class="form-check-label" for="paymentNotifications">
+                                        <i class="fas fa-credit-card text-success me-2"></i>
+                                        Payment Notifications
+                                    </label>
+                                </div>
+                                <div class="form-check notification-type-item">
+                                    <input class="form-check-input" type="checkbox" id="expenseNotifications" checked>
+                                    <label class="form-check-label" for="expenseNotifications">
+                                        <i class="fas fa-receipt text-purple me-2"></i>
+                                        Expense Notifications
+                                    </label>
+                                </div>
+                                <div class="form-check notification-type-item">
+                                    <input class="form-check-input" type="checkbox" id="salaryNotifications" checked>
+                                    <label class="form-check-label" for="salaryNotifications">
+                                        <i class="fas fa-money-bill-wave text-info me-2"></i>
+                                        Salary Notifications
+                                    </label>
+                                </div>
+                                <div class="form-check notification-type-item">
+                                    <input class="form-check-input" type="checkbox" id="inventoryNotifications" checked>
+                                    <label class="form-check-label" for="inventoryNotifications">
+                                        <i class="fas fa-exclamation-triangle text-warning me-2"></i>
+                                        Inventory Alerts
+                                    </label>
+                                </div>
+                                <div class="form-check notification-type-item">
+                                    <input class="form-check-input" type="checkbox" id="systemNotifications" checked>
+                                    <label class="form-check-label" for="systemNotifications">
+                                        <i class="fas fa-cog text-secondary me-2"></i>
+                                        System Notifications
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Right Column - Settings -->
+                    <div class="col-md-6">
+                        <!-- Sound Settings -->
+                        <div class="settings-section">
+                            <h6 class="settings-title">
+                                <i class="fas fa-volume-up me-2"></i>Sound Settings
+                            </h6>
+                            <div class="form-check mb-3">
+                                <input class="form-check-input" type="checkbox" id="enableSoundNotifications" checked>
+                                <label class="form-check-label" for="enableSoundNotifications">
+                                    Enable Sound Notifications
+                                </label>
+                            </div>
+                            <div class="mb-3">
+                                <label for="soundType" class="form-label">Notification Sound</label>
+                                <select class="form-select" id="soundType">
+                                    <option value="default">Default Beep</option>
+                                    <option value="gentle">Gentle Chime</option>
+                                    <option value="alert">Alert Sound</option>
+                                    <option value="success">Success Sound</option>
+                                    <option value="warning">Warning Sound</option>
+                                </select>
+                            </div>
+                            <div class="mb-3">
+                                <label for="soundVolume" class="form-label">Volume</label>
+                                <input type="range" class="form-range" id="soundVolume" min="0" max="1" step="0.1" value="0.5">
+                                <div class="d-flex justify-content-between">
+                                    <small class="text-muted">Quiet</small>
+                                    <small class="text-muted">Loud</small>
+                                </div>
+                            </div>
+                            <button type="button" class="btn btn-sm btn-outline-secondary" id="testSoundBtn">
+                                <i class="fas fa-play"></i> Test Sound
+                            </button>
+                        </div>
+                        
+                        <!-- Display Settings -->
+                        <div class="settings-section">
+                            <h6 class="settings-title">
+                                <i class="fas fa-eye me-2"></i>Display Settings
+                            </h6>
+                            <div class="form-check mb-3">
+                                <input class="form-check-input" type="checkbox" id="autoMarkRead" checked>
+                                <label class="form-check-label" for="autoMarkRead">
+                                    Auto-mark as read when viewed
+                                </label>
+                            </div>
+                            <div class="form-check mb-3">
+                                <input class="form-check-input" type="checkbox" id="showPreview" checked>
+                                <label class="form-check-label" for="showPreview">
+                                    Show notification preview
+                                </label>
+                            </div>
+                            <div class="form-check mb-3">
+                                <input class="form-check-input" type="checkbox" id="groupSimilar" checked>
+                                <label class="form-check-label" for="groupSimilar">
+                                    Group similar notifications
+                                </label>
+                            </div>
+                        </div>
+                        
+                        <!-- Frequency Settings -->
+                        <div class="settings-section">
+                            <h6 class="settings-title">
+                                <i class="fas fa-clock me-2"></i>Frequency Settings
+                            </h6>
+                            <div class="mb-3">
+                                <label for="notificationFrequency" class="form-label">Check for notifications</label>
+                                <select class="form-select" id="notificationFrequency">
+                                    <option value="realtime">Real-time (Instant)</option>
+                                    <option value="5">Every 5 seconds</option>
+                                    <option value="10">Every 10 seconds</option>
+                                    <option value="30">Every 30 seconds</option>
+                                    <option value="60">Every minute</option>
+                                </select>
+                            </div>
+                            <div class="form-check mb-3">
+                                <input class="form-check-input" type="checkbox" id="quietHours" checked>
+                                <label class="form-check-label" for="quietHours">
+                                    Enable quiet hours
+                                </label>
+                            </div>
+                            <div class="row" id="quietHoursSettings" style="display: none;">
+                                <div class="col-6">
+                                    <label for="quietStart" class="form-label">Start Time</label>
+                                    <input type="time" class="form-control" id="quietStart" value="22:00">
+                                </div>
+                                <div class="col-6">
+                                    <label for="quietEnd" class="form-label">End Time</label>
+                                    <input type="time" class="form-control" id="quietEnd" value="08:00">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Advanced Settings -->
+                <div class="settings-section">
+                    <h6 class="settings-title">
+                        <i class="fas fa-cogs me-2"></i>Advanced Settings
+                    </h6>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="form-check mb-3">
+                                <input class="form-check-input" type="checkbox" id="browserNotifications" checked>
+                                <label class="form-check-label" for="browserNotifications">
+                                    Browser Push Notifications
+                                </label>
+                            </div>
+                            <div class="form-check mb-3">
+                                <input class="form-check-input" type="checkbox" id="emailNotifications">
+                                <label class="form-check-label" for="emailNotifications">
+                                    Email Notifications
+                                </label>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-check mb-3">
+                                <input class="form-check-input" type="checkbox" id="desktopNotifications" checked>
+                                <label class="form-check-label" for="desktopNotifications">
+                                    Desktop Notifications
+                                </label>
+                            </div>
+                            <div class="form-check mb-3">
+                                <input class="form-check-input" type="checkbox" id="mobileNotifications" checked>
+                                <label class="form-check-label" for="mobileNotifications">
+                                    Mobile Notifications
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Notification History -->
+                <div class="settings-section">
+                    <h6 class="settings-title">
+                        <i class="fas fa-history me-2"></i>Notification History
+                    </h6>
+                    <div class="d-flex gap-2 mb-3">
+                        <button type="button" class="btn btn-sm btn-outline-primary" id="clearAllNotifications">
+                            <i class="fas fa-trash"></i> Clear All
+                        </button>
+                        <button type="button" class="btn btn-sm btn-outline-secondary" id="markAllRead">
+                            <i class="fas fa-check-double"></i> Mark All Read
+                        </button>
+                        <button type="button" class="btn btn-sm btn-outline-info" id="exportNotifications">
+                            <i class="fas fa-download"></i> Export
+                        </button>
+                    </div>
+                    <div class="text-muted small">
+                        <i class="fas fa-info-circle me-1"></i>
+                        Notifications older than 30 days are automatically deleted.
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-outline-secondary" id="resetSettings">
+                    <i class="fas fa-undo"></i> Reset to Default
+                </button>
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" id="saveNotificationSettings">
+                    <i class="fas fa-save"></i> Save Settings
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+/* Facebook-like Notification Dropdown Styles */
+.notification-dropdown .dropdown-menu {
+    width: 360px;
+    max-width: 90vw;
+    max-height: 500px;
+    border: none;
+    box-shadow: 0 2px 16px rgba(0, 0, 0, 0.15);
+    border-radius: 8px;
+    padding: 0;
+    overflow: hidden;
+    margin-top: 0.5rem;
+}
+
+.notification-header {
+    background: white;
+    padding: 1rem 1rem 0.75rem 1rem;
+    border-bottom: 1px solid #dadde1;
+}
+
+.notification-actions {
+    display: flex;
+    gap: 0.5rem;
+    align-items: center;
+}
+
+.notification-actions .btn {
+    padding: 0.25rem 0.5rem;
+    font-size: 0.8rem;
+    border-radius: 6px;
+    border: 1px solid #dadde1;
+    background: #f0f2f5;
+    color: #65676b;
+    transition: all 0.2s ease;
+}
+
+.notification-actions .btn:hover {
+    background: #e4e6ea;
+    border-color: #bcc0c4;
+}
+
+.notification-tabs {
+    display: flex;
+    gap: 0.25rem;
+    margin-top: 0.75rem;
+}
+
+.tab-btn {
+    background: #f0f2f5;
+    border: none;
+    padding: 0.5rem 1rem;
+    border-radius: 20px;
+    font-size: 0.85rem;
+    font-weight: 500;
+    color: #65676b;
+    transition: all 0.2s ease;
+    cursor: pointer;
+}
+
+.tab-btn:hover {
+    background: #e4e6ea;
+}
+
+.tab-btn.active {
+    background: #1877f2;
+    color: white;
+}
+
+.notification-content {
+    max-height: 400px;
+    overflow-y: auto;
+    padding: 0;
+}
+
+.notification-loading {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 2rem;
+    color: #65676b;
+}
+
+.notification-item {
+    padding: 0.75rem 1rem;
+    border-bottom: 1px solid #f0f2f5;
+    display: flex;
+    align-items: flex-start;
+    gap: 0.75rem;
+    transition: background-color 0.15s ease;
+    position: relative;
+    cursor: pointer;
+}
+
+.notification-item:hover {
+    background: #f0f2f5;
+}
+
+.notification-item.unread {
+    background: #e7f3ff;
+    border-left: 3px solid #1877f2;
+}
+
+.notification-item.unread::before {
+    content: '';
+    position: absolute;
+    left: 0.75rem;
+    top: 1rem;
+    width: 8px;
+    height: 8px;
+    background: #1877f2;
+    border-radius: 50%;
+}
+
+.notification-avatar {
+    flex-shrink: 0;
+    width: 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.notification-icon-wrapper {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1rem;
+    color: white;
+    font-weight: 600;
+}
+
+.notification-icon-wrapper.guest_checkin { background: #42b883; }
+.notification-icon-wrapper.guest_checkout { background: #e74c3c; }
+.notification-icon-wrapper.guest_added { background: #3498db; }
+.notification-icon-wrapper.order_assigned { background: #f39c12; }
+.notification-icon-wrapper.payment_received { background: #27ae60; }
+.notification-icon-wrapper.expense_added { background: #9b59b6; }
+.notification-icon-wrapper.salary_paid { background: #2ecc71; }
+.notification-icon-wrapper.inventory_low { background: #e67e22; }
+.notification-icon-wrapper.system { background: #95a5a6; }
+.notification-icon-wrapper.info { background: #3498db; }
+.notification-icon-wrapper.success { background: #27ae60; }
+.notification-icon-wrapper.warning { background: #f39c12; }
+.notification-icon-wrapper.error { background: #e74c3c; }
+
+.notification-content-wrapper {
+    flex: 1;
+    min-width: 0;
+}
+
+.notification-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 0.25rem;
+}
+
+.notification-title {
+    font-weight: 600;
+    color: #1c1e21;
+    margin: 0;
+    font-size: 0.9rem;
+    line-height: 1.3;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+
+.notification-message {
+    color: #65676b;
+    font-size: 0.85rem;
+    margin: 0.25rem 0;
+    line-height: 1.4;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+
+.notification-time {
+    color: #8a8d91;
+    font-size: 0.75rem;
+    white-space: nowrap;
+    font-weight: 400;
+}
+
+.notification-meta {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-top: 0.25rem;
+}
+
+.notification-type-badge {
+    display: inline-block;
+    padding: 0.2rem 0.6rem;
+    background: #f0f2f5;
+    color: #65676b;
+    border-radius: 12px;
+    font-size: 0.7rem;
+    font-weight: 500;
+    text-transform: capitalize;
+}
+
+.priority-indicator {
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.6rem;
+    font-weight: bold;
+    color: white;
+}
+
+.priority-indicator.high {
+    background: #e41e3f;
+}
+
+.notification-actions {
+    display: flex;
+    gap: 0.25rem;
+    margin-left: auto;
+    opacity: 0;
+    transition: opacity 0.2s ease;
+}
+
+.notification-item:hover .notification-actions {
+    opacity: 1;
+}
+
+.action-btn {
+    padding: 0.375rem;
+    font-size: 0.75rem;
+    border: none;
+    background: #f0f2f5;
+    color: #65676b;
+    cursor: pointer;
+    border-radius: 50%;
+    transition: all 0.2s ease;
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.action-btn:hover {
+    background: #e4e6ea;
+    color: #1c1e21;
+}
+
+.mark-read-btn:hover {
+    background: #d4edda;
+    color: #155724;
+}
+
+.delete-notification-btn:hover {
+    background: #f8d7da;
+    color: #721c24;
+}
+
+.notification-footer {
+    padding: 0.75rem 1rem;
+    border-top: 1px solid #dadde1;
+    background: #f8f9fa;
+    border-radius: 0 0 8px 8px;
+}
+
+.notification-empty {
+    text-align: center;
+    padding: 3rem 2rem;
+    color: #65676b;
+}
+
+.notification-empty i {
+    font-size: 3rem;
+    margin-bottom: 1rem;
+    opacity: 0.3;
+    color: #8a8d91;
+}
+
+.notification-empty p {
+    font-size: 0.9rem;
+    margin: 0;
+    font-weight: 500;
+}
+
+.notification-error {
+    text-align: center;
+    padding: 2rem;
+    color: #e41e3f;
+}
+
+.notification-error i {
+    font-size: 2rem;
+    margin-bottom: 0.5rem;
+}
+
+.notification-error p {
+    margin: 0.5rem 0;
+    font-size: 0.9rem;
+}
+
+/* Scrollbar styling */
+.notification-content::-webkit-scrollbar {
+    width: 6px;
+}
+
+.notification-content::-webkit-scrollbar-track {
+    background: #f1f1f1;
+}
+
+.notification-content::-webkit-scrollbar-thumb {
+    background: #c1c1c1;
+    border-radius: 3px;
+}
+
+.notification-content::-webkit-scrollbar-thumb:hover {
+    background: #a8a8a8;
+}
+
+/* Mobile Responsiveness */
+@media (max-width: 768px) {
+    .notification-dropdown .dropdown-menu {
+        width: 320px;
+        max-width: 95vw;
+    }
+    
+    .notification-header {
+        padding: 0.75rem;
+    }
+    
+    .notification-tabs {
+        flex-wrap: wrap;
+        gap: 0.25rem;
+    }
+    
+    .tab-btn {
+        padding: 0.4rem 0.8rem;
+        font-size: 0.8rem;
+    }
+    
+    .notification-item {
+        padding: 0.75rem;
+    }
+    
+    .notification-avatar {
+        width: 36px;
+        height: 36px;
+    }
+    
+    .notification-icon-wrapper {
+        width: 36px;
+        height: 36px;
+        font-size: 0.9rem;
+    }
+    
+    .notification-title {
+        font-size: 0.85rem;
+    }
+    
+    .notification-message {
+        font-size: 0.8rem;
+    }
+}
+
+/* Animation for new notifications */
+@keyframes slideInFromRight {
+    from {
+        transform: translateX(100%);
+        opacity: 0;
+    }
+    to {
+        transform: translateX(0);
+        opacity: 1;
+    }
+}
+
+.notification-item.new-notification {
+    animation: slideInFromRight 0.3s ease-out;
+}
+
+/* Hover effects for better UX */
+.notification-item {
+    transition: all 0.2s ease;
+}
+
+.notification-item:hover {
+    transform: translateX(2px);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+/* Loading animation */
+.notification-loading .spinner-border {
+    width: 1.5rem;
+    height: 1.5rem;
+    border-width: 0.2em;
+}
+
+/* Badge pulse animation */
+@keyframes pulse {
+    0% {
+        transform: scale(1);
+    }
+    50% {
+        transform: scale(1.1);
+    }
+    100% {
+        transform: scale(1);
+    }
+}
+
+.notification-badge {
+    animation: pulse 2s infinite;
+}
+
+/* Settings Modal Styles */
+.settings-section {
+    margin-bottom: 1.5rem;
+}
+
+.settings-section h6 {
+    color: #374151;
+    font-weight: 600;
+    margin-bottom: 0.75rem;
+}
+
+.form-check {
+    margin-bottom: 0.5rem;
+}
+
+.form-check-label {
+    font-size: var(--font-size-lg);
+    color: #4b5563;
+}
+
+/* Sound Settings Styles */
+#testSoundBtn {
+    transition: all 0.2s ease;
+}
+
+#testSoundBtn:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+#testSoundBtn:active {
+    transform: translateY(0);
+}
+
+/* Volume slider styling */
+.form-range {
+    height: 6px;
+    background: #e2e8f0;
+    border-radius: 3px;
+}
+
+.form-range::-webkit-slider-thumb {
+    appearance: none;
+    height: 20px;
+    width: 20px;
+    border-radius: 50%;
+    background: var(--primary-color);
+    cursor: pointer;
+    border: 2px solid white;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.form-range::-moz-range-thumb {
+    height: 20px;
+    width: 20px;
+    border-radius: 50%;
+    background: var(--primary-color);
+    cursor: pointer;
+    border: 2px solid white;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+/* Toast container */
+.toast-container {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    z-index: 1055;
+}
+
+/* Sound playing indicator */
+.sound-playing {
+    animation: pulse 0.5s ease-in-out;
+}
+
+@keyframes pulse {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.05); }
+    100% { transform: scale(1); }
+}
+
+/* Fallback Modal Styles */
+.modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    z-index: 1055;
+    width: 100%;
+    height: 100%;
+    overflow-x: hidden;
+    overflow-y: auto;
+    outline: 0;
+}
+
+.modal.fade {
+    transition: opacity 0.15s linear;
+}
+
+.modal.show {
+    opacity: 1;
+}
+
+.modal-dialog {
+    position: relative;
+    width: auto;
+    margin: 0.5rem;
+    pointer-events: none;
+}
+
+.modal-content {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    pointer-events: auto;
+    background-color: #fff;
+    background-clip: padding-box;
+    border: 1px solid rgba(0, 0, 0, 0.2);
+    border-radius: 0.3rem;
+    outline: 0;
+}
+
+.modal-backdrop {
+    position: fixed;
+    top: 0;
+    left: 0;
+    z-index: 1040;
+    width: 100vw;
+    height: 100vh;
+    background-color: #000;
+}
+
+.modal-backdrop.fade {
+    opacity: 0;
+}
+
+.modal-backdrop.show {
+    opacity: 0.5;
+}
+
+.modal-open {
+    overflow: hidden;
+}
+
+@media (min-width: 576px) {
+    .modal-dialog {
+        max-width: 500px;
+        margin: 1.75rem auto;
+    }
+}
+</style>
+
+<script>
+// Enhanced Notification System
+class NotificationManager {
+    constructor() {
+        this.currentFilter = 'all';
+        this.currentPage = 0;
+        this.pageSize = 10;
+        this.hasMore = true;
+        this.notifications = [];
+        this.init();
+    }
+    
+    init() {
+        this.setupEventListeners();
+        this.loadSettings();
+        this.loadNotifications();
+        this.startPolling();
+    }
+    
+    setupEventListeners() {
+        // Filter tabs
+        document.querySelectorAll('.tab-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                e.stopPropagation(); // Prevent dropdown from closing
+                this.setFilter(e.target.dataset.filter);
+            });
+        });
+        
+        // Mark all as read
+        document.getElementById('markAllReadBtn').addEventListener('click', (e) => {
+            e.stopPropagation(); // Prevent dropdown from closing
+            this.markAllAsRead();
+        });
+        
+        // Settings button
+        document.getElementById('notificationSettingsBtn').addEventListener('click', (e) => {
+            e.stopPropagation(); // Prevent dropdown from closing
+            this.openSettings();
+        });
+        
+        // Load more button
+        document.getElementById('loadMoreBtn').addEventListener('click', (e) => {
+            e.stopPropagation(); // Prevent dropdown from closing
+            this.loadMore();
+        });
+        
+        // Save settings
+        document.getElementById('saveNotificationSettings').addEventListener('click', (e) => {
+            e.stopPropagation(); // Prevent dropdown from closing
+            this.saveSettings();
+        });
+        
+        // Test sound button
+        document.getElementById('testSoundBtn').addEventListener('click', (e) => {
+            e.stopPropagation(); // Prevent dropdown from closing
+            this.testSound();
+        });
+        
+        // Add event delegation for notification action buttons
+        document.addEventListener('click', (e) => {
+            if (e.target.closest('.mark-read-btn')) {
+                e.stopPropagation(); // Prevent dropdown from closing
+                const notificationId = e.target.closest('.mark-read-btn').dataset.id;
+                this.markAsRead(notificationId);
+            } else if (e.target.closest('.delete-notification-btn')) {
+                e.stopPropagation(); // Prevent dropdown from closing
+                const notificationId = e.target.closest('.delete-notification-btn').dataset.id;
+                this.deleteNotification(notificationId);
+            }
+        });
+        
+        // Modal close buttons
+        const modalElement = document.getElementById('notificationSettingsModal');
+        if (modalElement) {
+            // Close button in header
+            const closeBtn = modalElement.querySelector('.btn-close');
+            if (closeBtn) {
+                closeBtn.addEventListener('click', (e) => {
+                    e.stopPropagation(); // Prevent dropdown from closing
+                    this.closeModal();
+                });
+            }
+            
+            // Cancel button in footer
+            const cancelBtn = modalElement.querySelector('button[data-bs-dismiss="modal"]');
+            if (cancelBtn) {
+                cancelBtn.addEventListener('click', (e) => {
+                    e.stopPropagation(); // Prevent dropdown from closing
+                    this.closeModal();
+                });
+            }
+            
+            // Close on backdrop click
+            modalElement.addEventListener('click', (e) => {
+                if (e.target === modalElement) {
+                    e.stopPropagation(); // Prevent dropdown from closing
+                    this.closeModal();
+                }
+            });
+            
+            // Close on Escape key
+            document.addEventListener('keydown', (e) => {
+                if (e.key === 'Escape' && modalElement.classList.contains('show')) {
+                    e.stopPropagation(); // Prevent dropdown from closing
+                    this.closeModal();
+                }
+            });
+        }
+    }
+    
+    setFilter(filter) {
+        this.currentFilter = filter;
+        this.currentPage = 0;
+        this.notifications = [];
+        this.hasMore = true;
+        
+        // Update tab appearance
+        document.querySelectorAll('.tab-btn').forEach(btn => {
+            btn.classList.remove('active');
+        });
+        document.querySelector(`[data-filter="${filter}"]`).classList.add('active');
+        
+        this.loadNotifications();
+    }
+    
+    async loadNotifications() {
+        try {
+            console.log('🔄 Loading notifications...', {
+                filter: this.currentFilter,
+                page: this.currentPage,
+                limit: this.pageSize
+            });
+            
+            const response = await fetch(`/api/notifications?filter=${this.currentFilter}&page=${this.currentPage}&limit=${this.pageSize}`);
+            console.log('📡 Response status:', response.status);
+            
+            const data = await response.json();
+            console.log('📊 Response data:', data);
+            
+            if (data.success) {
+                if (this.currentPage === 0) {
+                    this.notifications = data.notifications;
+                } else {
+                    this.notifications.push(...data.notifications);
+                }
+                
+                this.hasMore = data.has_more;
+                this.renderNotifications();
+                this.updateBadge();
+                console.log('✅ Notifications loaded successfully');
+            } else {
+                console.error('❌ API returned error:', data.message);
+                this.showError('Failed to load notifications: ' + data.message);
+            }
+        } catch (error) {
+            console.error('❌ Error loading notifications:', error);
+            this.showError('Network error: ' + error.message);
+        }
+    }
+    
+    showError(message) {
+        const content = document.getElementById('notificationContent');
+        content.innerHTML = `
+            <div class="notification-error">
+                <i class="fas fa-exclamation-triangle text-warning"></i>
+                <p>${message}</p>
+                <button class="btn btn-sm btn-primary" onclick="window.notificationManager.loadNotifications()">Retry</button>
+            </div>
+        `;
+    }
+    
+    renderNotifications() {
+        const content = document.getElementById('notificationContent');
+        const footer = document.getElementById('notificationFooter');
+        
+        if (this.notifications.length === 0) {
+            content.innerHTML = `
+                <div class="notification-empty">
+                    <i class="fas fa-bell-slash"></i>
+                    <p>No notifications found</p>
+                </div>
+            `;
+            footer.style.display = 'none';
+            return;
+        }
+        
+        const notificationsHtml = this.notifications.map(notification => `
+            <div class="notification-item ${notification.is_read ? '' : 'unread'}" data-id="${notification.id}">
+                <div class="notification-avatar">
+                    <div class="notification-icon-wrapper ${notification.notification_type}">
+                        <i class="fas fa-${this.getNotificationIcon(notification.notification_type)}"></i>
+                    </div>
+                </div>
+                
+                <div class="notification-content-wrapper">
+                    <div class="notification-header">
+                        <div class="notification-title">${notification.title}</div>
+                        <div class="notification-time">${this.formatTime(notification.created_at)}</div>
+                    </div>
+                    <div class="notification-message">${notification.message}</div>
+                    <div class="notification-meta">
+                        <span class="notification-type-badge ${notification.notification_type}">${this.formatNotificationType(notification.notification_type)}</span>
+                        ${notification.priority === 'high' ? '<span class="priority-indicator high">!</span>' : ''}
+                    </div>
+                </div>
+                
+                <div class="notification-actions">
+                    ${!notification.is_read ? `
+                        <button class="action-btn mark-read-btn" data-id="${notification.id}" title="Mark as read">
+                            <i class="fas fa-check"></i>
+                        </button>
+                    ` : ''}
+                    <button class="action-btn delete-notification-btn" data-id="${notification.id}" title="Delete">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+            </div>
+        `).join('');
+        
+        content.innerHTML = notificationsHtml;
+        footer.style.display = this.hasMore ? 'block' : 'none';
+    }
+    
+    async markAsRead(notificationId) {
+        try {
+            console.log('🔄 Marking notification as read:', notificationId);
+            const response = await fetch(`/api/notifications/${notificationId}/read`, {
+                method: 'POST'
+            });
+            
+            console.log('📡 Mark as read response status:', response.status);
+            const data = await response.json();
+            console.log('📊 Mark as read response data:', data);
+            
+            if (response.ok && data.success) {
+                // Update local state
+                const notification = this.notifications.find(n => n.id == notificationId);
+                if (notification) {
+                    notification.is_read = true;
+                    this.renderNotifications();
+                    this.updateBadge();
+                    console.log('✅ Notification marked as read successfully');
+                } else {
+                    console.warn('⚠️ Notification not found in local state');
+                }
+            } else {
+                console.error('❌ Failed to mark notification as read:', data.message);
+                this.showToast('Failed to mark notification as read: ' + data.message, 'error');
+            }
+        } catch (error) {
+            console.error('❌ Error marking notification as read:', error);
+            this.showToast('Network error: ' + error.message, 'error');
+        }
+    }
+    
+    async markAllAsRead() {
+        try {
+            const response = await fetch('/api/notifications/mark-all-read', {
+                method: 'POST'
+            });
+            
+            if (response.ok) {
+                // Update local state
+                this.notifications.forEach(notification => {
+                    notification.is_read = true;
+                });
+                this.renderNotifications();
+                this.updateBadge();
+            }
+        } catch (error) {
+            console.error('Error marking all notifications as read:', error);
+        }
+    }
+    
+    async deleteNotification(notificationId) {
+        try {
+            console.log('🗑️ Deleting notification:', notificationId);
+            const response = await fetch(`/api/notifications/${notificationId}`, {
+                method: 'DELETE'
+            });
+            
+            console.log('📡 Delete response status:', response.status);
+            const data = await response.json();
+            console.log('📊 Delete response data:', data);
+            
+            if (response.ok && data.success) {
+                // Remove from local state
+                this.notifications = this.notifications.filter(n => n.id != notificationId);
+                this.renderNotifications();
+                this.updateBadge();
+                console.log('✅ Notification deleted successfully');
+            } else {
+                console.error('❌ Failed to delete notification:', data.message);
+                this.showToast('Failed to delete notification: ' + data.message, 'error');
+            }
+        } catch (error) {
+            console.error('❌ Error deleting notification:', error);
+            this.showToast('Network error: ' + error.message, 'error');
+        }
+    }
+    
+    loadMore() {
+        if (this.hasMore) {
+            this.currentPage++;
+            this.loadNotifications();
+        }
+    }
+    
+    async updateBadge() {
+        try {
+            const response = await fetch('/api/notifications/unread-count');
+            const data = await response.json();
+            
+            const badge = document.getElementById('notificationBadge');
+            if (data.count > 0) {
+                badge.textContent = data.count;
+                badge.style.display = 'inline';
+            } else {
+                badge.style.display = 'none';
+            }
+        } catch (error) {
+            console.error('Error updating badge:', error);
+        }
+    }
+    
+    openSettings() {
+        try {
+            console.log('Opening notification settings modal...');
+            const modalElement = document.getElementById('notificationSettingsModal');
+            if (!modalElement) {
+                console.error('Modal element not found');
+                return;
+            }
+            
+            // Check if Bootstrap is available
+            if (typeof bootstrap === 'undefined') {
+                console.warn('Bootstrap is not loaded, using fallback modal');
+                this.showFallbackModal();
+                return;
+            }
+            
+            try {
+                const modal = new bootstrap.Modal(modalElement, {
+                    backdrop: false,  // Disable backdrop to prevent dark screen
+                    keyboard: true,
+                    focus: true
+                });
+                
+                // Show the modal
+                modal.show();
+                
+                // Add event listeners for modal events
+                modalElement.addEventListener('shown.bs.modal', () => {
+                    console.log('Modal shown successfully');
+                });
+                
+                modalElement.addEventListener('hidden.bs.modal', () => {
+                    console.log('Modal hidden');
+                });
+                
+            } catch (bootstrapError) {
+                console.warn('Bootstrap modal failed, using fallback:', bootstrapError);
+                this.showFallbackModal();
+            }
+            
+        } catch (error) {
+            console.error('Error opening modal:', error);
+            this.showFallbackModal();
+        }
+    }
+    
+    showFallbackModal() {
+        const modalElement = document.getElementById('notificationSettingsModal');
+        if (!modalElement) return;
+        
+        // Check if modal is already open
+        if (modalElement.classList.contains('show')) {
+            console.log('Modal is already open');
+            return;
+        }
+        
+        // Remove any existing backdrops first
+        this.removeAllBackdrops();
+        
+        // Show modal manually WITHOUT backdrop
+        modalElement.classList.add('show');
+        modalElement.style.display = 'block';
+        modalElement.setAttribute('aria-hidden', 'false');
+        modalElement.setAttribute('aria-modal', 'true');
+        
+        // NO BACKDROP - Modal will show without dark overlay
+        // This prevents the dark screen issue
+        
+        // Focus on modal
+        modalElement.focus();
+        
+        console.log('Fallback modal shown (no backdrop)');
+    }
+    
+    removeAllBackdrops() {
+        // Remove all existing backdrops
+        const existingBackdrops = document.querySelectorAll('.modal-backdrop');
+        existingBackdrops.forEach(backdrop => {
+            backdrop.remove();
+        });
+        
+        // Reset body classes
+        document.body.classList.remove('modal-open');
+        document.body.style.overflow = '';
+        document.body.style.paddingRight = '';
+        
+        console.log('Removed all backdrops');
+    }
+    
+    saveSettings() {
+        try {
+            // Save notification settings
+            const settings = {
+                guest: document.getElementById('enableGuestNotifications').checked,
+                payment: document.getElementById('enablePaymentNotifications').checked,
+                order: document.getElementById('enableOrderNotifications').checked,
+                system: document.getElementById('enableSystemNotifications').checked,
+                push: document.getElementById('enablePushNotifications').checked,
+                email: document.getElementById('enableEmailNotifications').checked,
+                sound: document.getElementById('enableSoundNotifications').checked,
+                soundType: document.getElementById('soundType').value,
+                soundVolume: document.getElementById('soundVolume').value,
+                autoMarkRead: document.getElementById('autoMarkRead').checked
+            };
+            
+            // Save to localStorage or send to server
+            localStorage.setItem('notificationSettings', JSON.stringify(settings));
+            
+            // Show success message
+            this.showToast('Settings saved successfully!', 'success');
+            
+            // Close modal
+            this.closeModal();
+            
+        } catch (error) {
+            console.error('Error saving settings:', error);
+            this.showToast('Error saving settings. Please try again.', 'error');
+        }
+    }
+    
+    closeModal() {
+        try {
+            const modalElement = document.getElementById('notificationSettingsModal');
+            if (modalElement) {
+                // Try Bootstrap modal first
+                if (typeof bootstrap !== 'undefined') {
+                    const modal = bootstrap.Modal.getInstance(modalElement);
+                    if (modal) {
+                        modal.hide();
+                        return;
+                    }
+                }
+                
+                // Fallback: manually hide modal
+                modalElement.classList.remove('show');
+                modalElement.style.display = 'none';
+                modalElement.setAttribute('aria-hidden', 'true');
+                modalElement.removeAttribute('aria-modal');
+                
+                // Clean up any remaining backdrops (just in case)
+                this.removeAllBackdrops();
+                
+                console.log('Modal closed (no backdrop)');
+            }
+        } catch (error) {
+            console.error('Error closing modal:', error);
+        }
+    }
+    
+    loadSettings() {
+        // Load notification settings from localStorage
+        const savedSettings = localStorage.getItem('notificationSettings');
+        if (savedSettings) {
+            const settings = JSON.parse(savedSettings);
+            
+            // Apply settings to form elements
+            if (settings.guest !== undefined) document.getElementById('enableGuestNotifications').checked = settings.guest;
+            if (settings.payment !== undefined) document.getElementById('enablePaymentNotifications').checked = settings.payment;
+            if (settings.order !== undefined) document.getElementById('enableOrderNotifications').checked = settings.order;
+            if (settings.system !== undefined) document.getElementById('enableSystemNotifications').checked = settings.system;
+            if (settings.push !== undefined) document.getElementById('enablePushNotifications').checked = settings.push;
+            if (settings.email !== undefined) document.getElementById('enableEmailNotifications').checked = settings.email;
+            if (settings.sound !== undefined) document.getElementById('enableSoundNotifications').checked = settings.sound;
+            if (settings.soundType) document.getElementById('soundType').value = settings.soundType;
+            if (settings.soundVolume) document.getElementById('soundVolume').value = settings.soundVolume;
+            if (settings.autoMarkRead !== undefined) document.getElementById('autoMarkRead').checked = settings.autoMarkRead;
+        }
+    }
+    
+    showToast(message, type = 'info') {
+        // Create a simple toast notification
+        const toast = document.createElement('div');
+        toast.className = `toast align-items-center text-white bg-${type} border-0`;
+        toast.setAttribute('role', 'alert');
+        toast.innerHTML = `
+            <div class="d-flex">
+                <div class="toast-body">${message}</div>
+                <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
+            </div>
+        `;
+        
+        // Add to page
+        document.body.appendChild(toast);
+        
+        // Show toast
+        const bsToast = new bootstrap.Toast(toast);
+        bsToast.show();
+        
+        // Remove from DOM after hiding
+        toast.addEventListener('hidden.bs.toast', () => {
+            document.body.removeChild(toast);
+        });
+    }
+    
+    formatTime(dateString) {
+        const date = new Date(dateString);
+        const now = new Date();
+        const diff = now - date;
+        
+        if (diff < 60000) { // Less than 1 minute
+            return 'Just now';
+        } else if (diff < 3600000) { // Less than 1 hour
+            return `${Math.floor(diff / 60000)}m ago`;
+        } else if (diff < 86400000) { // Less than 1 day
+            return `${Math.floor(diff / 3600000)}h ago`;
+        } else if (diff < 604800000) { // Less than 1 week
+            return `${Math.floor(diff / 86400000)}d ago`;
+        } else {
+            return date.toLocaleDateString();
+        }
+    }
+    
+    getNotificationIcon(notificationType) {
+        const iconMap = {
+            'guest_checkin': 'user-check',
+            'guest_checkout': 'user-times',
+            'guest_added': 'user-plus',
+            'order_assigned': 'utensils',
+            'payment_received': 'credit-card',
+            'expense_added': 'receipt',
+            'salary_paid': 'money-bill-wave',
+            'inventory_low': 'exclamation-triangle',
+            'system': 'cog',
+            'info': 'info-circle',
+            'success': 'check-circle',
+            'warning': 'exclamation-triangle',
+            'error': 'times-circle'
+        };
+        return iconMap[notificationType] || 'bell';
+    }
+    
+    formatNotificationType(notificationType) {
+        const typeMap = {
+            'guest_checkin': 'Check-in',
+            'guest_checkout': 'Check-out',
+            'guest_added': 'New Guest',
+            'order_assigned': 'Order',
+            'payment_received': 'Payment',
+            'expense_added': 'Expense',
+            'salary_paid': 'Salary',
+            'inventory_low': 'Inventory',
+            'system': 'System',
+            'info': 'Info',
+            'success': 'Success',
+            'warning': 'Warning',
+            'error': 'Error'
+        };
+        return typeMap[notificationType] || notificationType;
+    }
+    
+    startPolling() {
+        // Poll for new notifications every 30 seconds
+        setInterval(() => {
+            this.updateBadge();
+        }, 30000);
+        
+        // Start real-time notification stream
+        this.startRealtimeStream();
+    }
+    
+    startRealtimeStream() {
+        // Check if EventSource is supported
+        if (typeof EventSource !== 'undefined') {
+            try {
+                this.eventSource = new EventSource('/api/realtime/notifications/stream');
+                
+                this.eventSource.onmessage = (event) => {
+                    const data = JSON.parse(event.data);
+                    
+                    if (data.type === 'notification') {
+                        this.handleRealtimeNotification(data.data);
+                    } else if (data.type === 'heartbeat') {
+                        // Connection is alive
+                        console.log('Notification stream heartbeat');
+                    }
+                };
+                
+                this.eventSource.onerror = (error) => {
+                    console.error('Notification stream error:', error);
+                    // Attempt to reconnect after 5 seconds
+                    setTimeout(() => {
+                        if (this.eventSource.readyState === EventSource.CLOSED) {
+                            this.startRealtimeStream();
+                        }
+                    }, 5000);
+                };
+                
+                this.eventSource.onopen = () => {
+                    console.log('Real-time notification stream connected');
+                };
+                
+            } catch (error) {
+                console.error('Failed to start real-time notification stream:', error);
+            }
+        } else {
+            console.warn('EventSource not supported, falling back to polling only');
+        }
+    }
+    
+    handleRealtimeNotification(notification) {
+        // Add new notification to the beginning of the list
+        this.notifications.unshift(notification);
+        
+        // Update the display
+        this.renderNotifications();
+        
+        // Add animation class to the new notification
+        setTimeout(() => {
+            const newNotificationElement = document.querySelector(`[data-id="${notification.id}"]`);
+            if (newNotificationElement) {
+                newNotificationElement.classList.add('new-notification');
+                // Remove animation class after animation completes
+                setTimeout(() => {
+                    newNotificationElement.classList.remove('new-notification');
+                }, 300);
+            }
+        }, 100);
+        
+        this.updateBadge();
+        
+        // Show browser notification if permission is granted
+        this.showBrowserNotification(notification);
+        
+        // Play notification sound
+        this.playNotificationSound();
+    }
+    
+    showBrowserNotification(notification) {
+        // Check if browser notifications are supported and permission is granted
+        if ('Notification' in window && Notification.permission === 'granted') {
+            const browserNotification = new Notification(notification.title, {
+                body: notification.message,
+                icon: '/static/images/notification-icon.png', // Add your notification icon
+                tag: 'hostel-notification',
+                requireInteraction: false
+            });
+            
+            // Auto-close after 5 seconds
+            setTimeout(() => {
+                browserNotification.close();
+            }, 5000);
+            
+            // Handle click on notification
+            browserNotification.onclick = () => {
+                window.focus();
+                browserNotification.close();
+            };
+        }
+    }
+    
+    testSound() {
+        // Add visual feedback
+        const testBtn = document.getElementById('testSoundBtn');
+        const originalText = testBtn.innerHTML;
+        
+        testBtn.innerHTML = '<i class="fas fa-volume-up me-1"></i> Playing...';
+        testBtn.classList.add('sound-playing');
+        testBtn.disabled = true;
+        
+        // Play the sound
+        this.playNotificationSound();
+        
+        // Reset button after sound duration
+        setTimeout(() => {
+            testBtn.innerHTML = originalText;
+            testBtn.classList.remove('sound-playing');
+            testBtn.disabled = false;
+        }, 1000);
+    }
+    
+    playNotificationSound() {
+        // Check if sound notifications are enabled
+        const soundEnabled = document.getElementById('enableSoundNotifications')?.checked ?? true;
+        if (!soundEnabled) return;
+        
+        try {
+            const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+            const soundType = document.getElementById('soundType')?.value || 'default';
+            const volume = (document.getElementById('soundVolume')?.value || 50) / 100;
+            
+            // Create gain node for volume control
+            const gainNode = audioContext.createGain();
+            gainNode.connect(audioContext.destination);
+            gainNode.gain.setValueAtTime(volume * 0.3, audioContext.currentTime);
+            
+            // Play different sounds based on type
+            switch (soundType) {
+                case 'gentle':
+                    this.playGentleChime(audioContext, gainNode);
+                    break;
+                case 'alert':
+                    this.playAlertSound(audioContext, gainNode);
+                    break;
+                case 'success':
+                    this.playSuccessSound(audioContext, gainNode);
+                    break;
+                case 'warning':
+                    this.playWarningSound(audioContext, gainNode);
+                    break;
+                default:
+                    this.playDefaultBeep(audioContext, gainNode);
+            }
+        } catch (error) {
+            console.warn('Could not play notification sound:', error);
+            this.showToast('Could not play sound. Please check your browser audio settings.', 'warning');
+        }
+    }
+    
+    playDefaultBeep(audioContext, gainNode) {
+        const oscillator = audioContext.createOscillator();
+        oscillator.connect(gainNode);
+        
+        oscillator.frequency.setValueAtTime(800, audioContext.currentTime);
+        oscillator.frequency.setValueAtTime(600, audioContext.currentTime + 0.1);
+        
+        gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.3);
+        
+        oscillator.start(audioContext.currentTime);
+        oscillator.stop(audioContext.currentTime + 0.3);
+    }
+    
+    playGentleChime(audioContext, gainNode) {
+        // Create a gentle chime with multiple frequencies
+        const frequencies = [523.25, 659.25, 783.99]; // C5, E5, G5
+        
+        frequencies.forEach((freq, index) => {
+            const oscillator = audioContext.createOscillator();
+            const noteGain = audioContext.createGain();
+            
+            oscillator.connect(noteGain);
+            noteGain.connect(gainNode);
+            
+            oscillator.frequency.setValueAtTime(freq, audioContext.currentTime + index * 0.1);
+            oscillator.type = 'sine';
+            
+            noteGain.gain.setValueAtTime(0, audioContext.currentTime + index * 0.1);
+            noteGain.gain.linearRampToValueAtTime(0.3, audioContext.currentTime + index * 0.1 + 0.05);
+            noteGain.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + index * 0.1 + 0.8);
+            
+            oscillator.start(audioContext.currentTime + index * 0.1);
+            oscillator.stop(audioContext.currentTime + index * 0.1 + 0.8);
+        });
+    }
+    
+    playAlertSound(audioContext, gainNode) {
+        // Create an alert sound with rising frequency
+        const oscillator = audioContext.createOscillator();
+        oscillator.connect(gainNode);
+        
+        oscillator.frequency.setValueAtTime(400, audioContext.currentTime);
+        oscillator.frequency.linearRampToValueAtTime(800, audioContext.currentTime + 0.2);
+        oscillator.frequency.linearRampToValueAtTime(400, audioContext.currentTime + 0.4);
+        
+        gainNode.gain.setValueAtTime(0, audioContext.currentTime);
+        gainNode.gain.linearRampToValueAtTime(0.4, audioContext.currentTime + 0.1);
+        gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.5);
+        
+        oscillator.start(audioContext.currentTime);
+        oscillator.stop(audioContext.currentTime + 0.5);
+    }
+    
+    playSuccessSound(audioContext, gainNode) {
+        // Create a success sound with ascending notes
+        const notes = [523.25, 659.25, 783.99, 1046.50]; // C5, E5, G5, C6
+        
+        notes.forEach((freq, index) => {
+            const oscillator = audioContext.createOscillator();
+            const noteGain = audioContext.createGain();
+            
+            oscillator.connect(noteGain);
+            noteGain.connect(gainNode);
+            
+            oscillator.frequency.setValueAtTime(freq, audioContext.currentTime + index * 0.15);
+            oscillator.type = 'sine';
+            
+            noteGain.gain.setValueAtTime(0, audioContext.currentTime + index * 0.15);
+            noteGain.gain.linearRampToValueAtTime(0.2, audioContext.currentTime + index * 0.15 + 0.05);
+            noteGain.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + index * 0.15 + 0.3);
+            
+            oscillator.start(audioContext.currentTime + index * 0.15);
+            oscillator.stop(audioContext.currentTime + index * 0.15 + 0.3);
+        });
+    }
+    
+    playWarningSound(audioContext, gainNode) {
+        // Create a warning sound with low frequency
+        const oscillator = audioContext.createOscillator();
+        oscillator.connect(gainNode);
+        
+        oscillator.frequency.setValueAtTime(200, audioContext.currentTime);
+        oscillator.frequency.setValueAtTime(300, audioContext.currentTime + 0.1);
+        oscillator.frequency.setValueAtTime(200, audioContext.currentTime + 0.2);
+        oscillator.frequency.setValueAtTime(300, audioContext.currentTime + 0.3);
+        
+        gainNode.gain.setValueAtTime(0, audioContext.currentTime);
+        gainNode.gain.linearRampToValueAtTime(0.3, audioContext.currentTime + 0.05);
+        gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.4);
+        
+        oscillator.start(audioContext.currentTime);
+        oscillator.stop(audioContext.currentTime + 0.4);
+    }
+    
+    requestNotificationPermission() {
+        if ('Notification' in window && Notification.permission === 'default') {
+            Notification.requestPermission().then((permission) => {
+                if (permission === 'granted') {
+                    console.log('Notification permission granted');
+                } else {
+                    console.log('Notification permission denied');
+                }
+            });
+        }
+    }
+    
+    cleanup() {
+        // Clean up resources when the component is destroyed
+        if (this.eventSource) {
+            this.eventSource.close();
+        }
+    }
+}
+
+// Initialize notification manager when DOM is loaded
+document.addEventListener('DOMContentLoaded', function() {
+    window.notificationManager = new NotificationManager();
+    
+    // Request notification permission
+    window.notificationManager.requestNotificationPermission();
+    
+});
+
+// Clean up when page is unloaded
+window.addEventListener('beforeunload', function() {
+    if (window.notificationManager) {
+        window.notificationManager.cleanup();
+    }
+});
+</script>

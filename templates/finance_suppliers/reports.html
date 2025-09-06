@@ -1,0 +1,692 @@
+{% extends "base.html" %}
+
+{% block title %}Financial Reports - Finance & Suppliers{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Page Header -->
+    <div class="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center mb-4">
+        <div class="mb-3 mb-md-0">
+            <h1 class="h3 mb-0">Financial Reports</h1>
+            <p class="text-muted mb-0">Generate and view financial reports</p>
+        </div>
+        <div class="d-flex gap-2">
+            <a href="{{ url_for('finance_suppliers.index') }}" class="btn btn-modern btn-outline-secondary">
+                <i class="fas fa-arrow-left me-2"></i><span class="d-none d-sm-inline">Back to Dashboard</span><span class="d-sm-none">Back</span>
+            </a>
+        </div>
+    </div>
+
+    <!-- Report Filters -->
+    <div class="card mb-4">
+        <div class="card-header">
+            <h5 class="card-title mb-0">
+                <i class="fas fa-filter me-2"></i>Report Filters
+            </h5>
+        </div>
+        <div class="card-body">
+            <form method="GET" class="row g-3">
+                <div class="col-12 col-sm-6 col-md-3">
+                    <label for="report_type" class="form-label">Report Type</label>
+                    <select class="form-select" id="report_type" name="report_type">
+                        <option value="summary">Financial Summary</option>
+                        <option value="expenses">Expense Analysis</option>
+                        <option value="income">Income Analysis</option>
+                        <option value="profit_loss">Profit & Loss</option>
+                    </select>
+                </div>
+                <div class="col-12 col-sm-6 col-md-3">
+                    <label for="date_from" class="form-label">From Date</label>
+                    <input type="date" class="form-control" id="date_from" name="date_from" value="{{ start_date.strftime('%Y-%m-%d') if start_date else '' }}">
+                </div>
+                <div class="col-12 col-sm-6 col-md-3">
+                    <label for="date_to" class="form-label">To Date</label>
+                    <input type="date" class="form-control" id="date_to" name="date_to" value="{{ end_date.strftime('%Y-%m-%d') if end_date else '' }}">
+                </div>
+                <div class="col-12 col-sm-6 col-md-3">
+                    <label for="hostel" class="form-label">Hostel</label>
+                    <select class="form-select" id="hostel" name="hostel">
+                        <option value="">All Hostels</option>
+                        <option value="Olas" {% if request.args.get('hostel') == 'Olas' %}selected{% endif %}>Olas</option>
+                        <option value="Tide" {% if request.args.get('hostel') == 'Tide' %}selected{% endif %}>Tide</option>
+                    </select>
+                </div>
+                <div class="col-12">
+                    <button type="submit" class="btn btn-primary w-100 w-md-auto">
+                        <i class="fas fa-chart-bar me-2"></i>Generate Report
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Report Content -->
+    <div class="card">
+        <div class="card-header">
+            <h5 class="card-title mb-0">
+                <i class="fas fa-chart-bar me-2"></i>Financial Report
+                <span class="badge bg-primary ms-2">{{ report_type.title() }}</span>
+            </h5>
+        </div>
+        <div class="card-body">
+            {% if expenses or income or total_payments or total_salaries %}
+                <!-- Summary Cards -->
+                <div class="row mb-4 g-3">
+                    <div class="col-12 col-sm-6 col-md-4">
+                        <a href="{{ url_for('finance_suppliers.expenses') }}" class="text-decoration-none">
+                            <div class="card bg-light h-100 clickable-card">
+                                <div class="card-body text-center">
+                                    <h6 class="card-title text-muted">Total Expenses</h6>
+                                    <h4 class="text-danger">{{ "%.2f"|format(expenses|sum(attribute='total') or 0) }} MAD</h4>
+                                    <small class="text-muted">
+                                        <i class="fas fa-external-link-alt me-1"></i>View Details
+                                    </small>
+                                </div>
+                            </div>
+                        </a>
+                    </div>
+                    <div class="col-12 col-sm-6 col-md-4">
+                        <a href="{{ url_for('inventory.index') }}" class="text-decoration-none">
+                            <div class="card bg-light h-100 clickable-card">
+                                <div class="card-body text-center">
+                                    <h6 class="card-title text-muted">Total Inventory Cost</h6>
+                                    <h4 class="text-success">{{ "%.2f"|format(estimated_total_value or 0) }} MAD</h4>
+                                    <small class="text-muted">
+                                        <i class="fas fa-external-link-alt me-1"></i>View Details
+                                    </small>
+                                </div>
+                            </div>
+                        </a>
+                    </div>
+                    <div class="col-12 col-sm-6 col-md-4">
+                        <div class="card bg-light h-100">
+                            <div class="card-body text-center">
+                                <h6 class="card-title text-muted">Total Payments</h6>
+                                <h4 class="text-info">{{ "%.2f"|format(total_payments or 0) }} MAD</h4>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-12 col-sm-6 col-md-4">
+                        <a href="{{ url_for('employee_salaries.index') }}" class="text-decoration-none">
+                            <div class="card bg-light h-100 clickable-card">
+                                <div class="card-body text-center">
+                                    <h6 class="card-title text-muted">Total Salaries</h6>
+                                    <h4 class="text-warning">{{ "%.2f"|format(total_salaries or 0) }} MAD</h4>
+                                    <small class="text-muted">
+                                        <i class="fas fa-external-link-alt me-1"></i>View Details
+                                    </small>
+                                </div>
+                            </div>
+                        </a>
+                    </div>
+                </div>
+
+                <!-- Detailed Revenue Breakdown -->
+                <div class="row mb-4">
+                    <div class="col-12">
+                        <h6 class="mb-3">
+                            <i class="fas fa-chart-pie me-2"></i>Detailed Revenue Breakdown
+                        </h6>
+                        <div class="row g-3">
+                            <div class="col-12 col-sm-6 col-lg-3">
+                                <div class="card border-primary h-100">
+                                    <div class="card-body text-center">
+                                        <i class="fas fa-bed fa-2x text-primary mb-2"></i>
+                                        <h6 class="card-title text-muted">Rent Income</h6>
+                                        <h4 class="text-primary">{{ "%.2f"|format(rent_amount or 0) }} MAD</h4>
+                                        <small class="text-muted">Room & accommodation</small>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-12 col-sm-6 col-lg-3">
+                                <div class="card border-success h-100">
+                                    <div class="card-body text-center">
+                                        <i class="fas fa-utensils fa-2x text-success mb-2"></i>
+                                        <h6 class="card-title text-muted">Restaurant</h6>
+                                        <h4 class="text-success">{{ "%.2f"|format(restaurant_amount or 0) }} MAD</h4>
+                                        <small class="text-muted">Food & beverages</small>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-12 col-sm-6 col-lg-3">
+                                <div class="card border-info h-100">
+                                    <div class="card-body text-center">
+                                        <i class="fas fa-water fa-2x text-info mb-2"></i>
+                                        <h6 class="card-title text-muted">Surf Lessons</h6>
+                                        <h4 class="text-info">{{ "%.2f"|format(surf_amount or 0) }} MAD</h4>
+                                        <small class="text-muted">Surf lessons only</small>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-12 col-sm-6 col-lg-3">
+                                <div class="card border-warning h-100">
+                                    <div class="card-body text-center">
+                                        <i class="fas fa-swimmer fa-2x text-warning mb-2"></i>
+                                        <h6 class="card-title text-muted">Board Rental</h6>
+                                        <h4 class="text-warning">{{ "%.2f"|format(surf_lessons_amount or 0) }} MAD</h4>
+                                        <small class="text-muted">Board rental & lessons</small>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Expenses Breakdown -->
+                {% if expenses %}
+                <div class="row mb-4">
+                    <div class="col-12">
+                        <h6 class="mb-3">Expenses by Category</h6>
+                        <div class="table-responsive">
+                            <table class="table table-striped">
+                                <thead>
+                                    <tr>
+                                        <th>Category</th>
+                                        <th class="text-end">Amount</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for expense in expenses %}
+                                    <tr>
+                                        <td>{{ expense.category or 'Uncategorized' }}</td>
+                                        <td class="text-end">{{ "%.2f"|format(expense.total) }} MAD</td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
+
+                <!-- Income Breakdown -->
+                {% if income %}
+                <div class="row mb-4">
+                    <div class="col-12">
+                        <h6 class="mb-3">Income by Source</h6>
+                        <div class="table-responsive">
+                            <table class="table table-striped">
+                                <thead>
+                                    <tr>
+                                        <th>Source</th>
+                                        <th class="text-end">Amount</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for inc in income %}
+                                    <tr>
+                                        <td>{{ inc.source or 'Other' }}</td>
+                                        <td class="text-end">{{ "%.2f"|format(inc.total) }} MAD</td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
+
+
+
+                <!-- Services Breakdown -->
+                {% if services_breakdown %}
+                <div class="row mb-4">
+                    <div class="col-12">
+                        <div class="d-flex justify-content-between align-items-center mb-3">
+                            <h6 class="mb-0">
+                                <i class="fas fa-concierge-bell me-2"></i>Services Breakdown
+                            </h6>
+                            <div class="d-flex flex-column flex-sm-row gap-2 align-items-start">
+                                <select class="form-select form-select-sm" id="serviceTypeFilter" style="width: 150px; min-width: 150px;">
+                                    <option value="">All Types</option>
+                                    <option value="meal">Meal</option>
+                                    <option value="general">General</option>
+                                    <option value="restaurant">Restaurant</option>
+                                    <option value="surf">Surf</option>
+                                    <option value="surf_lessons">Surf Lessons</option>
+                                    <option value="board_rental">Board Rental</option>
+                                </select>
+                                <select class="form-select form-select-sm" id="serviceHostelFilter" style="width: 120px; min-width: 120px;">
+                                    <option value="">All Hostels</option>
+                                    <option value="Olas">Olas</option>
+                                    <option value="Tide">Tide</option>
+                                </select>
+                                <input type="text" class="form-control form-control-sm" id="serviceNameFilter" placeholder="Filter by name..." style="width: 200px; min-width: 200px;">
+                                <div style="width: 60px; min-width: 60px;">
+                                    <button type="button" class="btn btn-danger btn-sm" id="clearFiltersBtn" style="display: none; width: 100%; padding: 0.25rem 0.5rem; font-size: 0.75rem;">
+                                        <i class="fas fa-times"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="table-responsive">
+                            <table class="table table-striped">
+                                <thead>
+                                    <tr>
+                                        <th>Service Type</th>
+                                        <th>Service Name</th>
+                                        <th>Hostel</th>
+                                        <th class="text-end">Amount</th>
+                                        <th class="text-end">Count</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for service in services_breakdown %}
+                                    <tr>
+                                        <td>
+                                            {% if service.service_type == 'general' %}
+                                                <span class="badge bg-primary">{{ service.service_type.title() }}</span>
+                                            {% elif service.service_type == 'meal' %}
+                                                <span class="badge bg-success">{{ service.service_type.title() }}</span>
+                                            {% elif service.service_type == 'restaurant' %}
+                                                <span class="badge bg-warning">{{ service.service_type.title() }}</span>
+                                            {% else %}
+                                                <span class="badge bg-info">{{ service.service_type.title() }}</span>
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            <strong>{{ service.name }}</strong>
+                                        </td>
+                                        <td>
+                                            <span class="badge bg-info">{{ service.hostel_name or 'N/A' }}</span>
+                                        </td>
+                                        <td class="text-end">
+                                            <strong>{{ "%.2f"|format(service.total_amount) }} MAD</strong>
+                                        </td>
+                                        <td class="text-end">
+                                            <span class="badge bg-light text-dark">{{ service.service_count }}</span>
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                                <tfoot>
+                                    <tr class="table-dark">
+                                        <th colspan="3">Total Services</th>
+                                        <th class="text-end">{{ "%.2f"|format(total_services_amount) }} MAD</th>
+                                        <th class="text-end">{{ services_breakdown|sum(attribute='service_count') }}</th>
+                                    </tr>
+                                </tfoot>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
+
+                <!-- Date Range Info -->
+                <div class="alert alert-info">
+                    <i class="fas fa-info-circle me-2"></i>
+                    Report period: {{ start_date.strftime('%B %d, %Y') }} to {{ end_date.strftime('%B %d, %Y') }}
+                </div>
+            {% else %}
+                <div class="text-center py-4">
+                    <i class="fas fa-chart-line fa-3x text-muted mb-3"></i>
+                    <h6 class="text-muted">No Data Found</h6>
+                    <p class="text-muted mb-0">No financial data found for the selected period.</p>
+                    <p class="text-muted mb-0">Try adjusting the date range or check if there are any transactions.</p>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<!-- Custom CSS -->
+<style>
+.btn-modern {
+    border-radius: 10px;
+    font-weight: 500;
+    padding: 0.5rem 1rem;
+}
+
+.card {
+    border: none;
+    border-radius: 15px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+}
+
+.clickable-card {
+    transition: all 0.3s ease;
+    cursor: pointer;
+}
+
+.clickable-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+}
+
+.clickable-card:hover .text-danger {
+    color: #dc3545 !important;
+}
+
+.clickable-card:hover .text-success {
+    color: #198754 !important;
+}
+
+.clickable-card:hover .text-warning {
+    color: #fd7e14 !important;
+}
+
+/* Mobile-specific styles */
+@media (max-width: 768px) {
+    .container-fluid {
+        padding-left: 10px;
+        padding-right: 10px;
+    }
+    
+    .card-body {
+        padding: 1rem;
+    }
+    
+    .table-responsive {
+        font-size: 0.875rem;
+    }
+    
+    .table th, .table td {
+        padding: 0.5rem 0.25rem;
+        white-space: nowrap;
+    }
+    
+    .btn {
+        font-size: 0.875rem;
+    }
+    
+    .form-select, .form-control {
+        font-size: 0.875rem;
+    }
+    
+    .h3 {
+        font-size: 1.5rem;
+    }
+    
+    .h4 {
+        font-size: 1.25rem;
+    }
+    
+    .h6 {
+        font-size: 1rem;
+    }
+    
+    .card-title {
+        font-size: 0.875rem;
+    }
+    
+    .badge {
+        font-size: 0.75rem;
+    }
+    
+    .fa-2x {
+        font-size: 1.5em !important;
+    }
+    
+    /* Stack filters vertically on mobile */
+    .d-flex.flex-column.flex-sm-row {
+        flex-direction: column !important;
+    }
+    
+    .d-flex.flex-column.flex-sm-row > * {
+        margin-bottom: 0.5rem;
+    }
+    
+    /* Make tables more mobile-friendly */
+    .table-responsive {
+        border: none;
+    }
+    
+    .table thead th {
+        font-size: 0.75rem;
+        font-weight: 600;
+    }
+    
+    .table tbody td {
+        font-size: 0.75rem;
+    }
+}
+
+@media (max-width: 576px) {
+    .container-fluid {
+        padding-left: 5px;
+        padding-right: 5px;
+    }
+    
+    .card-body {
+        padding: 0.75rem;
+    }
+    
+    .table th, .table td {
+        padding: 0.25rem;
+        font-size: 0.7rem;
+    }
+    
+    .btn {
+        padding: 0.375rem 0.75rem;
+        font-size: 0.8rem;
+    }
+    
+    .form-select, .form-control {
+        padding: 0.375rem 0.5rem;
+        font-size: 0.8rem;
+    }
+}
+</style>
+
+<!-- JavaScript -->
+<script>
+// Set default date range (current month) and report type
+document.addEventListener('DOMContentLoaded', function() {
+    const today = new Date();
+    const firstDay = new Date(today.getFullYear(), today.getMonth(), 1);
+    
+    if (!document.getElementById('date_from').value) {
+        document.getElementById('date_from').value = firstDay.toISOString().split('T')[0];
+    }
+    if (!document.getElementById('date_to').value) {
+        document.getElementById('date_to').value = today.toISOString().split('T')[0];
+    }
+    
+    // Set the selected report type
+    const reportTypeSelect = document.getElementById('report_type');
+    const currentReportType = '{{ report_type }}';
+    if (currentReportType && reportTypeSelect) {
+        reportTypeSelect.value = currentReportType;
+    }
+    
+    // Services Breakdown filtering
+    const serviceTypeFilter = document.getElementById('serviceTypeFilter');
+    const serviceHostelFilter = document.getElementById('serviceHostelFilter');
+    const serviceNameFilter = document.getElementById('serviceNameFilter');
+    
+    function filterServices() {
+        console.log('Filtering services...');
+        
+        // Find the Services Breakdown table specifically
+        const servicesSection = document.querySelector('h6 .fa-concierge-bell');
+        console.log('Services section found:', servicesSection);
+        if (!servicesSection) return;
+        
+        // Find the Services Breakdown table more specifically
+        const servicesTable = servicesSection.closest('.row').querySelector('table tbody');
+        console.log('Services table found:', servicesTable);
+        if (!servicesTable) {
+            console.log('Services table not found!');
+            return;
+        }
+        
+        const typeFilter = serviceTypeFilter ? serviceTypeFilter.value.toLowerCase() : '';
+        const hostelFilter = serviceHostelFilter ? serviceHostelFilter.value : '';
+        const nameFilter = serviceNameFilter ? serviceNameFilter.value.toLowerCase() : '';
+        
+        console.log('Type filter:', typeFilter);
+        console.log('Hostel filter:', hostelFilter);
+        console.log('Name filter:', nameFilter);
+        
+        const rows = servicesTable.querySelectorAll('tr');
+        console.log('Found rows:', rows.length);
+        console.log('Rows details:', Array.from(rows).map(row => ({
+            element: row,
+            textContent: row.textContent.trim().substring(0, 50) + '...',
+            hasTypeCell: !!row.querySelector('td:first-child'),
+            hasNameCell: !!row.querySelector('td:nth-child(2)')
+        })));
+        
+        let visibleCount = 0;
+        let totalAmount = 0;
+        let totalCount = 0;
+        
+        rows.forEach(row => {
+            const typeCell = row.querySelector('td:first-child');
+            const nameCell = row.querySelector('td:nth-child(2)');
+            const hostelCell = row.querySelector('td:nth-child(3)');
+            const amountCell = row.querySelector('td:nth-child(4)');
+            const countCell = row.querySelector('td:nth-child(5)');
+            
+            if (!typeCell || !nameCell) return;
+            
+            // Get the service type from the badge text
+            const badge = typeCell.querySelector('.badge');
+            const serviceType = badge ? badge.textContent.toLowerCase().trim() : typeCell.textContent.toLowerCase().trim();
+            const serviceName = nameCell.textContent.toLowerCase().trim();
+            
+            // Get the hostel from the badge text
+            const hostelBadge = hostelCell ? hostelCell.querySelector('.badge') : null;
+            const serviceHostel = hostelBadge ? hostelBadge.textContent.trim() : (hostelCell ? hostelCell.textContent.trim() : '');
+            
+            // Debug logging
+            console.log('Row check:', {
+                serviceType: serviceType,
+                serviceName: serviceName,
+                serviceHostel: serviceHostel,
+                typeFilter: typeFilter,
+                hostelFilter: hostelFilter,
+                nameFilter: nameFilter
+            });
+            
+            const typeMatch = !typeFilter || serviceType.includes(typeFilter);
+            const hostelMatch = !hostelFilter || serviceHostel === hostelFilter;
+            const nameMatch = !nameFilter || serviceName.includes(nameFilter);
+            
+            console.log('Match results:', {
+                typeMatch: typeMatch,
+                hostelMatch: hostelMatch,
+                nameMatch: nameMatch,
+                overallMatch: typeMatch && hostelMatch && nameMatch
+            });
+            
+            if (typeMatch && hostelMatch && nameMatch) {
+                row.style.display = '';
+                visibleCount++;
+                
+                // Add to totals
+                if (amountCell) {
+                    const amount = parseFloat(amountCell.textContent.replace(/[^\d.-]/g, '')) || 0;
+                    totalAmount += amount;
+                    console.log('Adding amount:', amount, 'from row:', row.textContent.trim().substring(0, 30));
+                }
+                if (countCell) {
+                    const count = parseInt(countCell.textContent) || 0;
+                    totalCount += count;
+                    console.log('Adding count:', count, 'from row:', row.textContent.trim().substring(0, 30));
+                }
+            } else {
+                row.style.display = 'none';
+                console.log('Hiding row:', row.textContent.trim().substring(0, 30), 'because:', {
+                    typeMatch, hostelMatch, nameMatch
+                });
+            }
+        });
+        
+        // Debug logging for totals
+        console.log('Final filtered totals:', {
+            visibleCount: visibleCount,
+            totalAmount: totalAmount,
+            totalCount: totalCount,
+            typeFilter: typeFilter,
+            hostelFilter: hostelFilter,
+            nameFilter: nameFilter
+        });
+        
+        console.log('About to update table footer with:', {
+            totalAmount: totalAmount,
+            totalCount: totalCount,
+            totalAmountFormatted: totalAmount.toFixed(2) + ' MAD'
+        });
+        
+        // If no visible rows, ensure totals are 0
+        if (visibleCount === 0) {
+            totalAmount = 0;
+            totalCount = 0;
+            console.log('No visible rows - setting totals to 0');
+        }
+        
+        // Update the total row in the same table
+        const totalRow = servicesTable.closest('table').querySelector('tfoot tr');
+        console.log('Total row found:', totalRow);
+        if (totalRow) {
+            const totalLabelCell = totalRow.querySelector('th:first-child');
+            const totalAmountCell = totalRow.querySelector('th:nth-child(2)');
+            const totalCountCell = totalRow.querySelector('th:nth-child(3)');
+            
+            console.log('Table footer cells found:', {
+                totalLabelCell: totalLabelCell,
+                totalAmountCell: totalAmountCell,
+                totalCountCell: totalCountCell,
+                currentAmountText: totalAmountCell ? totalAmountCell.textContent : 'N/A',
+                currentCountText: totalCountCell ? totalCountCell.textContent : 'N/A'
+            });
+            
+            // Update the label to show if filtered
+            if (totalLabelCell) {
+                const hasActiveFilters = typeFilter || hostelFilter || nameFilter;
+                if (hasActiveFilters) {
+                    totalLabelCell.innerHTML = 'Filtered Total <i class="fas fa-filter ms-1"></i>';
+                } else {
+                    totalLabelCell.textContent = 'Total Services';
+                }
+            }
+            
+            if (totalAmountCell) {
+                totalAmountCell.textContent = totalAmount.toFixed(2) + ' MAD';
+                console.log('Table footer amount updated from', totalAmountCell.textContent, 'to:', totalAmount.toFixed(2) + ' MAD');
+            }
+            if (totalCountCell) {
+                totalCountCell.textContent = totalCount;
+                console.log('Table footer count updated from', totalCountCell.textContent, 'to:', totalCount);
+            }
+        } else {
+            console.log('Total row not found!');
+        }
+        
+        // Show/hide clear button
+        const hasActiveFilters = typeFilter || hostelFilter || nameFilter;
+        const clearBtn = document.getElementById('clearFiltersBtn');
+        
+        if (clearBtn) {
+            if (hasActiveFilters) {
+                clearBtn.style.display = 'inline-block';
+            } else {
+                clearBtn.style.display = 'none';
+            }
+        }
+    }
+    
+    if (serviceTypeFilter) {
+        serviceTypeFilter.addEventListener('change', filterServices);
+    }
+    if (serviceHostelFilter) {
+        serviceHostelFilter.addEventListener('change', filterServices);
+    }
+    if (serviceNameFilter) {
+        serviceNameFilter.addEventListener('input', filterServices);
+    }
+    
+    // Clear filters button
+    const clearFiltersBtn = document.getElementById('clearFiltersBtn');
+    if (clearFiltersBtn) {
+        clearFiltersBtn.addEventListener('click', function() {
+            if (serviceTypeFilter) serviceTypeFilter.value = '';
+            if (serviceHostelFilter) serviceHostelFilter.value = '';
+            if (serviceNameFilter) serviceNameFilter.value = '';
+            filterServices();
+        });
+    }
+});
+</script>
+{% endblock %}

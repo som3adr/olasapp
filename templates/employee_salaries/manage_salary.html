@@ -1,0 +1,277 @@
+{% extends "base.html" %}
+
+{% block title %}Manage Salary - {{ employee.full_name }} - HostelFlow{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Header Section -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h1 class="h3 mb-0">
+                <i class="fas fa-money-bill-wave text-primary me-2"></i>
+                Manage Salary - {{ employee.full_name }}
+            </h1>
+            <p class="text-muted">Manage salary for {{ current_month.strftime('%B %Y') }}</p>
+        </div>
+        <div>
+            <a href="{{ url_for('employee_salaries.view_employee', employee_id=employee.id) }}" class="btn btn-secondary">
+                <i class="fas fa-arrow-left"></i> Back to Employee
+            </a>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-lg-8">
+            <div class="card shadow">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">Salary Details</h6>
+                </div>
+                <div class="card-body">
+                    <form method="POST" id="salaryForm">
+                        <!-- Basic Salary Section -->
+                        <div class="card mb-4">
+                            <div class="card-header bg-primary text-white">
+                                <h6 class="mb-0">Basic Salary</h6>
+                            </div>
+                            <div class="card-body">
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <div class="mb-3">
+                                            <label for="basic_salary" class="form-label">Basic Salary (MAD) *</label>
+                                            <input type="number" class="form-control" id="basic_salary" name="basic_salary" 
+                                                   step="0.01" min="0" value="{{ salary_record.basic_salary if salary_record else employee.basic_salary }}" 
+                                                   onchange="calculateTotals()" required>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Salary Advance Deductions Info -->
+                        {% if advance_deductions > 0 %}
+                        <div class="card mb-4">
+                            <div class="card-header bg-warning text-dark">
+                                <h6 class="mb-0">
+                                    <i class="fas fa-hand-holding-usd me-2"></i>Salary Advance Deductions
+                                </h6>
+                            </div>
+                            <div class="card-body">
+                                <div class="alert alert-warning">
+                                    <p class="mb-2">The following amount will be automatically deducted from this month's salary:</p>
+                                    <div class="row">
+                                        <div class="col-md-6">
+                                            <strong>Total Advance Deductions:</strong> {{ "%.2f"|format(advance_deductions) }} MAD
+                                        </div>
+                                        <div class="col-md-6">
+                                            <a href="{{ url_for('employee_salaries.advances') }}?employee_id={{ employee.id }}" 
+                                               class="btn btn-sm btn-outline-warning">
+                                                <i class="fas fa-eye"></i> View Advances
+                                            </a>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        {% endif %}
+
+                        <!-- Payment Information Section -->
+                        <div class="card mb-4">
+                            <div class="card-header bg-info text-white">
+                                <h6 class="mb-0">Payment Information</h6>
+                            </div>
+                            <div class="card-body">
+                                <div class="row">
+                                    <div class="col-md-4">
+                                        <div class="mb-3">
+                                            <label for="payment_status" class="form-label">Payment Status</label>
+                                            <select class="form-select" id="payment_status" name="payment_status">
+                                                {% for status in payment_statuses %}
+                                                <option value="{{ status }}" 
+                                                        {% if salary_record and salary_record.payment_status == status %}selected{% endif %}>
+                                                    {{ status.title() }}
+                                                </option>
+                                                {% endfor %}
+                                            </select>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <div class="mb-3">
+                                            <label for="payment_date" class="form-label">Payment Date</label>
+                                            <input type="date" class="form-control" id="payment_date" name="payment_date" 
+                                                   value="{{ salary_record.payment_date.strftime('%Y-%m-%d') if salary_record and salary_record.payment_date else '' }}">
+                                        </div>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <div class="mb-3">
+                                            <label for="payment_method" class="form-label">Payment Method</label>
+                                            <select class="form-select" id="payment_method" name="payment_method">
+                                                <option value="">Select Method</option>
+                                                {% for method in payment_methods %}
+                                                <option value="{{ method }}" 
+                                                        {% if salary_record and salary_record.payment_method == method %}selected{% endif %}>
+                                                    {{ method }}
+                                                </option>
+                                                {% endfor %}
+                                            </select>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <div class="mb-3">
+                                            <label for="payment_reference" class="form-label">Payment Reference</label>
+                                            <input type="text" class="form-control" id="payment_reference" name="payment_reference" 
+                                                   value="{{ salary_record.payment_reference if salary_record else '' }}">
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Notes Section -->
+                        <div class="card mb-4">
+                            <div class="card-header">
+                                <h6 class="mb-0">Notes</h6>
+                            </div>
+                            <div class="card-body">
+                                <div class="mb-3">
+                                    <textarea class="form-control" id="notes" name="notes" rows="3" 
+                                              placeholder="Additional notes about this salary record...">{{ salary_record.notes if salary_record else '' }}</textarea>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="d-flex justify-content-end">
+                            <a href="{{ url_for('employee_salaries.view_employee', employee_id=employee.id) }}" class="btn btn-secondary me-2">Cancel</a>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-save"></i> Save Salary Record
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-4">
+            <!-- Salary Summary Card -->
+            <div class="card shadow mb-4">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">Salary Summary</h6>
+                </div>
+                <div class="card-body">
+                    <div class="row mb-3">
+                        <div class="col-6">
+                            <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">Basic Salary</div>
+                            <div class="h6 mb-0 font-weight-bold text-gray-800" id="summary_basic_salary">
+                                {{ "%.2f"|format(salary_record.basic_salary) if salary_record else "%.2f"|format(employee.basic_salary) }} MAD
+                            </div>
+                        </div>
+                        <div class="col-6">
+                            <div class="text-xs font-weight-bold text-success text-uppercase mb-1">Total Allowances</div>
+                            <div class="h6 mb-0 font-weight-bold text-gray-800" id="summary_total_allowances">
+                                {{ "%.2f"|format(salary_record.total_allowances) if salary_record else '0.00' }} MAD
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <hr>
+                    
+                    <div class="row mb-3">
+                        <div class="col-12">
+                            <div class="text-xs font-weight-bold text-info text-uppercase mb-1">Gross Salary</div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800" id="summary_gross_salary">
+                                {{ "%.2f"|format(salary_record.gross_salary) if salary_record else "%.2f"|format(employee.basic_salary) }} MAD
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="row mb-3">
+                        <div class="col-12">
+                            <div class="text-xs font-weight-bold text-danger text-uppercase mb-1">Total Deductions</div>
+                            <div class="h6 mb-0 font-weight-bold text-gray-800" id="summary_total_deductions">
+                                {{ "%.2f"|format(salary_record.total_deductions) if salary_record else '0.00' }} MAD
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <hr>
+                    
+                    <div class="row">
+                        <div class="col-12">
+                            <div class="text-xs font-weight-bold text-success text-uppercase mb-1">Net Salary</div>
+                            <div class="h4 mb-0 font-weight-bold text-success" id="summary_net_salary">
+                                {{ "%.2f"|format(salary_record.net_salary) if salary_record else "%.2f"|format(employee.basic_salary) }} MAD
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Employee Info Card -->
+            <div class="card shadow">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">Employee Information</h6>
+                </div>
+                <div class="card-body">
+                    <div class="text-center mb-3">
+                        <div class="avatar-placeholder">
+                            <i class="fas fa-user fa-3x text-primary"></i>
+                        </div>
+                        <h6 class="mt-2 mb-1">{{ employee.full_name }}</h6>
+                        <span class="badge bg-primary">{{ employee.employee_code }}</span>
+                    </div>
+                    
+                    <div class="mb-2">
+                        <strong>Department:</strong> {{ employee.department }}
+                    </div>
+                    <div class="mb-2">
+                        <strong>Position:</strong> {{ employee.position }}
+                    </div>
+                    <div class="mb-2">
+                        <strong>Employment Type:</strong> {{ employee.employment_type }}
+                    </div>
+                    <div class="mb-2">
+                        <strong>Hire Date:</strong> {{ employee.hire_date.strftime('%B %d, %Y') }}
+                    </div>
+                    <div class="mb-2">
+                        <strong>Status:</strong> 
+                        {% if employee.status == 'active' %}
+                            <span class="badge bg-success">Active</span>
+                        {% elif employee.status == 'inactive' %}
+                            <span class="badge bg-warning">Inactive</span>
+                        {% else %}
+                            <span class="badge bg-danger">Terminated</span>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function calculateTotals() {
+    // Get basic salary
+    const basicSalary = parseFloat(document.getElementById('basic_salary').value) || 0;
+    
+    // For simplified form, net salary equals basic salary (no allowances or deductions)
+    const netSalary = basicSalary;
+    
+    // Update summary if elements exist
+    const summaryBasicSalary = document.getElementById('summary_basic_salary');
+    const summaryNetSalary = document.getElementById('summary_net_salary');
+    
+    if (summaryBasicSalary) {
+        summaryBasicSalary.textContent = basicSalary.toFixed(2) + ' MAD';
+    }
+    if (summaryNetSalary) {
+        summaryNetSalary.textContent = netSalary.toFixed(2) + ' MAD';
+    }
+}
+
+// Calculate totals on page load
+document.addEventListener('DOMContentLoaded', function() {
+    calculateTotals();
+});
+</script>
+{% endblock %}

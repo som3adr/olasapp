@@ -1,0 +1,143 @@
+{% extends "base.html" %}
+
+{% block page_title %}Permissions Management{% endblock %}
+
+{% block page_subtitle %}
+<p class="text-muted mb-0">Manage system permissions and access control</p>
+{% endblock %}
+
+{% block page_actions %}
+<div class="d-flex gap-2 align-items-center">
+    <a href="{{ url_for('user_management.add_permission') }}" class="btn btn-modern btn-success">
+        <i class="fas fa-key me-2"></i>Add New Permission
+    </a>
+    <a href="{{ url_for('user_management.index') }}" class="btn btn-modern btn-outline-secondary">
+        <i class="fas fa-arrow-left me-2"></i>Back to Dashboard
+    </a>
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="fas fa-key me-2"></i>All Permissions
+                    </h5>
+                </div>
+                <div class="card-body p-0">
+                    {% if permissions %}
+                    <div class="table-responsive">
+                        <table class="table table-hover mb-0">
+                            <thead>
+                                <tr>
+                                    <th>Permission</th>
+                                    <th>Description</th>
+                                    <th>Module</th>
+                                    <th>Roles Using</th>
+                                    <th>Created</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for permission in permissions %}
+                                <tr>
+                                    <td>
+                                        <div class="d-flex align-items-center">
+                                            <div class="bg-info bg-opacity-10 rounded-circle p-2 me-3">
+                                                <i class="fas fa-key text-info"></i>
+                                            </div>
+                                            <div>
+                                                <strong>{{ permission.name }}</strong>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <span class="text-muted">{{ permission.description or 'No description' }}</span>
+                                    </td>
+                                    <td>
+                                        <span class="badge bg-secondary">{{ permission.module or 'General' }}</span>
+                                    </td>
+                                    <td>
+                                        <span class="badge bg-primary">{{ permission.roles|length }}</span>
+                                    </td>
+                                    <td>
+                                        <small class="text-muted">
+                                            {{ permission.created_at.strftime('%Y-%m-%d') if permission.created_at else 'N/A' }}
+                                        </small>
+                                    </td>
+                                    <td>
+                                        <div class="btn-group btn-group-sm">
+                                            <a href="{{ url_for('user_management.edit_permission', permission_id=permission.id) }}" class="btn btn-outline-primary">
+                                                <i class="fas fa-edit"></i>
+                                            </a>
+                                            {% if permission.roles|length == 0 %}
+                                            <button class="btn btn-outline-danger" onclick="deletePermission({{ permission.id }}, '{{ permission.name }}')">
+                                                <i class="fas fa-trash"></i>
+                                            </button>
+                                            {% else %}
+                                            <button class="btn btn-outline-secondary" disabled title="Cannot delete permission used by roles">
+                                                <i class="fas fa-trash"></i>
+                                            </button>
+                                            {% endif %}
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <div class="text-center py-4">
+                        <div class="bg-info bg-opacity-10 rounded-circle d-inline-flex p-4 mb-3">
+                            <i class="fas fa-key fa-2x text-info"></i>
+                        </div>
+                        <h5 class="text-muted">No Permissions Found</h5>
+                        <p class="text-muted">Start by creating your first permission</p>
+                        <a href="{{ url_for('user_management.add_permission') }}" class="btn btn-info">
+                            <i class="fas fa-key me-2"></i>Add First Permission
+                        </a>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Delete Permission Modal -->
+<div class="modal fade" id="deletePermissionModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Delete Permission</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p>Are you sure you want to delete permission <strong id="deletePermissionName"></strong>?</p>
+                <p class="text-danger"><small>This action cannot be undone.</small></p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <form id="deletePermissionForm" method="POST" style="display: inline;">
+                    <button type="submit" class="btn btn-danger">Delete Permission</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function deletePermission(permissionId, permissionName) {
+    document.getElementById('deletePermissionName').textContent = permissionName;
+    document.getElementById('deletePermissionForm').action = `/user-management/permissions/${permissionId}/delete`;
+    
+    const modal = new bootstrap.Modal(document.getElementById('deletePermissionModal'));
+    modal.show();
+}
+</script>
+{% endblock %}

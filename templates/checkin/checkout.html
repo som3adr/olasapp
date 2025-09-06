@@ -1,0 +1,137 @@
+{% extends "base.html" %}
+
+{% block page_title %}Check-Out - {{ checkin.tenant.name }}{% endblock %}
+
+{% block page_actions %}
+<a href="{{ url_for('checkin.index') }}" class="btn btn-secondary">
+    <i class="fas fa-arrow-left me-2"></i>Back to Dashboard
+</a>
+{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="fas fa-sign-out-alt me-2"></i>Guest Check-Out
+                </h5>
+            </div>
+            <div class="card-body">
+                <!-- Guest Information -->
+                <div class="row mb-4">
+                    <div class="col-md-6">
+                        <h6>Guest Information</h6>
+                        <table class="table table-borderless table-sm">
+                            <tr>
+                                <td><strong>Name:</strong></td>
+                                <td>{{ checkin.tenant.name }}</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Email:</strong></td>
+                                <td>{{ checkin.tenant.email }}</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Phone:</strong></td>
+                                <td>{{ checkin.tenant.phone or 'Not provided' }}</td>
+                            </tr>
+                        </table>
+                    </div>
+                    <div class="col-md-6">
+                        <h6>Stay Information</h6>
+                        <table class="table table-borderless table-sm">
+                            <tr>
+                                <td><strong>Room/Bed:</strong></td>
+                                <td>
+                                    {% if checkin.bed %}
+                                        Room {{ checkin.bed.room.room_number }} - Bed {{ checkin.bed.bed_number }}
+                                    {% else %}
+                                        Not assigned
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            <tr>
+                                <td><strong>Check-In:</strong></td>
+                                <td>{{ checkin.check_in_date.strftime('%Y-%m-%d %H:%M') }}</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Expected Check-Out:</strong></td>
+                                <td>{{ checkin.expected_check_out_date.strftime('%Y-%m-%d %H:%M') }}</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Deposit Paid:</strong></td>
+                                <td>{{ "%.2f"|format(checkin.deposit_paid) }} MAD</td>
+                            </tr>
+                        </table>
+                    </div>
+                </div>
+
+                {% if checkin.notes %}
+                <div class="alert alert-info">
+                    <strong>Check-In Notes:</strong><br>
+                    {{ checkin.notes }}
+                </div>
+                {% endif %}
+
+                <!-- Check-Out Form -->
+                <form method="POST">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">Actual Check-Out Date & Time *</label>
+                                <input type="datetime-local" name="actual_check_out_date" class="form-control" 
+                                       required>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">Deposit Returned</label>
+                                <div class="input-group">
+                                    <span class="input-group-text">MAD</span>
+                                    <input type="number" name="deposit_returned" class="form-control" step="0.01" min="0" 
+                                           max="{{ checkin.deposit_paid }}" value="{{ checkin.deposit_paid }}" placeholder="0.00">
+                                </div>
+                                <div class="form-text">Maximum: {{ "%.2f"|format(checkin.deposit_paid) }} MAD</div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Check-Out Notes</label>
+                        <textarea name="checkout_notes" class="form-control" rows="3" 
+                                  placeholder="Room condition, damages, feedback, additional charges..."></textarea>
+                    </div>
+                    
+                    <div class="alert alert-warning">
+                        <i class="fas fa-exclamation-triangle me-2"></i>
+                        <strong>Check-Out Process:</strong>
+                        <ul class="mb-0 mt-2">
+                            <li>Guest will be checked out and bed will be freed</li>
+                            <li>Bed status will be set to "dirty" for cleaning</li>
+                            <li>Guest status will be updated if no other active stays</li>
+                            <li>Check-out will be logged for audit purposes</li>
+                        </ul>
+                    </div>
+                    
+                    <div class="d-flex justify-content-between">
+                        <a href="{{ url_for('checkin.index') }}" class="btn btn-secondary">
+                            <i class="fas fa-times me-2"></i>Cancel
+                        </a>
+                        <button type="submit" class="btn btn-danger">
+                            <i class="fas fa-sign-out-alt me-2"></i>Complete Check-Out
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// Set default checkout time on page load
+document.addEventListener('DOMContentLoaded', function() {
+    const now = new Date();
+    document.querySelector('input[name="actual_check_out_date"]').value = now.toISOString().slice(0, 16);
+});
+</script>
+{% endblock %}

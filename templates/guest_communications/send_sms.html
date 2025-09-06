@@ -1,0 +1,174 @@
+{% extends "base.html" %}
+
+{% block title %}Send SMS - HostelFlow{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h2><i class="fas fa-sms me-2"></i>Send SMS</h2>
+                <a href="{{ url_for('guest_communications.index') }}" class="btn btn-outline-secondary">
+                    <i class="fas fa-arrow-left me-1"></i>Back to Communications
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header">
+                    <h5><i class="fas fa-mobile-alt me-2"></i>Compose SMS</h5>
+                </div>
+                <div class="card-body">
+                    <form method="POST">
+                        <div class="mb-3">
+                            <label for="recipient_type" class="form-label">Recipients *</label>
+                            <select class="form-select" id="recipient_type" name="recipient_type" required>
+                                <option value="">Select recipients...</option>
+                                <option value="all">All Guests with Phone ({{ guests|length }})</option>
+                                <option value="active">Active Guests Only</option>
+                                <optgroup label="Individual Guests">
+                                    {% for guest in guests %}
+                                    <option value="guest_{{ guest.id }}">{{ guest.name }} ({{ guest.phone }})</option>
+                                    {% endfor %}
+                                </optgroup>
+                            </select>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="message" class="form-label">Message *</label>
+                            <textarea class="form-control" id="message" name="message" rows="6" required
+                                      placeholder="Enter your SMS message here..." maxlength="160"></textarea>
+                            <div class="form-text">
+                                <span id="char-count">0</span>/160 characters. You can use placeholders: {guest_name}, {room_number}, {bed_number}
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <div class="card bg-light">
+                                <div class="card-body">
+                                    <h6><i class="fas fa-info-circle me-2"></i>Quick Templates</h6>
+                                    <div class="btn-group-vertical w-100" role="group">
+                                        <button type="button" class="btn btn-outline-primary btn-sm mb-1" 
+                                                onclick="fillTemplate('payment')">
+                                            Payment Reminder
+                                        </button>
+                                        <button type="button" class="btn btn-outline-primary btn-sm mb-1" 
+                                                onclick="fillTemplate('checkout')">
+                                            Check-out Reminder
+                                        </button>
+                                        <button type="button" class="btn btn-outline-primary btn-sm mb-1" 
+                                                onclick="fillTemplate('welcome')">
+                                            Welcome Message
+                                        </button>
+                                        <button type="button" class="btn btn-outline-primary btn-sm" 
+                                                onclick="fillTemplate('wifi')">
+                                            WiFi Information
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="d-flex justify-content-between">
+                            <button type="button" class="btn btn-secondary" onclick="previewSMS()">
+                                <i class="fas fa-eye me-1"></i>Preview
+                            </button>
+                            <button type="submit" class="btn btn-success">
+                                <i class="fas fa-paper-plane me-1"></i>Send SMS
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Preview Modal -->
+<div class="modal fade" id="previewModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title"><i class="fas fa-mobile-alt me-2"></i>SMS Preview</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="mb-3">
+                    <strong>Message:</strong>
+                    <div id="preview-message" class="border p-3 bg-light" style="white-space: pre-line;"></div>
+                </div>
+                <div class="mb-3">
+                    <small class="text-muted">
+                        <i class="fas fa-info-circle me-1"></i>
+                        This is how your SMS will appear to recipients.
+                    </small>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+const templates = {
+    payment: {
+        message: 'Hi {guest_name}, this is a reminder that your payment is due. Please visit the front desk to complete payment. Thank you!'
+    },
+    checkout: {
+        message: 'Hi {guest_name}, reminder: check-out is at 11 AM tomorrow. Please ensure all belongings are packed. Thank you!'
+    },
+    welcome: {
+        message: 'Welcome to our hostel {guest_name}! Your room: {room_number}, bed: {bed_number}. WiFi: HostelWiFi / Welcome123. Enjoy your stay!'
+    },
+    wifi: {
+        message: 'WiFi Details - Network: HostelWiFi, Password: Welcome123. Contact front desk for help. Enjoy your stay!'
+    }
+};
+
+function fillTemplate(templateName) {
+    const template = templates[templateName];
+    if (template) {
+        document.getElementById('message').value = template.message;
+        updateCharCount();
+    }
+}
+
+function previewSMS() {
+    const message = document.getElementById('message').value;
+    
+    document.getElementById('preview-message').textContent = message;
+    
+    const modal = new bootstrap.Modal(document.getElementById('previewModal'));
+    modal.show();
+}
+
+function updateCharCount() {
+    const message = document.getElementById('message').value;
+    const charCount = message.length;
+    document.getElementById('char-count').textContent = charCount;
+    
+    // Change color based on character count
+    const charCountElement = document.getElementById('char-count');
+    if (charCount > 140) {
+        charCountElement.className = 'text-danger';
+    } else if (charCount > 120) {
+        charCountElement.className = 'text-warning';
+    } else {
+        charCountElement.className = 'text-success';
+    }
+}
+
+// Update character count on input
+document.addEventListener('DOMContentLoaded', function() {
+    const messageTextarea = document.getElementById('message');
+    messageTextarea.addEventListener('input', updateCharCount);
+    updateCharCount(); // Initial count
+});
+</script>
+{% endblock %}
+

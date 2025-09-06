@@ -1,0 +1,175 @@
+{% extends "base.html" %}
+
+{% block title %}Add Salary Advance - HostelFlow{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Header Section -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h1 class="h3 mb-0">
+                <i class="fas fa-plus text-primary me-2"></i>
+                Add Salary Advance
+            </h1>
+            <p class="text-muted">Create a new salary advance for an employee</p>
+        </div>
+        <div>
+            <a href="{{ url_for('employee_salaries.advances') }}" class="btn btn-secondary">
+                <i class="fas fa-arrow-left"></i> Back to Advances
+            </a>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-lg-8">
+            <div class="card shadow">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">Advance Details</h6>
+                </div>
+                <div class="card-body">
+                    <form method="POST">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="employee_id" class="form-label">Employee *</label>
+                                    <select class="form-select" id="employee_id" name="employee_id" required>
+                                        <option value="">Select Employee</option>
+                                        {% for employee in employees %}
+                                        <option value="{{ employee.id }}">{{ employee.full_name }} ({{ employee.employee_code }})</option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="advance_date" class="form-label">Advance Date *</label>
+                                    <input type="date" class="form-control" id="advance_date" name="advance_date" 
+                                           value="{{ date.today().strftime('%Y-%m-%d') }}" required>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="advance_amount" class="form-label">Advance Amount (MAD) *</label>
+                                    <input type="number" class="form-control" id="advance_amount" name="advance_amount" 
+                                           step="0.01" min="0" required>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="repayment_months" class="form-label">Repayment Period (Months) *</label>
+                                    <input type="number" class="form-control" id="repayment_months" name="repayment_months" 
+                                           min="1" max="12" value="1" required>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="reason" class="form-label">Reason for Advance *</label>
+                            <input type="text" class="form-control" id="reason" name="reason" 
+                                   placeholder="e.g., Medical emergency, Family support, etc." required>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="payment_method" class="form-label">Payment Method</label>
+                                    <select class="form-select" id="payment_method" name="payment_method">
+                                        <option value="">Select Method</option>
+                                        {% for method in payment_methods %}
+                                        <option value="{{ method }}">{{ method }}</option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="payment_reference" class="form-label">Payment Reference</label>
+                                    <input type="text" class="form-control" id="payment_reference" name="payment_reference" 
+                                           placeholder="Transaction ID, Check number, etc.">
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="notes" class="form-label">Additional Notes</label>
+                            <textarea class="form-control" id="notes" name="notes" rows="3" 
+                                      placeholder="Any additional information about this advance..."></textarea>
+                        </div>
+
+                        <div class="d-flex justify-content-end">
+                            <a href="{{ url_for('employee_salaries.advances') }}" class="btn btn-secondary me-2">Cancel</a>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-save"></i> Add Advance
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-4">
+            <div class="card shadow">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-info">Repayment Preview</h6>
+                </div>
+                <div class="card-body">
+                    <div id="repayment-preview">
+                        <p class="text-muted">Enter advance amount and repayment period to see preview</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card shadow mt-3">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-warning">Important Notes</h6>
+                </div>
+                <div class="card-body">
+                    <ul class="list-unstyled">
+                        <li><i class="fas fa-info-circle text-info me-2"></i>Advance will be deducted from monthly salary</li>
+                        <li><i class="fas fa-calendar text-info me-2"></i>Repayment starts from next salary cycle</li>
+                        <li><i class="fas fa-exclamation-triangle text-warning me-2"></i>Ensure employee can afford monthly deduction</li>
+                        <li><i class="fas fa-file-alt text-info me-2"></i>Keep proper documentation for audit</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const advanceAmountInput = document.getElementById('advance_amount');
+    const repaymentMonthsInput = document.getElementById('repayment_months');
+    const previewDiv = document.getElementById('repayment-preview');
+
+    function updatePreview() {
+        const amount = parseFloat(advanceAmountInput.value) || 0;
+        const months = parseInt(repaymentMonthsInput.value) || 1;
+        
+        if (amount > 0 && months > 0) {
+            const monthlyDeduction = amount / months;
+            previewDiv.innerHTML = `
+                <div class="text-center">
+                    <h5 class="text-primary">${amount.toFixed(2)} MAD</h5>
+                    <p class="mb-2">Total Advance Amount</p>
+                    <hr>
+                    <h6 class="text-info">${monthlyDeduction.toFixed(2)} MAD</h6>
+                    <p class="mb-2">Monthly Deduction</p>
+                    <hr>
+                    <h6 class="text-success">${months} months</h6>
+                    <p class="mb-0">Repayment Period</p>
+                </div>
+            `;
+        } else {
+            previewDiv.innerHTML = '<p class="text-muted">Enter advance amount and repayment period to see preview</p>';
+        }
+    }
+
+    advanceAmountInput.addEventListener('input', updatePreview);
+    repaymentMonthsInput.addEventListener('input', updatePreview);
+});
+</script>
+{% endblock %}

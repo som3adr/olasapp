@@ -1,0 +1,117 @@
+{% extends "base.html" %}
+
+{% block title %}Add Note - Staff Tasks{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Page Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h1 class="h3 mb-0">Add New Note</h1>
+            <p class="text-muted mb-0">Create a new note for important information</p>
+        </div>
+        <div class="d-flex gap-2">
+            <a href="{{ url_for('staff_tasks.notes_list') }}" class="btn btn-modern btn-outline-secondary">
+                <i class="fas fa-arrow-left me-2"></i>Back to Notes
+            </a>
+        </div>
+    </div>
+
+    <!-- Note Form -->
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-plus me-2"></i>Note Information
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <form method="POST" id="noteForm">
+                        <div class="mb-3">
+                            <label for="title" class="form-label">Note Title *</label>
+                            <input type="text" class="form-control" id="title" name="title" required>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="content" class="form-label">Note Content *</label>
+                            <textarea class="form-control" id="content" name="content" rows="6" placeholder="Write your note content here..."></textarea>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="category" class="form-label">Category</label>
+                            <select class="form-select" id="category" name="category">
+                                <option value="">Select Category</option>
+                                <option value="general">General</option>
+                                <option value="maintenance">Maintenance</option>
+                                <option value="guest">Guest Related</option>
+                                <option value="staff">Staff Related</option>
+                                <option value="emergency">Emergency</option>
+                                <option value="reminder">Reminder</option>
+                            </select>
+                        </div>
+
+                        <div class="d-flex gap-2">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-save me-2"></i>Create Note
+                            </button>
+                            <a href="{{ url_for('staff_tasks.notes_list') }}" class="btn btn-outline-secondary">
+                                <i class="fas fa-times me-2"></i>Cancel
+                            </a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Custom CSS -->
+<style>
+.btn-modern {
+    border-radius: 10px;
+    font-weight: 500;
+    padding: 0.5rem 1rem;
+}
+
+.card {
+    border: none;
+    border-radius: 15px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+}
+</style>
+
+<!-- JavaScript -->
+<script>
+// Form validation
+document.getElementById('noteForm').addEventListener('submit', function(e) {
+    const title = document.getElementById('title').value.trim();
+    const content = document.getElementById('content').value.trim();
+    
+    if (!title || !content) {
+        e.preventDefault();
+        alert('Please fill in all required fields.');
+        return false;
+    }
+    
+    if (content.length < 10) {
+        e.preventDefault();
+        alert('Note content should be at least 10 characters long.');
+        return false;
+    }
+});
+
+// Character counter
+document.getElementById('content').addEventListener('input', function() {
+    const content = this.value;
+    const minLength = 10;
+    const remaining = minLength - content.length;
+    
+    if (remaining > 0) {
+        this.setCustomValidity(`Please add ${remaining} more characters.`);
+    } else {
+        this.setCustomValidity('');
+    }
+});
+</script>
+{% endblock %}

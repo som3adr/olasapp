@@ -1,0 +1,512 @@
+{% extends "base.html" %}
+
+{% block title %}{{ tenant.name }} - Guest Details{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Page Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h1 class="h3 mb-0">{{ tenant.name }}</h1>
+            <p class="text-muted mb-0">Guest Details & Information</p>
+        </div>
+        <div class="d-flex gap-2">
+            <a href="{{ url_for('guests.edit', tenant_id=tenant.id) }}" class="btn btn-modern btn-outline-primary">
+                <i class="fas fa-edit me-2"></i>Edit Guest
+            </a>
+            <a href="{{ url_for('food_extras.guest_services', tenant_id=tenant.id) }}" class="btn btn-modern btn-outline-warning">
+                <i class="fas fa-coffee me-2"></i>Extra Services
+            </a>
+            <a href="{{ url_for('guests.payments', tenant_id=tenant.id) }}" class="btn btn-modern btn-outline-success">
+                <i class="fas fa-money-bill-wave me-2"></i>Payments
+            </a>
+            <button type="button" class="btn btn-modern btn-outline-danger" onclick="confirmDeactivate({{ tenant.id }}, '{{ tenant.name }}')">
+                <i class="fas fa-user-times me-2"></i>Deactivate
+            </button>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- Guest Information -->
+        <div class="col-lg-8">
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-user me-2"></i>Guest Information
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label text-muted small">Full Name</label>
+                                <p class="mb-0 fw-bold">{{ tenant.name }}</p>
+                            </div>
+
+                            <div class="mb-3">
+                                <label class="form-label text-muted small">Number of Guests</label>
+                                <p class="mb-0 fw-bold">
+                                    {{ tenant.number_of_guests }} 
+                                    {% if tenant.number_of_guests == 1 %}guest{% else %}guests{% endif %}
+                                </p>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+
+                            <div class="mb-3">
+                                <label class="form-label text-muted small">Status</label>
+                                {% if tenant.is_active %}
+                                    <span class="badge bg-success">Active</span>
+                                {% else %}
+                                    <span class="badge bg-secondary">Inactive</span>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Stay Information -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-calendar me-2"></i>Stay Information
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label text-muted small">Check-in Date</label>
+                                <p class="mb-0 fw-bold">{{ tenant.start_date.strftime('%B %d, %Y') }}</p>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label text-muted small">Duration</label>
+                                <p class="mb-0">{{ duration_days }} days</p>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label text-muted small">Daily Rate</label>
+                                <p class="mb-0 fw-bold">
+                                    {{ "%.0f"|format(tenant.effective_daily_rent) }} MAD
+                                    {% if tenant.multiply_rent_by_guests and tenant.number_of_guests > 1 %}
+                                        <br><small class="text-info">
+                                            <i class="fas fa-calculator me-1"></i>
+                                            {{ "%.0f"|format(tenant.daily_rent) }} MAD × {{ tenant.number_of_guests }} guests
+                                        </small>
+                                    {% endif %}
+                                </p>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label text-muted small">Total Amount</label>
+                                <p class="mb-0 fw-bold text-primary">{{ "%.0f"|format(total_amount) }} MAD</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Meal Planning -->
+            {% if tenant.breakfast_days > 0 %}
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-utensils me-2"></i>Meal Planning
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        {% if tenant.breakfast_days > 0 %}
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label text-muted small">Breakfast Days</label>
+                                <p class="mb-0 fw-bold">
+                                    {{ tenant.breakfast_days }} days
+                                    {% if tenant.multiply_rent_by_guests and tenant.number_of_guests > 1 %}
+                                        <br><small class="text-info">
+                                            <i class="fas fa-calculator me-1"></i>
+                                            {{ tenant.breakfast_days }} × {{ tenant.number_of_guests }} guests = {{ tenant.breakfast_days * tenant.number_of_guests }} breakfasts
+                                        </small>
+                                    {% endif %}
+                                </p>
+                            </div>
+                        </div>
+                        {% endif %}
+                    </div>
+                    {% if tenant.meal_plan_start and tenant.meal_plan_end %}
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label text-muted small">Meal Plan Start</label>
+                                <p class="mb-0">{{ tenant.meal_plan_start.strftime('%B %d, %Y') }}</p>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label text-muted small">Meal Plan End</label>
+                                <p class="mb-0">{{ tenant.meal_plan_end.strftime('%B %d, %Y') }}</p>
+                            </div>
+                        </div>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- Room Assignment -->
+            {% if tenant.room_number %}
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-bed me-2"></i>Room Assignment
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label text-muted small">Room Number</label>
+                                <p class="mb-0 fw-bold">{{ tenant.room_number }}</p>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label text-muted small">Bed Number</label>
+                                <p class="mb-0">{{ tenant.bed_number or 'Not specified' }}</p>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label text-muted small">Room Type</label>
+                                <p class="mb-0">{{ tenant.room_type or 'Standard' }}</p>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label text-muted small">Room Status</label>
+                                <span class="badge bg-success">Occupied</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- Extra Services -->
+            {% if tenant_services %}
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-plus-circle me-2"></i>Extra Services
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-sm">
+                            <thead>
+                                <tr>
+                                    <th>Service</th>
+                                    <th>Quantity</th>
+                                    <th>Unit Price</th>
+                                    <th>Total</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for tenant_service in tenant_services %}
+                                <tr>
+                                    <td>{{ tenant_service.service.name }}</td>
+                                    <td>{{ tenant_service.quantity }}</td>
+                                    <td>{{ "%.0f"|format(tenant_service.unit_price) }} MAD</td>
+                                    <td>{{ "%.0f"|format(tenant_service.quantity * tenant_service.unit_price) }} MAD</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                            <tfoot>
+                                <tr class="table-active">
+                                    <td colspan="3" class="text-end fw-bold">Total Extra Services:</td>
+                                    <td class="fw-bold">{{ "%.0f"|format(extra_services_total) }} MAD</td>
+                                </tr>
+                            </tfoot>
+                        </table>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- Notes -->
+            {% if tenant.notes %}
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-sticky-note me-2"></i>Notes
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <p class="mb-0">{{ tenant.notes }}</p>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- Sidebar -->
+        <div class="col-lg-4">
+            <!-- Quick Actions -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h6 class="card-title mb-0">
+                        <i class="fas fa-bolt me-2"></i>Quick Actions
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <div class="d-grid gap-2">
+                        <a href="{{ url_for('guests.edit', tenant_id=tenant.id) }}" class="btn btn-outline-primary btn-sm">
+                            <i class="fas fa-edit me-2"></i>Edit Information
+                        </a>
+                        <a href="{{ url_for('guests.payments', tenant_id=tenant.id) }}" class="btn btn-outline-success btn-sm">
+                            <i class="fas fa-money-bill-wave me-2"></i>Manage Payments
+                        </a>
+                        <button type="button" class="btn btn-outline-warning btn-sm" onclick="extendStay({{ tenant.id }})">
+                            <i class="fas fa-calendar-plus me-2"></i>Extend Stay
+                        </button>
+                        <button type="button" class="btn btn-outline-danger btn-sm" onclick="confirmDeactivate({{ tenant.id }}, '{{ tenant.name }}')">
+                            <i class="fas fa-user-times me-2"></i>Deactivate Guest
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Financial Summary -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h6 class="card-title mb-0">
+                        <i class="fas fa-calculator me-2"></i>Financial Summary
+                    </h6>
+                </div>
+                <div class="card-body">
+                    {% if tenant.already_paid_online %}
+                        <div class="alert alert-success">
+                            <div class="d-flex align-items-center">
+                                <i class="fas fa-mobile-alt me-3 fs-4"></i>
+                                <div>
+                                    <h6 class="mb-1">Already Paid Online</h6>
+                                    <p class="mb-0 small">This guest has already paid via mobile booking platform. No additional charges apply.</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <div class="d-flex justify-content-between">
+                                <span class="fw-bold">Total Amount:</span>
+                                <span class="fw-bold text-success fs-5">0 MAD</span>
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <div class="d-flex justify-content-between">
+                                <span class="text-muted">Payment Status:</span>
+                                <span class="badge bg-success">
+                                    <i class="fas fa-mobile-alt me-1"></i>Paid Online
+                                </span>
+                            </div>
+                        </div>
+                    {% else %}
+                        <div class="mb-3">
+                            <div class="d-flex justify-content-between">
+                                <span class="text-muted">Room Charges:</span>
+                                <span class="fw-bold">{{ "%.0f"|format(tenant.daily_rent * duration_days) }} MAD</span>
+                            </div>
+                        </div>
+                        {% if tenant_services %}
+                        <div class="mb-3">
+                            <div class="d-flex justify-content-between">
+                                <span class="text-muted">Extra Services:</span>
+                                <span class="fw-bold">{{ "%.0f"|format(extra_services_total) }} MAD</span>
+                            </div>
+                        </div>
+                        {% endif %}
+                        <hr>
+                        <div class="mb-3">
+                            <div class="d-flex justify-content-between">
+                                <span class="fw-bold">Total Amount:</span>
+                                <span class="fw-bold text-primary fs-5">{{ "%.0f"|format(total_amount) }} MAD</span>
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <div class="d-flex justify-content-between">
+                                <span class="text-muted">Paid Amount:</span>
+                                <span class="fw-bold text-success">{{ "%.0f"|format(paid_amount) }} MAD</span>
+                            </div>
+                        </div>
+                    {% endif %}
+                    {% if not tenant.already_paid_online %}
+                    <div class="mb-0">
+                        <div class="d-flex justify-content-between">
+                            <span class="text-muted">Balance:</span>
+                            <span class="fw-bold {% if balance > 0 %}text-danger{% else %}text-success{% endif %}">
+                                {{ "%.0f"|format(balance) }} MAD
+                            </span>
+                        </div>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Extra Services Summary -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h6 class="card-title mb-0">
+                        <i class="fas fa-coffee me-2"></i>Extra Services
+                    </h6>
+                </div>
+                <div class="card-body">
+                    {% if tenant_services %}
+                        <div class="mb-3">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <span class="text-muted">Total Services:</span>
+                                <span class="badge bg-primary">{{ tenant_services|length }}</span>
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <div class="d-flex justify-content-between">
+                                <span class="text-muted">Services Total:</span>
+                                <span class="fw-bold text-warning">{{ "%.0f"|format(extra_services_total) }} MAD</span>
+                            </div>
+                        </div>
+                        <div class="d-grid">
+                            <a href="{{ url_for('food_extras.guest_services', tenant_id=tenant.id) }}" class="btn btn-outline-warning btn-sm">
+                                <i class="fas fa-eye me-2"></i>View All Services
+                            </a>
+                        </div>
+                    {% else %}
+                        <div class="text-center py-3">
+                            <i class="fas fa-coffee fa-2x text-muted mb-2"></i>
+                            <p class="text-muted mb-2">No extra services assigned</p>
+                            <a href="{{ url_for('food_extras.assign_service') }}" class="btn btn-outline-warning btn-sm">
+                                <i class="fas fa-plus me-2"></i>Assign Service
+                            </a>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Contact Information -->
+            <div class="card">
+                <div class="card-header">
+                    <h6 class="card-title mb-0">
+                        <i class="fas fa-address-book me-2"></i>Contact Information
+                    </h6>
+                </div>
+                <div class="card-body">
+                    {% if tenant.emergency_contact %}
+                    <div class="mb-3">
+                        <label class="form-label text-muted small">Emergency Contact</label>
+                        <p class="mb-0">{{ tenant.emergency_contact }}</p>
+                    </div>
+                    {% endif %}
+                    {% if tenant.emergency_phone %}
+                    <div class="mb-3">
+                        <label class="form-label text-muted small">Emergency Phone</label>
+                        <p class="mb-0">{{ tenant.emergency_phone }}</p>
+                    </div>
+                    {% endif %}
+                    {% if tenant.address %}
+                    <div class="mb-0">
+                        <label class="form-label text-muted small">Address</label>
+                        <p class="mb-0">{{ tenant.address }}</p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Deactivate Confirmation Modal -->
+<div class="modal fade" id="deactivateModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Deactivate Guest</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p>Are you sure you want to deactivate <strong id="guestName"></strong>?</p>
+                <p class="text-muted small">This will mark the guest as inactive and free up their assigned room/bed.</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <form id="deactivateForm" method="POST" style="display: inline;">
+                    <button type="submit" class="btn btn-danger">Deactivate Guest</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Extend Stay Modal -->
+<div class="modal fade" id="extendStayModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Extend Stay</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="extendStayForm" method="POST" action="{{ url_for('guests.extend_stay', tenant_id=tenant.id) }}" onsubmit="console.log('Form submitting...'); return true;">
+                    <div class="mb-3">
+                        <label for="additional_days" class="form-label">Additional Days</label>
+                        <input type="number" class="form-control" id="additional_days" name="additional_days" min="1" max="30" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="new_daily_rate" class="form-label">New Daily Rate (MAD)</label>
+                        <input type="number" class="form-control" id="new_daily_rate" name="new_daily_rate" value="{{ "%.0f"|format(tenant.daily_rent) }}" step="0.01" required>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="submit" form="extendStayForm" class="btn btn-primary">Extend Stay</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Custom CSS -->
+<style>
+.btn-modern {
+    border-radius: 10px;
+    font-weight: 500;
+    padding: 0.5rem 1rem;
+}
+
+.card {
+    border: none;
+    border-radius: 15px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+}
+
+.card-header {
+    background-color: #f8f9fa;
+    border-bottom: 1px solid #e9ecef;
+    border-radius: 15px 15px 0 0 !important;
+}
+</style>
+
+<!-- JavaScript -->
+<script>
+function confirmDeactivate(tenantId, guestName) {
+    document.getElementById('guestName').textContent = guestName;
+    document.getElementById('deactivateForm').action = `/guests/${tenantId}/deactivate`;
+    
+    const modal = new bootstrap.Modal(document.getElementById('deactivateModal'));
+    modal.show();
+}
+
+function extendStay(tenantId) {
+    console.log('extendStay called for tenant:', tenantId);
+    const modal = new bootstrap.Modal(document.getElementById('extendStayModal'));
+    modal.show();
+    console.log('Modal shown');
+}
+
+// Auto-refresh disabled for testing
+// setTimeout(function() {
+//     location.reload();
+// }, 120000); // 2 minutes = 120000 milliseconds
+</script>
+{% endblock %}

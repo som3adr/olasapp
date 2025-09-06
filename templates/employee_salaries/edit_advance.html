@@ -1,0 +1,166 @@
+{% extends "base.html" %}
+
+{% block title %}Edit Salary Advance - HostelFlow{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Header Section -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h1 class="h3 mb-0">
+                <i class="fas fa-edit text-primary me-2"></i>
+                Edit Salary Advance
+            </h1>
+            <p class="text-muted">Update advance information for {{ advance.employee.full_name }}</p>
+        </div>
+        <div>
+            <a href="{{ url_for('employee_salaries.view_advance', advance_id=advance.id) }}" class="btn btn-secondary me-2">
+                <i class="fas fa-eye"></i> View Details
+            </a>
+            <a href="{{ url_for('employee_salaries.advances') }}" class="btn btn-secondary">
+                <i class="fas fa-arrow-left"></i> Back to Advances
+            </a>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-lg-8">
+            <div class="card shadow">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">Edit Advance Details</h6>
+                </div>
+                <div class="card-body">
+                    <form method="POST">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label">Employee</label>
+                                    <input type="text" class="form-control" value="{{ advance.employee.full_name }} ({{ advance.employee.employee_code }})" readonly>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label">Advance Amount</label>
+                                    <input type="text" class="form-control" value="{{ "%.2f"|format(advance.advance_amount) }} MAD" readonly>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label">Advance Date</label>
+                                    <input type="text" class="form-control" value="{{ advance.advance_date.strftime('%Y-%m-%d') }}" readonly>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="status" class="form-label">Status *</label>
+                                    <select class="form-select" id="status" name="status" required>
+                                        {% for status_option in statuses %}
+                                        <option value="{{ status_option }}" {% if advance.status == status_option %}selected{% endif %}>
+                                            {{ status_option.title() }}
+                                        </option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="reason" class="form-label">Reason for Advance *</label>
+                            <input type="text" class="form-control" id="reason" name="reason" 
+                                   value="{{ advance.reason }}" required>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="payment_method" class="form-label">Payment Method</label>
+                                    <select class="form-select" id="payment_method" name="payment_method">
+                                        <option value="">Select Method</option>
+                                        <option value="Cash" {% if advance.payment_method == 'Cash' %}selected{% endif %}>Cash</option>
+                                        <option value="Bank Transfer" {% if advance.payment_method == 'Bank Transfer' %}selected{% endif %}>Bank Transfer</option>
+                                        <option value="Check" {% if advance.payment_method == 'Check' %}selected{% endif %}>Check</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="payment_reference" class="form-label">Payment Reference</label>
+                                    <input type="text" class="form-control" id="payment_reference" name="payment_reference" 
+                                           value="{{ advance.payment_reference or '' }}"
+                                           placeholder="Transaction ID, Check number, etc.">
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="notes" class="form-label">Additional Notes</label>
+                            <textarea class="form-control" id="notes" name="notes" rows="3" 
+                                      placeholder="Any additional information about this advance...">{{ advance.notes or '' }}</textarea>
+                        </div>
+
+                        <div class="d-flex justify-content-end">
+                            <a href="{{ url_for('employee_salaries.view_advance', advance_id=advance.id) }}" class="btn btn-secondary me-2">Cancel</a>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-save"></i> Update Advance
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-4">
+            <!-- Current Status -->
+            <div class="card shadow mb-4">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-info">Current Status</h6>
+                </div>
+                <div class="card-body">
+                    <div class="text-center mb-3">
+                        <h4 class="text-primary">{{ "%.2f"|format(advance.advance_amount) }} MAD</h4>
+                        <p class="text-muted">Total Advance</p>
+                    </div>
+                    <hr>
+                    <div class="text-center mb-3">
+                        <h5 class="text-success">{{ "%.2f"|format(advance.total_repaid) }} MAD</h5>
+                        <p class="text-muted">Amount Repaid</p>
+                    </div>
+                    <hr>
+                    <div class="text-center mb-3">
+                        <h5 class="text-warning">{{ "%.2f"|format(advance.remaining_balance) }} MAD</h5>
+                        <p class="text-muted">Remaining Balance</p>
+                    </div>
+                    <hr>
+                    <div class="text-center">
+                        <div class="progress mb-2" style="height: 20px;">
+                            <div class="progress-bar" role="progressbar" 
+                                 style="width: {{ advance.progress_percentage }}%"
+                                 aria-valuenow="{{ advance.progress_percentage }}" 
+                                 aria-valuemin="0" aria-valuemax="100">
+                                {{ "%.1f"|format(advance.progress_percentage) }}%
+                            </div>
+                        </div>
+                        <p class="text-muted">Completion Progress</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Repayment Info -->
+            <div class="card shadow">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-warning">Repayment Information</h6>
+                </div>
+                <div class="card-body">
+                    <p><strong>Monthly Deduction:</strong> {{ "%.2f"|format(advance.monthly_deduction) }} MAD</p>
+                    <p><strong>Repayment Period:</strong> {{ advance.repayment_months }} months</p>
+                    <p><strong>Created:</strong> {{ advance.created_at.strftime('%Y-%m-%d') }}</p>
+                    <p><strong>Last Updated:</strong> {{ advance.updated_at.strftime('%Y-%m-%d') }}</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

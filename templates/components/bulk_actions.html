@@ -1,0 +1,443 @@
+<!-- Bulk Actions Component -->
+<div class="bulk-actions-container" id="bulkActionsContainer" style="display: none;">
+    <div class="bulk-actions-bar">
+        <div class="bulk-actions-info">
+            <span class="selected-count" id="selectedCount">0</span>
+            <span class="selected-text">items selected</span>
+        </div>
+        <div class="bulk-actions-buttons">
+            <button class="btn btn-sm btn-outline-primary" id="selectAllBtn">
+                <i class="fas fa-check-square"></i>
+                Select All
+            </button>
+            <button class="btn btn-sm btn-outline-secondary" id="deselectAllBtn">
+                <i class="fas fa-square"></i>
+                Deselect All
+            </button>
+            <div class="dropdown">
+                <button class="btn btn-sm btn-primary dropdown-toggle" type="button" id="bulkActionsDropdown" data-bs-toggle="dropdown">
+                    <i class="fas fa-tasks"></i>
+                    Actions
+                </button>
+                <ul class="dropdown-menu" id="bulkActionsMenu">
+                    <!-- Actions will be populated dynamically based on table type -->
+                </ul>
+            </div>
+            <button class="btn btn-sm btn-outline-danger" id="clearSelectionBtn">
+                <i class="fas fa-times"></i>
+                Clear
+            </button>
+        </div>
+    </div>
+</div>
+
+<style>
+.bulk-actions-container {
+    position: fixed;
+    bottom: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 1000;
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15);
+    border: 1px solid #e2e8f0;
+    padding: 0;
+    max-width: 90vw;
+    width: auto;
+    min-width: 400px;
+}
+
+.bulk-actions-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 20px;
+    gap: 20px;
+}
+
+.bulk-actions-info {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-weight: 600;
+    color: #374151;
+}
+
+.selected-count {
+    background: var(--primary-color);
+    color: white;
+    padding: 4px 8px;
+    border-radius: 6px;
+    font-size: 0.875rem;
+    min-width: 24px;
+    text-align: center;
+}
+
+.selected-text {
+    font-size: 0.875rem;
+    color: #6b7280;
+}
+
+.bulk-actions-buttons {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.bulk-actions-buttons .btn {
+    font-size: 0.8rem;
+    padding: 6px 12px;
+    border-radius: 6px;
+    font-weight: 500;
+    transition: all 0.2s ease;
+}
+
+.bulk-actions-buttons .btn:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.dropdown-menu {
+    border-radius: 8px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15);
+    border: 1px solid #e2e8f0;
+    padding: 8px 0;
+    min-width: 200px;
+}
+
+.dropdown-item {
+    padding: 8px 16px;
+    font-size: 0.875rem;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.dropdown-item:hover {
+    background-color: #f8fafc;
+    color: var(--primary-color);
+}
+
+.dropdown-item.danger {
+    color: #dc2626;
+}
+
+.dropdown-item.danger:hover {
+    background-color: #fef2f2;
+    color: #dc2626;
+}
+
+/* Mobile responsiveness */
+@media (max-width: 768px) {
+    .bulk-actions-container {
+        bottom: 10px;
+        left: 10px;
+        right: 10px;
+        transform: none;
+        max-width: none;
+        min-width: auto;
+    }
+    
+    .bulk-actions-bar {
+        flex-direction: column;
+        gap: 12px;
+        padding: 16px;
+    }
+    
+    .bulk-actions-buttons {
+        flex-wrap: wrap;
+        justify-content: center;
+    }
+    
+    .bulk-actions-buttons .btn {
+        font-size: 0.75rem;
+        padding: 8px 12px;
+    }
+}
+
+/* Animation for showing/hiding */
+.bulk-actions-container.show {
+    animation: slideUp 0.3s ease-out;
+}
+
+.bulk-actions-container.hide {
+    animation: slideDown 0.3s ease-in;
+}
+
+@keyframes slideUp {
+    from {
+        transform: translateX(-50%) translateY(100%);
+        opacity: 0;
+    }
+    to {
+        transform: translateX(-50%) translateY(0);
+        opacity: 1;
+    }
+}
+
+@keyframes slideDown {
+    from {
+        transform: translateX(-50%) translateY(0);
+        opacity: 1;
+    }
+    to {
+        transform: translateX(-50%) translateY(100%);
+        opacity: 0;
+    }
+}
+
+@media (max-width: 768px) {
+    @keyframes slideUp {
+        from {
+            transform: translateY(100%);
+            opacity: 0;
+        }
+        to {
+            transform: translateY(0);
+            opacity: 1;
+        }
+    }
+    
+    @keyframes slideDown {
+        from {
+            transform: translateY(0);
+            opacity: 1;
+        }
+        to {
+            transform: translateY(100%);
+            opacity: 0;
+        }
+    }
+}
+</style>
+
+<script>
+// Bulk Actions JavaScript
+class BulkActionsManager {
+    constructor(tableId, options = {}) {
+        this.tableId = tableId;
+        this.table = document.getElementById(tableId);
+        this.container = document.getElementById('bulkActionsContainer');
+        this.selectedCount = document.getElementById('selectedCount');
+        this.selectAllBtn = document.getElementById('selectAllBtn');
+        this.deselectAllBtn = document.getElementById('deselectAllBtn');
+        this.clearSelectionBtn = document.getElementById('clearSelectionBtn');
+        this.bulkActionsMenu = document.getElementById('bulkActionsMenu');
+        
+        this.options = {
+            actions: options.actions || [],
+            onSelectionChange: options.onSelectionChange || null,
+            onAction: options.onAction || null,
+            ...options
+        };
+        
+        this.selectedItems = new Set();
+        this.init();
+    }
+    
+    init() {
+        if (!this.table) return;
+        
+        this.setupTable();
+        this.setupEventListeners();
+        this.populateActions();
+    }
+    
+    setupTable() {
+        // Add checkboxes to table rows
+        const tbody = this.table.querySelector('tbody');
+        if (!tbody) return;
+        
+        const rows = tbody.querySelectorAll('tr');
+        rows.forEach((row, index) => {
+            const checkbox = document.createElement('td');
+            checkbox.innerHTML = `
+                <div class="form-check">
+                    <input class="form-check-input bulk-checkbox" type="checkbox" 
+                           value="${index}" data-row-id="${row.dataset.id || index}">
+                </div>
+            `;
+            row.insertBefore(checkbox, row.firstChild);
+        });
+        
+        // Add header checkbox
+        const thead = this.table.querySelector('thead');
+        if (thead) {
+            const headerRow = thead.querySelector('tr');
+            const headerCheckbox = document.createElement('th');
+            headerCheckbox.innerHTML = `
+                <div class="form-check">
+                    <input class="form-check-input" type="checkbox" id="selectAllHeader">
+                </div>
+            `;
+            headerRow.insertBefore(headerCheckbox, headerRow.firstChild);
+        }
+    }
+    
+    setupEventListeners() {
+        // Individual checkboxes
+        this.table.addEventListener('change', (e) => {
+            if (e.target.classList.contains('bulk-checkbox')) {
+                this.handleCheckboxChange(e.target);
+            }
+        });
+        
+        // Header checkbox
+        const selectAllHeader = document.getElementById('selectAllHeader');
+        if (selectAllHeader) {
+            selectAllHeader.addEventListener('change', (e) => {
+                this.handleSelectAllChange(e.target.checked);
+            });
+        }
+        
+        // Action buttons
+        this.selectAllBtn.addEventListener('click', () => this.selectAll());
+        this.deselectAllBtn.addEventListener('click', () => this.deselectAll());
+        this.clearSelectionBtn.addEventListener('click', () => this.clearSelection());
+        
+        // Action menu items
+        this.bulkActionsMenu.addEventListener('click', (e) => {
+            if (e.target.classList.contains('dropdown-item')) {
+                e.preventDefault();
+                const action = e.target.dataset.action;
+                this.executeAction(action);
+            }
+        });
+    }
+    
+    populateActions() {
+        this.bulkActionsMenu.innerHTML = '';
+        
+        this.options.actions.forEach(action => {
+            const li = document.createElement('li');
+            li.innerHTML = `
+                <a class="dropdown-item ${action.danger ? 'danger' : ''}" 
+                   href="#" data-action="${action.id}">
+                    <i class="${action.icon}"></i>
+                    ${action.label}
+                </a>
+            `;
+            this.bulkActionsMenu.appendChild(li);
+        });
+    }
+    
+    handleCheckboxChange(checkbox) {
+        const rowId = checkbox.dataset.rowId;
+        
+        if (checkbox.checked) {
+            this.selectedItems.add(rowId);
+        } else {
+            this.selectedItems.delete(rowId);
+        }
+        
+        this.updateUI();
+    }
+    
+    handleSelectAllChange(checked) {
+        const checkboxes = this.table.querySelectorAll('.bulk-checkbox');
+        checkboxes.forEach(checkbox => {
+            checkbox.checked = checked;
+            const rowId = checkbox.dataset.rowId;
+            
+            if (checked) {
+                this.selectedItems.add(rowId);
+            } else {
+                this.selectedItems.delete(rowId);
+            }
+        });
+        
+        this.updateUI();
+    }
+    
+    selectAll() {
+        const checkboxes = this.table.querySelectorAll('.bulk-checkbox');
+        checkboxes.forEach(checkbox => {
+            checkbox.checked = true;
+            this.selectedItems.add(checkbox.dataset.rowId);
+        });
+        this.updateUI();
+    }
+    
+    deselectAll() {
+        const checkboxes = this.table.querySelectorAll('.bulk-checkbox');
+        checkboxes.forEach(checkbox => {
+            checkbox.checked = false;
+        });
+        this.selectedItems.clear();
+        this.updateUI();
+    }
+    
+    clearSelection() {
+        this.deselectAll();
+        this.hide();
+    }
+    
+    updateUI() {
+        const count = this.selectedItems.size;
+        this.selectedCount.textContent = count;
+        
+        if (count > 0) {
+            this.show();
+        } else {
+            this.hide();
+        }
+        
+        // Update header checkbox state
+        const selectAllHeader = document.getElementById('selectAllHeader');
+        if (selectAllHeader) {
+            const totalCheckboxes = this.table.querySelectorAll('.bulk-checkbox').length;
+            selectAllHeader.checked = count === totalCheckboxes;
+            selectAllHeader.indeterminate = count > 0 && count < totalCheckboxes;
+        }
+        
+        // Callback
+        if (this.options.onSelectionChange) {
+            this.options.onSelectionChange(Array.from(this.selectedItems));
+        }
+    }
+    
+    show() {
+        this.container.style.display = 'block';
+        this.container.classList.add('show');
+        this.container.classList.remove('hide');
+    }
+    
+    hide() {
+        this.container.classList.add('hide');
+        this.container.classList.remove('show');
+        setTimeout(() => {
+            if (this.container.classList.contains('hide')) {
+                this.container.style.display = 'none';
+            }
+        }, 300);
+    }
+    
+    executeAction(actionId) {
+        const action = this.options.actions.find(a => a.id === actionId);
+        if (!action) return;
+        
+        if (this.options.onAction) {
+            this.options.onAction(actionId, Array.from(this.selectedItems));
+        } else {
+            console.log(`Executing action: ${actionId} on items:`, Array.from(this.selectedItems));
+        }
+    }
+    
+    getSelectedItems() {
+        return Array.from(this.selectedItems);
+    }
+    
+    clear() {
+        this.selectedItems.clear();
+        this.deselectAll();
+        this.hide();
+    }
+}
+
+// Global function to initialize bulk actions
+window.initBulkActions = function(tableId, options) {
+    return new BulkActionsManager(tableId, options);
+};
+</script>

@@ -1,0 +1,121 @@
+{% extends "base.html" %}
+
+{% block title %}Add Cash to Advance - HostelFlow{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Page Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h1 class="h3 mb-0">Add Cash to Advance</h1>
+            <p class="text-muted mb-0">Add more cash to {{ advance.staff_name }}'s advance</p>
+        </div>
+        <div class="d-flex gap-2">
+            <a href="{{ url_for('finance_suppliers.view_cash_advance', advance_id=advance.id) }}" class="btn btn-modern btn-outline-secondary">
+                <i class="fas fa-arrow-left me-2"></i>Back to Details
+            </a>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-lg-8">
+            <!-- Add Cash Form -->
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-plus-circle me-2"></i>Add Cash to Advance
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <!-- Current Advance Info -->
+                    <div class="alert alert-info mb-4">
+                        <h6><i class="fas fa-info-circle me-2"></i>Current Advance Details</h6>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <strong>Staff Member:</strong> {{ advance.staff_name }}<br>
+                                <strong>Purpose:</strong> {{ advance.purpose }}<br>
+                                <strong>Date Given:</strong> {{ advance.date_given.strftime('%B %d, %Y') }}
+                            </div>
+                            <div class="col-md-6">
+                                <strong>Current Amount:</strong> 
+                                <span class="text-warning fw-bold fs-5">{{ "%.0f"|format(advance.amount) }} MAD</span><br>
+                                <strong>Status:</strong> 
+                                {% if advance.status == 'pending' %}
+                                    <span class="badge bg-warning">Pending</span>
+                                {% elif advance.status == 'partially_used' %}
+                                    <span class="badge bg-info">Partially Used</span>
+                                {% elif advance.status == 'completed' %}
+                                    <span class="badge bg-success">Completed</span>
+                                {% elif advance.status == 'overdue' %}
+                                    <span class="badge bg-danger">Overdue</span>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+
+                    <form method="POST">
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="amount" class="form-label">Additional Amount (MAD) *</label>
+                                <input type="number" class="form-control" id="amount" name="amount" 
+                                       step="0.01" min="0.01" required>
+                                <div class="form-text">Amount of additional cash to add</div>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="description" class="form-label">Description</label>
+                                <input type="text" class="form-control" id="description" name="description" 
+                                       placeholder="Reason for adding cash (optional)">
+                                <div class="form-text">Optional description for this addition</div>
+                            </div>
+                        </div>
+
+                        <div class="d-flex gap-2">
+                            <button type="submit" class="btn btn-warning">
+                                <i class="fas fa-plus me-2"></i>Add Cash to Advance
+                            </button>
+                            <a href="{{ url_for('finance_suppliers.view_cash_advance', advance_id=advance.id) }}" class="btn btn-outline-secondary">
+                                <i class="fas fa-times me-2"></i>Cancel
+                            </a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-4">
+            <!-- Guidelines -->
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-lightbulb me-2"></i>Guidelines
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="alert alert-info">
+                        <h6><i class="fas fa-info-circle me-2"></i>Adding Cash</h6>
+                        <ul class="mb-0">
+                            <li>This will increase the total available amount</li>
+                            <li>Status will change from "Completed" to "Partially Used" if needed</li>
+                            <li>Transaction will be recorded in history</li>
+                            <li>Staff can continue making purchases</li>
+                        </ul>
+                    </div>
+                    
+                    <div class="alert alert-warning">
+                        <h6><i class="fas fa-exclamation-triangle me-2"></i>Important</h6>
+                        <p class="mb-0">Make sure to coordinate with the staff member about the additional cash before adding it to their advance.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.btn-modern {
+    border-radius: 10px;
+    font-weight: 500;
+    padding: 0.5rem 1rem;
+}
+</style>
+{% endblock %}

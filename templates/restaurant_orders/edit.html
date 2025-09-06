@@ -1,0 +1,297 @@
+{% extends "base.html" %}
+
+{% block title %}Edit Restaurant Order - HostelFlow{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Header Section -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h1 class="h3 mb-0">✏️ Edit Restaurant Order</h1>
+            <p class="text-muted">Modify meal order details</p>
+        </div>
+        <div>
+            <a href="{{ url_for('restaurant_orders.index') }}" class="btn btn-outline-secondary">
+                <i class="fas fa-arrow-left"></i> Back to Orders
+            </a>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-lg-8">
+            <!-- Order Form -->
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">Order Details</h5>
+                </div>
+                <div class="card-body">
+                    <form method="POST" id="orderForm">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="tenant_id" class="form-label">Guest *</label>
+                                    <select name="tenant_id" id="tenant_id" class="form-select" required>
+                                        <option value="">Select a guest</option>
+                                        {% for tenant in tenants %}
+                                        <option value="{{ tenant.id }}" {% if tenant.id == order.tenant_id %}selected{% endif %}>
+                                            {{ tenant.name }} 
+                                            {% if tenant.room_number %}
+                                                (Room {{ tenant.room_number }})
+                                            {% else %}
+                                                (No room assigned)
+                                            {% endif %}
+                                        </option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="service_id" class="form-label">Service/Meal *</label>
+                                    <select name="service_id" id="service_id" class="form-select" required>
+                                        <option value="">Select a service</option>
+                                        {% for service in services %}
+                                        <option value="{{ service.id }}" 
+                                                data-price="{{ service.price }}"
+                                                data-category="{{ service.meal_category or 'general' }}"
+                                                {% if service.id == order.service_id %}selected{% endif %}>
+                                            {{ service.name }} 
+                                            {% if service.price > 0 %}
+                                                - {{ service.price }} MAD
+                                            {% endif %}
+                                        </option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="order_date" class="form-label">Order Date *</label>
+                                    <input type="date" name="order_date" id="order_date" 
+                                           class="form-control" required 
+                                           value="{{ order.order_date.isoformat() }}">
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="meal_time" class="form-label">Meal Time *</label>
+                                    <select name="meal_time" id="meal_time" class="form-select" required>
+                                        <option value="">Select meal time</option>
+                                        <option value="breakfast" {% if order.meal_time == 'breakfast' %}selected{% endif %}>Breakfast</option>
+                                        <option value="lunch" {% if order.meal_time == 'lunch' %}selected{% endif %}>Lunch</option>
+                                        <option value="dinner" {% if order.meal_time == 'dinner' %}selected{% endif %}>Dinner</option>
+                                        <option value="snack" {% if order.meal_time == 'snack' %}selected{% endif %}>Snack</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="quantity" class="form-label">Quantity</label>
+                                    <input type="number" name="quantity" id="quantity" 
+                                           class="form-control" value="{{ order.quantity }}" min="1" max="10">
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="status" class="form-label">Status</label>
+                                    <select name="status" id="status" class="form-select">
+                                        <option value="pending" {% if order.status == 'pending' %}selected{% endif %}>Pending</option>
+                                        <option value="preparing" {% if order.status == 'preparing' %}selected{% endif %}>Preparing</option>
+                                        <option value="ready" {% if order.status == 'ready' %}selected{% endif %}>Ready</option>
+                                        <option value="served" {% if order.status == 'served' %}selected{% endif %}>Served</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="special_requests" class="form-label">Special Requests</label>
+                            <textarea name="special_requests" id="special_requests" 
+                                      class="form-control" rows="3" 
+                                      placeholder="e.g., Vegetarian, No onions, Extra spicy, etc.">{{ order.special_requests or '' }}</textarea>
+                        </div>
+
+                        <div class="d-flex justify-content-between">
+                            <a href="{{ url_for('restaurant_orders.index') }}" class="btn btn-secondary">
+                                Cancel
+                            </a>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-save"></i> Update Order
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-4">
+            <!-- Order Information -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h6 class="mb-0">📋 Order Information</h6>
+                </div>
+                <div class="card-body">
+                    <div class="text-center">
+                        <i class="fas fa-receipt fa-2x text-primary mb-2"></i>
+                        <h6 class="mb-1">Order #{{ order.id }}</h6>
+                        <p class="mb-1"><strong>Created:</strong> {{ order.created_at.strftime('%Y-%m-%d %H:%M') }}</p>
+                        <p class="mb-0"><strong>Status:</strong> 
+                            <span class="badge 
+                                {% if order.status == 'pending' %}bg-warning
+                                {% elif order.status == 'preparing' %}bg-info
+                                {% elif order.status == 'ready' %}bg-success
+                                {% elif order.status == 'served' %}bg-secondary
+                                {% else %}bg-light text-dark{% endif %}">
+                                {{ order.status.title() }}
+                            </span>
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Guest Information -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h6 class="mb-0">👤 Guest Information</h6>
+                </div>
+                <div class="card-body" id="guestInfo">
+                    <div class="text-center">
+                        <i class="fas fa-user fa-2x text-primary mb-2"></i>
+                        <h6 class="mb-1">{{ order.tenant.name }}</h6>
+                        <p class="mb-1"><strong>Room:</strong> {{ order.tenant.room_number or 'No room assigned' }}</p>
+                        <p class="mb-0"><strong>Phone:</strong> {{ order.tenant.phone or 'Not provided' }}</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Service Information -->
+            <div class="card">
+                <div class="card-header">
+                    <h6 class="mb-0">🍽️ Service Details</h6>
+                </div>
+                <div class="card-body" id="serviceInfo">
+                    <div class="text-center">
+                        <i class="fas fa-utensils fa-2x text-success mb-2"></i>
+                        <h6 class="mb-1">{{ order.service.name }}</h6>
+                        <p class="mb-1"><strong>Price:</strong> {{ order.service.price }} MAD</p>
+                        <p class="mb-0"><strong>Category:</strong> {{ order.service.meal_category or 'general' }}</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const tenantSelect = document.getElementById('tenant_id');
+    const serviceSelect = document.getElementById('service_id');
+    const quantityInput = document.getElementById('quantity');
+    const mealTimeSelect = document.getElementById('meal_time');
+
+    // Load guest information
+    function loadGuestInfo(tenantId) {
+        if (!tenantId) {
+            document.getElementById('guestInfo').innerHTML = `
+                <div class="text-center text-muted py-4">
+                    <i class="fas fa-user fa-2x mb-2"></i>
+                    <p>Select a guest to view details</p>
+                </div>
+            `;
+            return;
+        }
+
+        // Find the selected tenant from the options
+        const selectedOption = tenantSelect.options[tenantSelect.selectedIndex];
+        const tenantName = selectedOption.text;
+        
+        document.getElementById('guestInfo').innerHTML = `
+            <div class="text-center">
+                <i class="fas fa-user fa-2x text-primary mb-2"></i>
+                <h6 class="mb-1">${tenantName}</h6>
+                <small class="text-muted">Guest selected</small>
+            </div>
+        `;
+    }
+
+    // Load service information
+    function loadServiceInfo(serviceId) {
+        if (!serviceId) {
+            document.getElementById('serviceInfo').innerHTML = `
+                <div class="text-center text-muted py-4">
+                    <i class="fas fa-utensils fa-2x mb-2"></i>
+                    <p>Select a service to view details</p>
+                </div>
+            `;
+            return;
+        }
+
+        const selectedOption = serviceSelect.options[serviceSelect.selectedIndex];
+        const serviceName = selectedOption.text;
+        const price = selectedOption.dataset.price || '0';
+        const category = selectedOption.dataset.category || 'general';
+        
+        document.getElementById('serviceInfo').innerHTML = `
+            <div class="text-center">
+                <i class="fas fa-utensils fa-2x text-success mb-2"></i>
+                <h6 class="mb-1">${serviceName}</h6>
+                <p class="mb-1"><strong>Price:</strong> ${price} MAD</p>
+                <p class="mb-0"><strong>Category:</strong> ${category}</p>
+            </div>
+        `;
+    }
+
+    // Auto-select meal time based on service category
+    function autoSelectMealTime() {
+        const selectedOption = serviceSelect.options[serviceSelect.selectedIndex];
+        const category = selectedOption.dataset.category;
+        
+        if (category && mealTimeSelect.value === '') {
+            if (category === 'breakfast') {
+                mealTimeSelect.value = 'breakfast';
+            } else if (category === 'dinner') {
+                mealTimeSelect.value = 'dinner';
+            } else if (category === 'lunch') {
+                mealTimeSelect.value = 'lunch';
+            }
+        }
+    }
+
+    // Event listeners
+    tenantSelect.addEventListener('change', function() {
+        loadGuestInfo(this.value);
+    });
+
+    serviceSelect.addEventListener('change', function() {
+        loadServiceInfo(this.value);
+        autoSelectMealTime();
+    });
+
+    // Form validation
+    document.getElementById('orderForm').addEventListener('submit', function(e) {
+        const tenantId = tenantSelect.value;
+        const serviceId = serviceSelect.value;
+        const orderDate = document.getElementById('order_date').value;
+        const mealTime = mealTimeSelect.value;
+
+        if (!tenantId || !serviceId || !orderDate || !mealTime) {
+            e.preventDefault();
+            alert('Please fill in all required fields.');
+            return false;
+        }
+    });
+
+    // Initialize
+    loadGuestInfo(tenantSelect.value);
+    loadServiceInfo(serviceSelect.value);
+});
+</script>
+{% endblock %}

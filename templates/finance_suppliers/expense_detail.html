@@ -1,0 +1,141 @@
+{% extends "base.html" %}
+
+{% block title %}Expense Details - Finance & Suppliers{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Page Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h1 class="h3 mb-0">Expense Details</h1>
+            <p class="text-muted mb-0">View expense information</p>
+        </div>
+        <div class="d-flex gap-2">
+            <a href="{{ url_for('finance_suppliers.expenses') }}" class="btn btn-modern btn-outline-secondary">
+                <i class="fas fa-arrow-left me-2"></i>Back to Expenses
+            </a>
+            <a href="{{ url_for('finance_suppliers.edit_expense', expense_id=expense.id) }}" class="btn btn-modern btn-warning">
+                <i class="fas fa-edit me-2"></i>Edit Expense
+            </a>
+        </div>
+    </div>
+
+    <!-- Expense Details -->
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-receipt me-2"></i>Expense Information
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label fw-bold">Description</label>
+                                <p class="form-control-plaintext">{{ expense.description }}</p>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label fw-bold">Amount</label>
+                                <p class="form-control-plaintext text-danger fw-bold">
+                                    {{ "%.2f"|format(expense.amount) }} MAD
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label fw-bold">Category</label>
+                                <p class="form-control-plaintext">
+                                    <span class="badge bg-light text-dark">{{ expense.category|title }}</span>
+                                </p>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label fw-bold">Date</label>
+                                <p class="form-control-plaintext">{{ expense.date.strftime('%B %d, %Y') }}</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label fw-bold">Payment Method</label>
+                                <p class="form-control-plaintext">
+                                    <span class="badge bg-info">{{ expense.payment_method|title if expense.payment_method else 'Not specified' }}</span>
+                                </p>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label fw-bold">Supplier/Vendor</label>
+                                <p class="form-control-plaintext">{{ expense.vendor or 'Not specified' }}</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    {% if expense.notes %}
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Notes</label>
+                        <p class="form-control-plaintext">{{ expense.notes }}</p>
+                    </div>
+                    {% endif %}
+
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label fw-bold">Created By</label>
+                                <p class="form-control-plaintext">{{ expense.created_by or 'System' }}</p>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label fw-bold">Created At</label>
+                                <p class="form-control-plaintext">
+                                    {% if expense.created_at %}
+                                        {{ expense.created_at.strftime('%B %d, %Y at %I:%M %p') }}
+                                    {% else %}
+                                        Not available
+                                    {% endif %}
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Custom CSS -->
+<style>
+.btn-modern {
+    border-radius: 10px;
+    font-weight: 500;
+    padding: 0.5rem 1rem;
+}
+
+.card {
+    border: none;
+    border-radius: 15px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+}
+
+.form-control-plaintext {
+    padding: 0.375rem 0;
+    margin-bottom: 0;
+    line-height: 1.5;
+    color: #212529;
+    background-color: transparent;
+    border: solid transparent;
+    border-width: 1px 0;
+}
+</style>
+{% endblock %}

@@ -1,0 +1,438 @@
+{% extends "base.html" %}
+
+{% block page_title %}Inventory Report{% endblock %}
+
+{% block page_actions %}
+<a href="{{ url_for('reports.export_inventory') }}" class="btn btn-outline-primary">
+    <i class="fas fa-download me-2"></i>Export Inventory
+</a>
+{% endblock %}
+
+{% block content %}
+<!-- Inventory Summary Cards -->
+<div class="row mb-4">
+    <div class="col-md-3">
+        <div class="card bg-primary text-white">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h4>{{ items|length }}</h4>
+                        <p class="mb-0">Total Items</p>
+                    </div>
+                    <div class="align-self-center">
+                        <i class="fas fa-boxes fa-2x"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-3">
+        <div class="card bg-danger text-white">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h4>{{ out_of_stock_items|length }}</h4>
+                        <p class="mb-0">Out of Stock</p>
+                    </div>
+                    <div class="align-self-center">
+                        <i class="fas fa-times-circle fa-2x"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-3">
+        <div class="card bg-warning text-dark">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h4>{{ low_stock_items|length }}</h4>
+                        <p class="mb-0">Low Stock</p>
+                    </div>
+                    <div class="align-self-center">
+                        <i class="fas fa-exclamation-triangle fa-2x"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-3">
+        <div class="card bg-success text-white">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h4>{{ "%.2f"|format(total_value) }} MAD</h4>
+                        <p class="mb-0">Total Value</p>
+                    </div>
+                    <div class="align-self-center">
+                        <i class="fas fa-dollar-sign fa-2x"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Alerts Section -->
+{% if out_of_stock_items or low_stock_items %}
+<div class="row mb-4">
+    {% if out_of_stock_items %}
+    <div class="col-md-6">
+        <div class="card border-danger">
+            <div class="card-header bg-danger text-white">
+                <h5 class="card-title mb-0">
+                    <i class="fas fa-times-circle me-2"></i>Out of Stock Items
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="list-group list-group-flush">
+                    {% for item in out_of_stock_items %}
+                    <div class="list-group-item d-flex justify-content-between align-items-center">
+                        <div>
+                            <strong>{{ item.name }}</strong>
+                            <br><small class="text-muted">{{ item.category.replace('_', ' ').title() }}</small>
+                        </div>
+                        <span class="badge bg-danger">0 {{ item.unit }}</span>
+                    </div>
+                    {% endfor %}
+                </div>
+                <div class="text-center mt-3">
+                    <button type="button" class="btn btn-outline-danger btn-sm" onclick="showStockAlert('out')">
+                        <i class="fas fa-bell me-2"></i>Alert Manager
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+    
+    {% if low_stock_items %}
+    <div class="col-md-6">
+        <div class="card border-warning">
+            <div class="card-header bg-warning text-dark">
+                <h5 class="card-title mb-0">
+                    <i class="fas fa-exclamation-triangle me-2"></i>Low Stock Items
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="list-group list-group-flush">
+                    {% for item in low_stock_items %}
+                    <div class="list-group-item d-flex justify-content-between align-items-center">
+                        <div>
+                            <strong>{{ item.name }}</strong>
+                            <br><small class="text-muted">Min: {{ item.minimum_stock|int }} {{ item.unit }}</small>
+                        </div>
+                        <span class="badge bg-warning text-dark">{{ item.current_stock|int }} {{ item.unit }}</span>
+                    </div>
+                    {% endfor %}
+                </div>
+                <div class="text-center mt-3">
+                    <button type="button" class="btn btn-outline-warning btn-sm" onclick="showStockAlert('low')">
+                        <i class="fas fa-bell me-2"></i>Alert Manager
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endif %}
+
+<!-- Inventory by Category -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">Inventory by Category</h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    {% for category, category_items in categories.items() %}
+                    <div class="col-md-6 col-lg-4 mb-4">
+                        <div class="card border">
+                            <div class="card-header bg-light">
+                                <h6 class="card-title mb-0">
+                                    <i class="fas fa-tag me-2"></i>{{ category.replace('_', ' ').title() }}
+                                </h6>
+                            </div>
+                            <div class="card-body p-3">
+                                {% if category_items %}
+                                <div class="mb-2">
+                                    <small class="text-muted">{{ category_items|length }} items</small>
+                                </div>
+                                <div class="progress mb-2" style="height: 5px;">
+                                    {% set well_stocked = 0 %}
+                                    {% for item in category_items %}
+                                        {% if item.current_stock > item.minimum_stock %}
+                                            {% set well_stocked = well_stocked + 1 %}
+                                        {% endif %}
+                                    {% endfor %}
+                                    {% set total_items = category_items|length %}
+                                    <div class="progress-bar bg-success" role="progressbar" 
+                                         style="width: {{ (well_stocked/total_items*100)|round(1) if total_items > 0 else 0 }}%">
+                                    </div>
+                                </div>
+                                <div class="row text-center">
+                                    <div class="col-6">
+                                        <div class="border-end">
+                                            <strong class="text-success">{{ category_items|sum(attribute='current_stock')|round(1) }}</strong>
+                                            <br><small class="text-muted">Total Stock</small>
+                                        </div>
+                                    </div>
+                                    <div class="col-6">
+                                        <strong class="text-primary">{{ "%.0f"|format(category_items|sum(attribute='total_value')) }} MAD</strong>
+                                        <br><small class="text-muted">Value</small>
+                                    </div>
+                                </div>
+                                {% else %}
+                                <p class="text-muted text-center">No items</p>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Detailed Inventory Table -->
+<div class="card">
+    <div class="card-header">
+        <h5 class="card-title mb-0">Detailed Inventory Report</h5>
+    </div>
+    <div class="card-body">
+        {% if items %}
+        <div class="table-responsive">
+            <table class="table table-striped table-hover">
+                <thead>
+                    <tr>
+                        <th>Item Name</th>
+                        <th>Category</th>
+                        <th>Current Stock</th>
+                        <th>Min. Stock</th>
+                        <th>Cost/Unit</th>
+                        <th>Total Value</th>
+                        <th>Status</th>
+                        <th>Last Purchased</th>
+                        <th>Supplier</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for item in items %}
+                    <tr class="{% if item.current_stock <= 0 %}table-danger{% elif item.current_stock <= item.minimum_stock %}table-warning{% endif %}">
+                        <td>
+                            <strong>{{ item.name }}</strong>
+                        </td>
+                        <td>
+                            <span class="badge bg-primary">{{ item.category.replace('_', ' ').title() }}</span>
+                        </td>
+                        <td>
+                            <strong>{{ item.current_stock|int }} {{ item.unit }}</strong>
+                        </td>
+                        <td>{{ item.minimum_stock|int }} {{ item.unit }}</td>
+                        <td>{{ "%.2f"|format(item.cost_per_unit) }} MAD</td>
+                        <td><strong>{{ "%.2f"|format(item.total_value) }} MAD</strong></td>
+                        <td>
+                            {% if item.current_stock <= 0 %}
+                                <span class="badge bg-danger">Out of Stock</span>
+                            {% elif item.current_stock <= item.minimum_stock %}
+                                <span class="badge bg-warning text-dark">Low Stock</span>
+                            {% else %}
+                                <span class="badge bg-success">In Stock</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if item.last_purchased %}
+                                {{ item.last_purchased.strftime('%Y-%m-%d') }}
+                            {% else %}
+                                <span class="text-muted">Never</span>
+                            {% endif %}
+                        </td>
+                        <td>{{ item.supplier or '-' }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+                <tfoot>
+                    <tr class="table-info">
+                        <td colspan="5"><strong>Total Inventory Value:</strong></td>
+                        <td><strong>{{ "%.2f"|format(total_value) }} MAD</strong></td>
+                        <td colspan="3"></td>
+                    </tr>
+                </tfoot>
+            </table>
+        </div>
+        
+        {% else %}
+        <div class="text-center py-4">
+            <i class="fas fa-boxes fa-3x text-muted mb-3"></i>
+            <h5 class="text-muted">No Inventory Items</h5>
+            <p class="text-muted">No items found in the inventory system.</p>
+            <a href="{{ url_for('inventory.add') }}" class="btn btn-primary">
+                <i class="fas fa-plus me-2"></i>Add First Item
+            </a>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Inventory Insights -->
+<div class="row mt-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="fas fa-lightbulb me-2"></i>Inventory Insights
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-4">
+                        <div class="border-start border-success border-4 ps-3">
+                            <h6 class="text-success">Stock Health</h6>
+                            {% set well_stocked = 0 %}
+                            {% for item in items %}
+                                {% if item.current_stock > 0 and item.current_stock > item.minimum_stock %}
+                                    {% set well_stocked = well_stocked + 1 %}
+                                {% endif %}
+                            {% endfor %}
+                            <p class="mb-1">
+                                <strong>Well Stocked:</strong> {{ well_stocked }}/{{ items|length }} items
+                            </p>
+                            <small class="text-muted">{{ "%.1f"|format((well_stocked/items|length*100) if items else 0) }}% of items have adequate stock</small>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="border-start border-warning border-4 ps-3">
+                            <h6 class="text-warning">Reorder Priority</h6>
+                            {% if out_of_stock_items %}
+                                <p class="mb-1"><strong>Immediate:</strong> {{ out_of_stock_items|length }} items</p>
+                                <small class="text-muted">These items need urgent restocking</small>
+                            {% elif low_stock_items %}
+                                <p class="mb-1"><strong>Soon:</strong> {{ low_stock_items|length }} items</p>
+                                <small class="text-muted">Plan to restock these items</small>
+                            {% else %}
+                                <p class="mb-1"><strong>Status:</strong> <span class="text-success">All Good</span></p>
+                                <small class="text-muted">No immediate restocking needed</small>
+                            {% endif %}
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="border-start border-info border-4 ps-3">
+                            <h6 class="text-info">Investment</h6>
+                            {% if items %}
+                                {% set highest_value_item = items|max(attribute='total_value') %}
+                                <p class="mb-1"><strong>Highest Value:</strong> {{ highest_value_item.name }}</p>
+                                <small class="text-muted">{{ "%.2f"|format(highest_value_item.total_value) }} MAD in stock</small>
+                            {% else %}
+                                <small class="text-muted">No inventory data available</small>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Quick Actions -->
+<div class="row mt-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">Quick Actions</h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-3">
+                        <div class="d-grid">
+                            <a href="{{ url_for('inventory.add') }}" class="btn btn-primary">
+                                <i class="fas fa-plus me-2"></i>Add New Item
+                            </a>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="d-grid">
+                            <button type="button" class="btn btn-outline-warning" onclick="showRestockList()">
+                                <i class="fas fa-shopping-cart me-2"></i>Restock List
+                            </button>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="d-grid">
+                            <a href="{{ url_for('reports.export_inventory') }}" class="btn btn-outline-info">
+                                <i class="fas fa-download me-2"></i>Export Report
+                            </a>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="d-grid">
+                            <a href="{{ url_for('inventory.index') }}" class="btn btn-outline-secondary">
+                                <i class="fas fa-boxes me-2"></i>Manage Inventory
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function showStockAlert(type) {
+    let message = '';
+    if (type === 'out') {
+        message = '{{ out_of_stock_items|length }} item(s) are completely out of stock and need immediate restocking.';
+    } else if (type === 'low') {
+        message = '{{ low_stock_items|length }} item(s) have fallen below minimum stock levels and should be restocked soon.';
+    }
+    
+    alert(message + '\n\nConsider creating purchase orders for these items.');
+}
+
+function showRestockList() {
+    const outOfStock = {{ out_of_stock_items|length }};
+    const lowStock = {{ low_stock_items|length }};
+    
+    if (outOfStock > 0 || lowStock > 0) {
+        let message = 'Restock Recommendations:\n\n';
+        if (outOfStock > 0) {
+            message += `URGENT: ${outOfStock} items are out of stock\n`;
+        }
+        if (lowStock > 0) {
+            message += `SOON: ${lowStock} items are running low\n`;
+        }
+        message += '\nCheck the alerts above for specific items to reorder.';
+        alert(message);
+    } else {
+        alert('Great news! All inventory items are well stocked. No immediate restocking needed.');
+    }
+}
+
+// Sort table functionality
+function sortTable(columnIndex) {
+    const table = document.querySelector('table tbody');
+    const rows = Array.from(table.rows);
+    
+    rows.sort((a, b) => {
+        const aVal = a.cells[columnIndex].textContent.trim();
+        const bVal = b.cells[columnIndex].textContent.trim();
+        
+        // Try to sort as numbers for value columns
+        if (columnIndex === 5) { // Total Value column
+            return parseFloat(aVal.replace('$', '')) - parseFloat(bVal.replace('$', ''));
+        }
+        
+        return aVal.localeCompare(bVal);
+    });
+    
+    rows.forEach(row => table.appendChild(row));
+}
+</script>
+{% endblock %}

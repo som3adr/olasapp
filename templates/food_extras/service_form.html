@@ -1,0 +1,230 @@
+{% extends "base.html" %}
+
+{% block title %}{% if service %}Edit Service{% else %}Add Service{% endif %} - Food & Extras{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Page Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h1 class="h3 mb-0">{% if service %}Edit Service{% else %}Add New Service{% endif %}</h1>
+            <p class="text-muted mb-0">{% if service %}Update service information{% else %}Create a new food service, meal plan, or extra service{% endif %}</p>
+        </div>
+        <div class="d-flex gap-2">
+            {% if service %}
+                <a href="{{ url_for('food_extras.view_service', service_id=service.id) }}" class="btn btn-modern btn-outline-secondary">
+                    <i class="fas fa-arrow-left me-2"></i>Back to Service
+                </a>
+            {% else %}
+                <a href="{{ url_for('food_extras.services') }}" class="btn btn-modern btn-outline-secondary">
+                    <i class="fas fa-arrow-left me-2"></i>Back to Services
+                </a>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Service Form -->
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">
+                        <i class="{% if service %}fas fa-edit{% else %}fas fa-plus{% endif %} me-2"></i>{% if service %}Service Information{% else %}Service Information{% endif %}
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <form method="POST" id="serviceForm">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="name" class="form-label">Service Name *</label>
+                                    <input type="text" class="form-control" id="name" name="name" value="{{ service.name if service else '' }}" required>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="service_type" class="form-label">Service Type *</label>
+                                    <select class="form-select" id="service_type" name="service_type" required>
+                                        <option value="">Select Type</option>
+                                        <option value="restaurant" {% if service and service.service_type == 'restaurant' %}selected{% endif %}>Restaurant</option>
+                                        <option value="laundry" {% if service and service.service_type == 'laundry' %}selected{% endif %}>Laundry</option>
+                                        <option value="other" {% if service and service.service_type == 'other' %}selected{% endif %}>Other</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="meal_category" class="form-label">Meal Category</label>
+                                    <select class="form-select" id="meal_category" name="meal_category">
+                                        <option value="">Select Category</option>
+                                        <option value="breakfast" {% if service and service.meal_category == 'breakfast' %}selected{% endif %}>Breakfast</option>
+                                        <option value="lunch" {% if service and service.meal_category == 'lunch' %}selected{% endif %}>Lunch</option>
+                                        <option value="dinner" {% if service and service.meal_category == 'dinner' %}selected{% endif %}>Dinner</option>
+                                        <option value="snack" {% if service and service.meal_category == 'snack' %}selected{% endif %}>Snack</option>
+                                        <option value="drinks" {% if service and service.meal_category == 'drinks' %}selected{% endif %}>Drinks</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="preparation_time" class="form-label">Preparation Time (minutes)</label>
+                                    <input type="number" class="form-control" id="preparation_time" name="preparation_time" min="0" step="5" value="{{ service.preparation_time if service else '' }}">
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="price" class="form-label">Price (MAD) *</label>
+                                    <input type="number" class="form-control" id="price" name="price" min="0" step="0.01" value="{{ "%.2f"|format(service.price) if service else '' }}" required>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="is_active" class="form-label">Service Status</label>
+                                    <div class="form-check form-switch">
+                                        <input class="form-check-input" type="checkbox" id="is_active" name="is_active" {% if not service or service.is_active %}checked{% endif %}>
+                                        <label class="form-check-label" for="is_active">Active</label>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="description" class="form-label">Description</label>
+                            <textarea class="form-control" id="description" name="description" rows="3" placeholder="Describe the service, ingredients, or special notes...">{{ service.description if service else '' }}</textarea>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="ingredients" class="form-label">Ingredients (optional)</label>
+                                    <textarea class="form-control" id="ingredients" name="ingredients" rows="2" placeholder="List main ingredients...">{{ service.ingredients if service else '' }}</textarea>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="allergens" class="form-label">Allergens (optional)</label>
+                                    <textarea class="form-control" id="allergens" name="allergens" rows="2" placeholder="List allergens...">{{ service.allergens if service else '' }}</textarea>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="dietary_restrictions" class="form-label">Dietary Restrictions</label>
+                            <div class="row">
+                                <div class="col-md-3">
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" id="vegetarian" name="dietary_restrictions" value="vegetarian" {% if service and 'vegetarian' in (service.dietary_restrictions or '') %}checked{% endif %}>
+                                        <label class="form-check-label" for="vegetarian">Vegetarian</label>
+                                    </div>
+                                </div>
+                                <div class="col-md-3">
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" id="vegan" name="dietary_restrictions" value="vegan" {% if service and 'vegan' in (service.dietary_restrictions or '') %}checked{% endif %}>
+                                        <label class="form-check-label" for="vegan">Vegan</label>
+                                    </div>
+                                </div>
+                                <div class="col-md-3">
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" id="gluten_free" name="dietary_restrictions" value="gluten-free" {% if service and 'gluten-free' in (service.dietary_restrictions or '') %}checked{% endif %}>
+                                        <label class="form-check-label" for="gluten_free">Gluten-Free</label>
+                                    </div>
+                                </div>
+                                <div class="col-md-3">
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" id="halal" name="dietary_restrictions" value="halal" {% if service and 'halal' in (service.dietary_restrictions or '') %}checked{% endif %}>
+                                        <label class="form-check-label" for="halal">Halal</label>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="d-flex gap-2">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-save me-2"></i>{% if service %}Update Service{% else %}Create Service{% endif %}
+                            </button>
+                            {% if service %}
+                                <a href="{{ url_for('food_extras.view_service', service_id=service.id) }}" class="btn btn-outline-secondary">
+                                    <i class="fas fa-times me-2"></i>Cancel
+                                </a>
+                            {% else %}
+                                <a href="{{ url_for('food_extras.services') }}" class="btn btn-outline-secondary">
+                                    <i class="fas fa-times me-2"></i>Cancel
+                                </a>
+                            {% endif %}
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Custom CSS -->
+<style>
+.btn-modern {
+    border-radius: 10px;
+    font-weight: 500;
+    padding: 0.5rem 1rem;
+}
+
+.card {
+    border: none;
+    border-radius: 15px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+}
+</style>
+
+<!-- JavaScript -->
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const serviceType = document.getElementById('service_type');
+    const mealCategory = document.getElementById('meal_category');
+    const preparationTime = document.getElementById('preparation_time');
+    
+    function toggleMealFields() {
+        if (serviceType.value === 'restaurant') {
+            mealCategory.parentElement.style.display = 'block';
+            preparationTime.parentElement.style.display = 'block';
+            mealCategory.required = true;
+            preparationTime.required = false;
+        } else {
+            mealCategory.parentElement.style.display = 'none';
+            preparationTime.parentElement.style.display = 'block';
+            mealCategory.required = false;
+            preparationTime.required = false;
+        }
+    }
+    
+    // Initial setup
+    toggleMealFields();
+    
+    // Listen for changes
+    serviceType.addEventListener('change', toggleMealFields);
+});
+
+// Form validation
+document.getElementById('serviceForm').addEventListener('submit', function(e) {
+    const name = document.getElementById('name').value.trim();
+    const price = document.getElementById('price').value;
+    const serviceType = document.getElementById('service_type').value;
+    
+    if (!name || !price || !serviceType) {
+        e.preventDefault();
+        alert('Please fill in all required fields.');
+        return false;
+    }
+    
+    if (parseFloat(price) <= 0) {
+        e.preventDefault();
+        alert('Price must be greater than 0.');
+        return false;
+    }
+});
+</script>
+{% endblock %}

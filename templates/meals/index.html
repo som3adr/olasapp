@@ -1,0 +1,388 @@
+{% extends "base.html" %}
+
+{% block page_title %}Meal Plan Tracking{% endblock %}
+
+{% block page_subtitle %}
+<p class="text-muted mb-0">Kitchen staff can view daily meal requirements for guests</p>
+{% endblock %}
+
+{% block page_actions %}
+<div class="d-flex gap-2 align-items-center">
+    <div class="input-group" style="width: 200px;">
+        <span class="input-group-text">
+            <i class="fas fa-calendar-alt"></i>
+        </span>
+        <input type="date" class="form-control" id="datePicker" value="{{ selected_date.isoformat() }}">
+    </div>
+    <a href="/meals/daily/{{ selected_date.isoformat() }}" class="btn btn-modern btn-primary">
+        <i class="fas fa-edit me-2"></i>Daily Management
+    </a>
+    <button class="btn btn-modern btn-outline-primary" onclick="printMealPlan()">
+        <i class="fas fa-print me-2"></i>Print
+    </button>
+    <button class="btn btn-modern btn-outline-success" onclick="exportToCSV()">
+        <i class="fas fa-download me-2"></i>Export
+    </button>
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Summary Cards -->
+    <div class="row mb-4">
+        <div class="col-md-6">
+            <div class="dashboard-card bg-warning">
+                <div class="card-body text-center">
+                    <div class="d-flex align-items-center justify-content-center mb-3">
+                        <div class="bg-white bg-opacity-20 rounded-circle p-3 me-3">
+                            <i class="fas fa-sun fa-2x text-white"></i>
+                        </div>
+                        <div>
+                            <h3 class="mb-0 text-white">{{ breakfast_count }}</h3>
+                            <p class="mb-0 text-white-50">Breakfasts Today</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="dashboard-card bg-info">
+                <div class="card-body text-center">
+                    <div class="d-flex align-items-center justify-content-center mb-3">
+                        <div class="bg-white bg-opacity-20 rounded-circle p-3 me-3">
+                            <i class="fas fa-moon fa-2x text-white"></i>
+                        </div>
+                        <div>
+                            <h3 class="mb-0 text-white">{{ dinner_count }}</h3>
+                            <p class="mb-0 text-white-50">Dinners Today</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Meal Tabs -->
+    <div class="card">
+        <div class="card-header">
+            <ul class="nav nav-tabs card-header-tabs" id="mealTabs" role="tablist">
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link active" id="breakfast-tab" data-bs-toggle="tab" data-bs-target="#breakfast" type="button" role="tab">
+                        <i class="fas fa-sun me-2"></i>Breakfast
+                        <span class="badge bg-warning ms-2">{{ breakfast_count }}</span>
+                    </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="dinner-tab" data-bs-toggle="tab" data-bs-target="#dinner" type="button" role="tab">
+                        <i class="fas fa-moon me-2"></i>Dinner
+                        <span class="badge bg-info ms-2">{{ dinner_count }}</span>
+                    </button>
+                </li>
+            </ul>
+        </div>
+        
+        <div class="card-body">
+            <div class="tab-content" id="mealTabsContent">
+                <!-- Breakfast Tab -->
+                <div class="tab-pane fade show active" id="breakfast" role="tabpanel">
+                    {% if breakfast_services %}
+                        <div class="table-responsive">
+                            <table class="table table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>Guest Name</th>
+                                        <th>Room</th>
+                                        <th>Bed</th>
+                                        <th>Check In</th>
+                                        <th>Check Out</th>
+                                        <th>Quantity</th>
+                                        <th>Unit Price</th>
+                                        <th>Total</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for service in breakfast_services %}
+                                    <tr>
+                                        <td>
+                                            <div class="d-flex align-items-center">
+                                                <div class="bg-warning bg-opacity-10 rounded-circle p-2 me-3">
+                                                    <i class="fas fa-user text-warning"></i>
+                                                </div>
+                                                <div>
+                                                    <strong>{{ service.Tenant.name }}</strong>
+                                                </div>
+                                            </div>
+                                        </td>
+                                        <td>
+                                            <span class="badge bg-primary">{{ service.Tenant.room_number }}</span>
+                                        </td>
+                                        <td>
+                                            <span class="badge bg-secondary">-</span>
+                                        </td>
+                                        <td>{{ service.Stay.start_date.strftime('%Y-%m-%d') if service.Stay.start_date else 'N/A' }}</td>
+                                        <td>{{ service.Stay.end_date.strftime('%Y-%m-%d') if service.Stay.end_date else 'Ongoing' }}</td>
+                                        <td>
+                                            <span class="badge bg-warning">{{ service.TenantService.quantity }}</span>
+                                        </td>
+                                        <td>{{ "%.2f"|format(service.TenantService.unit_price) }} MAD</td>
+                                        <td>
+                                            <strong>{{ "%.2f"|format(service.TenantService.quantity * service.TenantService.unit_price) }} MAD</strong>
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    {% else %}
+                        <div class="text-center py-5">
+                            <div class="bg-warning bg-opacity-10 rounded-circle d-inline-flex p-4 mb-3">
+                                <i class="fas fa-sun fa-3x text-warning"></i>
+                            </div>
+                            <h5 class="text-muted">No Breakfast Services Today</h5>
+                            <p class="text-muted">No guests have breakfast service scheduled for {{ selected_date.strftime('%B %d, %Y') }}</p>
+                        </div>
+                    {% endif %}
+                </div>
+
+                <!-- Dinner Tab -->
+                <div class="tab-pane fade" id="dinner" role="tabpanel">
+                    {% if dinner_services %}
+                        <div class="table-responsive">
+                            <table class="table table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>Guest Name</th>
+                                        <th>Room</th>
+                                        <th>Bed</th>
+                                        <th>Check In</th>
+                                        <th>Check Out</th>
+                                        <th>Quantity</th>
+                                        <th>Unit Price</th>
+                                        <th>Total</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for service in dinner_services %}
+                                    <tr>
+                                        <td>
+                                            <div class="d-flex align-items-center">
+                                                <div class="bg-info bg-opacity-10 rounded-circle p-2 me-3">
+                                                    <i class="fas fa-user text-info"></i>
+                                                </div>
+                                                <div>
+                                                    <strong>{{ service.Tenant.name }}</strong>
+                                                </div>
+                                            </div>
+                                        </td>
+                                        <td>
+                                            <span class="badge bg-primary">{{ service.Tenant.room_number }}</span>
+                                        </td>
+                                        <td>
+                                            <span class="badge bg-secondary">-</span>
+                                        </td>
+                                        <td>{{ service.Stay.start_date.strftime('%Y-%m-%d') if service.Stay.start_date else 'N/A' }}</td>
+                                        <td>{{ service.Stay.end_date.strftime('%Y-%m-%d') if service.Stay.end_date else 'Ongoing' }}</td>
+                                        <td>
+                                            <span class="badge bg-info">{{ service.TenantService.quantity }}</span>
+                                        </td>
+                                        <td>{{ "%.2f"|format(service.TenantService.unit_price) }} MAD</td>
+                                        <td>
+                                            <strong>{{ "%.2f"|format(service.TenantService.quantity * service.TenantService.unit_price) }} MAD</strong>
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    {% else %}
+                        <div class="text-center py-5">
+                            <div class="bg-info bg-opacity-10 rounded-circle d-inline-flex p-4 mb-3">
+                                <i class="fas fa-moon fa-3x text-info"></i>
+                            </div>
+                            <h5 class="text-muted">No Dinner Services Today</h5>
+                            <p class="text-muted">No guests have dinner service scheduled for {{ selected_date.strftime('%B %d, %Y') }}</p>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Kitchen Notes Section -->
+    <div class="row mt-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h6 class="mb-0">
+                        <i class="fas fa-clipboard me-2"></i>Kitchen Notes
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h6 class="text-warning">
+                                <i class="fas fa-sun me-2"></i>Breakfast Preparation
+                            </h6>
+                            <ul class="list-unstyled">
+                                <li>• Total breakfasts needed: <strong>{{ breakfast_count }}</strong></li>
+                                <li>• Prepare by: <strong>7:00 AM</strong></li>
+                                <li>• Include: Coffee, bread, eggs, fruits</li>
+                            </ul>
+                        </div>
+                        <div class="col-md-6">
+                            <h6 class="text-info">
+                                <i class="fas fa-moon me-2"></i>Dinner Preparation
+                            </h6>
+                            <ul class="list-unstyled">
+                                <li>• Total dinners needed: <strong>{{ dinner_count }}</strong></li>
+                                <li>• Prepare by: <strong>6:00 PM</strong></li>
+                                <li>• Include: Main course, sides, dessert</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const datePicker = document.getElementById('datePicker');
+    
+    // Update meal data when date changes
+    datePicker.addEventListener('change', function() {
+        const selectedDate = this.value;
+        updateMealData(selectedDate);
+    });
+    
+    // Function to update meal data via API
+    async function updateMealData(dateStr) {
+        try {
+            const response = await fetch(`/meals/api/meal-data/${dateStr}`);
+            if (!response.ok) {
+                throw new Error('Failed to fetch meal data');
+            }
+            
+            const data = await response.json();
+            
+            // Update breakfast count
+            const breakfastBadge = document.querySelector('#breakfast-tab .badge');
+            if (breakfastBadge) {
+                breakfastBadge.textContent = data.breakfast.count;
+            }
+            
+            // Update dinner count
+            const dinnerBadge = document.querySelector('#dinner-tab .badge');
+            if (dinnerBadge) {
+                dinnerBadge.textContent = data.dinner.count;
+            }
+            
+            // Update summary cards
+            const breakfastCard = document.querySelector('.bg-warning h3');
+            if (breakfastCard) {
+                breakfastCard.textContent = data.breakfast.count;
+            }
+            
+            const dinnerCard = document.querySelector('.bg-info h3');
+            if (dinnerCard) {
+                dinnerCard.textContent = data.dinner.count;
+            }
+            
+            // Reload page to show updated data
+            window.location.href = `/meals/?date=${dateStr}`;
+            
+        } catch (error) {
+            console.error('Error updating meal data:', error);
+        }
+    }
+});
+
+// Print meal plan
+function printMealPlan() {
+    const printContent = document.querySelector('.container-fluid').innerHTML;
+    const printWindow = window.open('', '_blank');
+    printWindow.document.write(`
+        <html>
+            <head>
+                <title>Meal Plan - ${new Date().toLocaleDateString()}</title>
+                <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+                <style>
+                    body { font-family: Arial, sans-serif; }
+                    .no-print { display: none !important; }
+                    .table { font-size: 12px; }
+                </style>
+            </head>
+            <body>
+                <div class="container-fluid">
+                    <h2 class="text-center mb-4">Daily Meal Plan</h2>
+                    <p class="text-center mb-4">Date: ${new Date().toLocaleDateString()}</p>
+                    ${printContent}
+                </div>
+            </body>
+        </html>
+    `);
+    printWindow.document.close();
+    printWindow.print();
+}
+
+// Export to CSV
+function exportToCSV() {
+    const selectedDate = document.getElementById('datePicker').value;
+    const breakfastTab = document.getElementById('breakfast');
+    const dinnerTab = document.getElementById('dinner');
+    
+    let csvContent = `Meal Plan - ${selectedDate}\n\n`;
+    
+    // Breakfast data
+    csvContent += 'BREAKFAST\n';
+    csvContent += 'Guest Name,Room,Bed,Check In,Check Out,Quantity,Unit Price,Total\n';
+    
+    const breakfastRows = breakfastTab.querySelectorAll('tbody tr');
+    breakfastRows.forEach(row => {
+        const cells = row.querySelectorAll('td');
+        const rowData = [];
+        cells.forEach(cell => {
+            // Extract text content, removing HTML tags
+            let text = cell.textContent.trim();
+            // Handle badges and special formatting
+            if (cell.querySelector('.badge')) {
+                text = cell.querySelector('.badge').textContent.trim();
+            }
+            rowData.push(`"${text}"`);
+        });
+        csvContent += rowData.join(',') + '\n';
+    });
+    
+    csvContent += '\nDINNER\n';
+    csvContent += 'Guest Name,Room,Bed,Check In,Check Out,Quantity,Unit Price,Total\n';
+    
+    const dinnerRows = dinnerTab.querySelectorAll('tbody tr');
+    dinnerRows.forEach(row => {
+        const cells = row.querySelectorAll('td');
+        const rowData = [];
+        cells.forEach(cell => {
+            let text = cell.textContent.trim();
+            if (cell.querySelector('.badge')) {
+                text = cell.querySelector('.badge').textContent.trim();
+            }
+            rowData.push(`"${text}"`);
+        });
+        csvContent += rowData.join(',') + '\n';
+    });
+    
+    // Create and download CSV file
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    const url = URL.createObjectURL(blob);
+    link.setAttribute('href', url);
+    link.setAttribute('download', `meal-plan-${selectedDate}.csv`);
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+}
+</script>
+{% endblock %}

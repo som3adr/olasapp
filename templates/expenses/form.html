@@ -1,0 +1,117 @@
+{% extends "base.html" %}
+
+{% block page_title %}{% if expense %}Edit Expense{% else %}Add Expense{% endif %}{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    {% if expense %}
+                        <i class="fas fa-edit me-2"></i>Edit Expense
+                    {% else %}
+                        <i class="fas fa-plus me-2"></i>Add New Expense
+                    {% endif %}
+                </h5>
+            </div>
+            <div class="card-body">
+                <form method="POST">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="description" class="form-label">Description *</label>
+                                <input type="text" class="form-control" id="description" name="description" 
+                                       value="{{ expense.description if expense else '' }}" required>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="amount" class="form-label">Amount *</label>
+                                <div class="input-group">
+                                    <span class="input-group-text">MAD</span>
+                                    <input type="number" class="form-control" id="amount" name="amount" 
+                                           step="0.01" min="0" value="{{ expense.amount if expense else '' }}" required>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="category" class="form-label">Category *</label>
+                                <select class="form-select" id="category" name="category" required>
+                                    <option value="">Select Category</option>
+                                    {% for cat in categories %}
+                                    <option value="{{ cat }}" {% if expense and expense.category == cat %}selected{% endif %}>
+                                        {{ cat.replace('_', ' ').title() }}
+                                    </option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="date" class="form-label">Date *</label>
+                                <input type="date" class="form-control" id="date" name="date" 
+                                       value="{{ expense.date.strftime('%Y-%m-%d') if expense else '' }}" required>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="vendor" class="form-label">Vendor/Supplier</label>
+                                <input type="text" class="form-control" id="vendor" name="vendor" 
+                                       value="{{ expense.vendor if expense else '' }}" 
+                                       placeholder="e.g., Grocery Store, Electric Company">
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="hostel_name" class="form-label">Hostel</label>
+                                <select class="form-select" id="hostel_name" name="hostel_name">
+                                    <option value="">Select Hostel</option>
+                                    <option value="Olas" {% if expense and expense.hostel_name == 'Olas' %}selected{% endif %}>Olas</option>
+                                    <option value="Tide" {% if expense and expense.hostel_name == 'Tide' %}selected{% endif %}>Tide</option>
+                                    <option value="General" {% if expense and expense.hostel_name == 'General' %}selected{% endif %}>General</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="notes" class="form-label">Notes</label>
+                        <textarea class="form-control" id="notes" name="notes" rows="3" 
+                                  placeholder="Additional details about this expense">{{ expense.notes if expense else '' }}</textarea>
+                    </div>
+                    
+                    <div class="d-flex justify-content-between">
+                        <a href="{{ url_for('expenses.index') }}" class="btn btn-modern btn-secondary">
+                            <i class="fas fa-times me-2"></i>Cancel
+                        </a>
+                        <button type="submit" class="btn btn-modern btn-primary">
+                            {% if expense %}
+                                <i class="fas fa-save me-2"></i>Update Expense
+                            {% else %}
+                                <i class="fas fa-plus me-2"></i>Add Expense
+                            {% endif %}
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+// Set default date to today if adding new expense
+{% if not expense %}
+document.getElementById('date').valueAsDate = new Date();
+{% endif %}
+</script>
+{% endblock %}

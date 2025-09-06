@@ -1,0 +1,247 @@
+{% extends "base.html" %}
+
+{% block title %}{{ tenant.name }} - Payments - HostelFlow{% endblock %}
+
+{% block page_title %}Guest Payments{% endblock %}
+
+{% block page_subtitle %}
+<p class="text-muted mb-0">Manage payments for {{ tenant.name }}</p>
+{% endblock %}
+
+{% block page_actions %}
+<div class="d-flex gap-2">
+    <button type="button" class="btn btn-modern btn-primary" data-bs-toggle="modal" data-bs-target="#addPaymentModal">
+        <i class="fas fa-plus me-2"></i>Add Payment
+    </button>
+    <a href="{{ url_for('guests.view', tenant_id=tenant.id) }}" class="btn btn-modern btn-outline-secondary">
+        <i class="fas fa-arrow-left me-2"></i>Back to Guest
+    </a>
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-lg-8">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="fas fa-credit-card me-2"></i>Payment History
+                </h5>
+            </div>
+            <div class="card-body">
+                {% if payments %}
+                <div class="table-responsive">
+                    <table class="table">
+                        <thead>
+                            <tr>
+                                <th>Date</th>
+                                <th>Type</th>
+                                <th>Amount</th>
+                                <th>Notes</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for payment in payments %}
+                            <tr>
+                                <td>{{ payment.payment_date.strftime('%b %d, %Y') }}</td>
+                                <td>
+                                    <span class="badge bg-primary">{{ payment.payment_type|title }}</span>
+                                </td>
+                                <td>
+                                    <strong class="text-success">{{ "%.0f"|format(payment.amount) }} MAD</strong>
+                                </td>
+                                <td>{{ payment.notes or '-' }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <div class="text-center py-4">
+                    <p class="text-muted">No payments found for this guest.</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-4">
+        <div class="card">
+            <div class="card-header">
+                <h6 class="mb-0">Payment Summary</h6>
+            </div>
+            <div class="card-body">
+                {% set total_paid = payments|sum(attribute='amount') %}
+                
+                {# Calculate duration using same logic as guest view page #}
+                {% if tenant.end_date %}
+                    {% set duration_days = (tenant.end_date - tenant.start_date).days %}
+                {% else %}
+                    {% set duration_days = (today - tenant.start_date).days %}
+                {% endif %}
+                
+                {# Use pre-calculated extra services total from backend #}
+                
+                {# Calculate total due using same logic as guest view page (room charges + extra services) #}
+                {% if tenant.is_prepaid %}
+                    {# For prepaid guests, room charges are 0 for the original stay #}
+                    {% set room_charges = 0 %}
+                {% else %}
+                    {# For regular guests, calculate room charges normally #}
+                    {% set room_charges = tenant.daily_rent * duration_days %}
+                {% endif %}
+                {% set total_due = room_charges + extra_services_total %}
+                {% set balance = total_due - total_paid %}
+                
+                <div class="row mb-2">
+                    <div class="col-6">Room Charges:</div>
+                    <div class="col-6 text-end">{{ "%.0f"|format(room_charges) }} MAD</div>
+                </div>
+                {% if extra_services_total > 0 %}
+                <div class="row mb-2">
+                    <div class="col-6">Extra Services:</div>
+                    <div class="col-6 text-end">{{ "%.0f"|format(extra_services_total) }} MAD</div>
+                </div>
+                {% endif %}
+                <div class="row mb-2">
+                    <div class="col-6"><strong>Total Due:</strong></div>
+                    <div class="col-6 text-end"><strong>{{ "%.0f"|format(total_due) }} MAD</strong></div>
+                </div>
+                <div class="row mb-2">
+                    <div class="col-6">Total Paid:</div>
+                    <div class="col-6 text-end text-success">{{ "%.0f"|format(total_paid) }} MAD</div>
+                </div>
+                <hr>
+                <div class="row">
+                    <div class="col-6"><strong>Balance:</strong></div>
+                    <div class="col-6 text-end">
+                        {% if balance > 0 %}
+                            <span class="text-danger">{{ "%.0f"|format(balance) }} MAD</span>
+                        {% else %}
+                            <span class="text-success">Paid in Full</span>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Add Payment Modal -->
+<div class="modal fade" id="addPaymentModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Add Payment for {{ tenant.name }}</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="POST" action="{{ url_for('guests.add_payment', tenant_id=tenant.id) }}" id="paymentForm">
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="amount" class="form-label">Amount (MAD) *</label>
+                        <input type="number" class="form-control" id="amount" name="amount" 
+                               min="0.01" step="0.01" required>
+                        <div class="form-text">Enter the payment amount in MAD</div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="payment_date" class="form-label">Payment Date *</label>
+                        <input type="date" class="form-control" id="payment_date" name="payment_date" 
+                               value="{{ today }}" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="notes" class="form-label">Notes</label>
+                        <textarea class="form-control" id="notes" name="notes" rows="3" 
+                                  placeholder="Optional notes about this payment"></textarea>
+                    </div>
+                    <!-- Hidden field for created_by -->
+                    <input type="hidden" name="created_by" value="{{ current_user.id }}">
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-save me-2"></i>Add Payment
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Set today's date as default for payment date
+    const today = new Date().toISOString().split('T')[0];
+    document.getElementById('payment_date').value = today;
+    
+    // Auto-fill amount with outstanding balance when modal opens
+    const addPaymentModal = document.getElementById('addPaymentModal');
+    const amountInput = document.getElementById('amount');
+    
+    // Calculate outstanding balance using same logic as payment summary
+    {% set total_paid = payments|sum(attribute='amount') %}
+    {% if tenant.end_date %}
+        {% set duration_days = (tenant.end_date - tenant.start_date).days %}
+    {% else %}
+        {% set duration_days = (today - tenant.start_date).days %}
+    {% endif %}
+    
+    {# Use pre-calculated extra services total from backend #}
+    
+    {# Calculate total due (room charges + extra services) #}
+    {% set room_charges = tenant.daily_rent * duration_days %}
+    {% set total_due = room_charges + extra_services_total %}
+    {% set balance = total_due - total_paid %}
+    
+    const outstandingBalance = {{ balance if balance > 0 else 0 }};
+    
+    addPaymentModal.addEventListener('show.bs.modal', function() {
+        // Auto-fill with outstanding balance if there's a balance due
+        if (outstandingBalance > 0) {
+            amountInput.value = outstandingBalance.toFixed(2);
+        } else {
+            amountInput.value = '';
+        }
+    });
+    
+    // Add "Fill Full Amount" button functionality
+    const fillFullAmountBtn = document.createElement('button');
+    fillFullAmountBtn.type = 'button';
+    fillFullAmountBtn.className = 'btn btn-outline-primary btn-sm mt-2';
+    fillFullAmountBtn.innerHTML = '<i class="fas fa-calculator me-1"></i>Fill Full Amount';
+    fillFullAmountBtn.onclick = function() {
+        if (outstandingBalance > 0) {
+            amountInput.value = outstandingBalance.toFixed(2);
+        } else {
+            amountInput.value = '';
+            alert('No outstanding balance to fill.');
+        }
+    };
+    
+    // Insert the button after the amount input
+    amountInput.parentNode.appendChild(fillFullAmountBtn);
+    
+    // Form validation
+    const paymentForm = document.getElementById('paymentForm');
+    paymentForm.addEventListener('submit', function(e) {
+        const amount = parseFloat(document.getElementById('amount').value);
+        const paymentDate = document.getElementById('payment_date').value;
+        
+        if (!amount || amount <= 0) {
+            e.preventDefault();
+            alert('Please enter a valid amount greater than 0.');
+            return false;
+        }
+        
+        if (!paymentDate) {
+            e.preventDefault();
+            alert('Please select a payment date.');
+            return false;
+        }
+        
+        return true;
+    });
+});
+</script>
+{% endblock %}

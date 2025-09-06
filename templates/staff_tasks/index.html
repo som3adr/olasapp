@@ -1,0 +1,363 @@
+{% extends "base.html" %}
+
+{% block title %}Staff Tasks - HostelFlow{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Page Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h1 class="h3 mb-0">Staff Tasks & Notes</h1>
+            <p class="text-muted mb-0">Manage daily tasks, assignments, and staff notes</p>
+        </div>
+        <div class="d-flex gap-2">
+            <a href="{{ url_for('staff_tasks.tasks_list') }}" class="btn btn-modern btn-outline-primary">
+                <i class="fas fa-tasks me-2"></i>View All Tasks
+            </a>
+            <a href="{{ url_for('staff_tasks.add_task') }}" class="btn btn-modern btn-primary">
+                <i class="fas fa-plus me-2"></i>Add Task
+            </a>
+        </div>
+    </div>
+
+    <!-- Quick Stats Row -->
+    <div class="row g-3 mb-4">
+        <div class="col-xl-3 col-md-6">
+            <div class="card stat-card">
+                <div class="card-body">
+                    <div class="d-flex align-items-center">
+                        <div class="stat-icon bg-primary">
+                            <i class="fas fa-tasks"></i>
+                        </div>
+                        <div class="ms-3">
+                            <h3 class="mb-1 fw-bold">{{ user_tasks|length }}</h3>
+                            <p class="mb-0 small opacity-90">My Tasks</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-xl-3 col-md-6">
+            <div class="card stat-card">
+                <div class="card-body">
+                    <div class="d-flex align-items-center">
+                        <div class="stat-icon bg-warning">
+                            <i class="fas fa-clock"></i>
+                        </div>
+                        <div class="ms-3">
+                            <h3 class="mb-1 fw-bold">{{ user_tasks|selectattr('status', 'equalto', 'pending')|list|length }}</h3>
+                            <p class="mb-0 small opacity-90">Pending</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-xl-3 col-md-6">
+            <div class="card stat-card">
+                <div class="card-body">
+                    <div class="d-flex align-items-center">
+                        <div class="stat-icon bg-success">
+                            <i class="fas fa-check-circle"></i>
+                        </div>
+                        <div class="ms-3">
+                            <h3 class="mb-1 fw-bold">{{ user_tasks|selectattr('status', 'equalto', 'completed')|list|length }}</h3>
+                            <p class="mb-0 small opacity-90">Completed</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-xl-3 col-md-6">
+            <div class="card stat-card">
+                <div class="card-body">
+                    <div class="d-flex align-items-center">
+                        <div class="stat-icon bg-info">
+                            <i class="fas fa-sticky-note"></i>
+                        </div>
+                        <div class="ms-3">
+                            <h3 class="mb-1 fw-bold">{{ user_notes|length }}</h3>
+                            <p class="mb-0 small opacity-90">My Notes</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- My Tasks -->
+        <div class="col-lg-8">
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-tasks me-2"></i>My Tasks
+                    </h5>
+                </div>
+                <div class="card-body">
+                    {% if user_tasks %}
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Task</th>
+                                    <th>Priority</th>
+                                    <th>Due Date</th>
+                                    <th>Status</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for task in user_tasks %}
+                                <tr>
+                                    <td>
+                                        <div>
+                                            <strong>{{ task.title }}</strong>
+                                            {% if task.description %}
+                                            <br><small class="text-muted">{{ task.description }}</small>
+                                            {% endif %}
+                                        </div>
+                                    </td>
+                                    <td>
+                                        {% if task.priority == 'high' %}
+                                            <span class="badge bg-danger">High</span>
+                                        {% elif task.priority == 'medium' %}
+                                            <span class="badge bg-warning">Medium</span>
+                                        {% else %}
+                                            <span class="badge bg-info">Low</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if task.due_date %}
+                                            <small class="text-muted">
+                                                {{ task.due_date.strftime('%b %d, %Y') }}
+                                            </small>
+                                        {% else %}
+                                            <span class="text-muted">No due date</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if task.status == 'pending' %}
+                                            <span class="badge bg-warning">Pending</span>
+                                        {% elif task.status == 'in_progress' %}
+                                            <span class="badge bg-info">In Progress</span>
+                                        {% else %}
+                                            <span class="badge bg-success">Completed</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <div class="btn-group btn-group-sm" role="group">
+                                            <button type="button" class="btn btn-outline-primary" title="View Details">
+                                                <i class="fas fa-eye"></i>
+                                            </button>
+                                            <button type="button" class="btn btn-outline-warning" title="Edit">
+                                                <i class="fas fa-edit"></i>
+                                            </button>
+                                            {% if task.status != 'completed' %}
+                                            <button type="button" class="btn btn-outline-success" title="Mark Complete">
+                                                <i class="fas fa-check"></i>
+                                            </button>
+                                            {% endif %}
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <div class="text-center py-4">
+                        <i class="fas fa-tasks fa-3x text-muted mb-3"></i>
+                        <h6 class="text-muted">No tasks assigned</h6>
+                        <p class="text-muted mb-0">You're all caught up! No pending tasks.</p>
+                        <a href="{{ url_for('staff_tasks.add_task') }}" class="btn btn-primary mt-3">
+                            <i class="fas fa-plus me-2"></i>Add New Task
+                        </a>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- My Notes -->
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-sticky-note me-2"></i>My Notes
+                    </h5>
+                </div>
+                <div class="card-body">
+                    {% if user_notes %}
+                    <div class="row">
+                        {% for note in user_notes %}
+                        <div class="col-md-6 mb-3">
+                            <div class="card border-light">
+                                <div class="card-body">
+                                    <h6 class="card-title">{{ note.title }}</h6>
+                                    <p class="card-text small">{{ note.content[:100] }}{% if note.content|length > 100 %}...{% endif %}</p>
+                                    <small class="text-muted">{{ note.created_at.strftime('%b %d, %Y %H:%M') }}</small>
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% else %}
+                    <div class="text-center py-4">
+                        <i class="fas fa-sticky-note fa-3x text-muted mb-3"></i>
+                        <h6 class="text-muted">No notes yet</h6>
+                        <p class="text-muted mb-0">Start taking notes to keep track of important information.</p>
+                        <a href="{{ url_for('staff_tasks.add_note') }}" class="btn btn-primary mt-3">
+                            <i class="fas fa-plus me-2"></i>Add Note
+                        </a>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Quick Actions & Info -->
+        <div class="col-lg-4">
+            <!-- Quick Actions -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h6 class="card-title mb-0">
+                        <i class="fas fa-bolt me-2"></i>Quick Actions
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <div class="d-grid gap-2">
+                        <a href="{{ url_for('staff_tasks.add_task') }}" class="btn btn-outline-primary btn-sm">
+                            <i class="fas fa-plus me-2"></i>Add New Task
+                        </a>
+                        <a href="{{ url_for('staff_tasks.add_note') }}" class="btn btn-outline-secondary btn-sm">
+                            <i class="fas fa-sticky-note me-2"></i>Add Note
+                        </a>
+                        <a href="{{ url_for('staff_tasks.tasks_list') }}" class="btn btn-outline-info btn-sm">
+                            <i class="fas fa-list me-2"></i>View All Tasks
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Task Summary -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h6 class="card-title mb-0">
+                        <i class="fas fa-chart-pie me-2"></i>Task Summary
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <div class="d-flex justify-content-between">
+                            <span class="text-muted">Total Tasks:</span>
+                            <span class="fw-bold">{{ user_tasks|length }}</span>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <div class="d-flex justify-content-between">
+                            <span class="text-muted">Pending:</span>
+                            <span class="fw-bold text-warning">{{ user_tasks|selectattr('status', 'equalto', 'pending')|list|length }}</span>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <div class="d-flex justify-content-between">
+                            <span class="text-muted">In Progress:</span>
+                            <span class="fw-bold text-info">{{ user_tasks|selectattr('status', 'equalto', 'in_progress')|list|length }}</span>
+                        </div>
+                    </div>
+                    <div class="mb-0">
+                        <div class="d-flex justify-content-between">
+                            <span class="text-muted">Completed:</span>
+                            <span class="fw-bold text-success">{{ user_tasks|selectattr('status', 'equalto', 'completed')|list|length }}</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Recent Activity -->
+            <div class="card">
+                <div class="card-header">
+                    <h6 class="card-title mb-0">
+                        <i class="fas fa-history me-2"></i>Recent Activity
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <div class="timeline">
+                        {% for task in user_tasks[:5] %}
+                        <div class="timeline-item mb-3">
+                            <div class="timeline-marker bg-primary"></div>
+                            <div class="timeline-content">
+                                <small class="text-muted">{{ task.created_at.strftime('%b %d, %H:%M') }}</small>
+                                <p class="mb-0 small">{{ task.title }}</p>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Custom CSS -->
+<style>
+.stat-card {
+    border: none;
+    border-radius: 15px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    transition: transform 0.2s;
+}
+
+.stat-card:hover {
+    transform: translateY(-2px);
+}
+
+.stat-icon {
+    width: 50px;
+    height: 50px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 1.2rem;
+}
+
+.btn-modern {
+    border-radius: 10px;
+    font-weight: 500;
+    padding: 0.5rem 1rem;
+}
+
+.timeline {
+    position: relative;
+}
+
+.timeline-item {
+    position: relative;
+    padding-left: 20px;
+}
+
+.timeline-marker {
+    position: absolute;
+    left: 0;
+    top: 5px;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+}
+
+.timeline-content {
+    margin-left: 10px;
+}
+</style>
+
+<!-- JavaScript -->
+<script>
+// Auto-refresh page every 5 minutes to show updated tasks
+setTimeout(function() {
+    location.reload();
+}, 300000);
+</script>
+{% endblock %}
